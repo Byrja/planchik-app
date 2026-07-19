@@ -13,15 +13,125 @@
     playing:  { label: 'Игральные',     deck: () => window.DECK_PLAYING,   hint: 'Колода 36' }
   };
 
-  // Маппинг соответствия колод для расклада «Совместимость»
-  // Используется одна колода на двоих, но с двойным набором карт
-  const SPREAD_DECK_HINT = {
-    one:   'Классическое гадание. Сосредоточьтесь на вопросе — и вытяните карту.',
-    three: 'Три карты — это три точки во времени. Не гадайте чаще, чем раз в день.',
-    yesno: 'Простой вопрос — простой ответ. Карта скажет «да», «нет» или «подожди».',
-    cross: 'Кельтский крест — серьёзный расклад. Не используйте его для бытовых вопросов.',
-    love:  'Карта покажет, что вас соединяет, а что разъединяет.'
+  // ── Все расклады Архангела ──────────────────────────────
+  // Каждый: { count, ask, positions? (для кросс-раскладов), help? }
+  // positions — массив меток для каждой карты
+  const SPREADS = {
+    one: {
+      count: 1,
+      ask: 'Сосредоточьтесь на вопросе и вытяните карту.',
+      title: 'Одна карта',
+      icon: '✦',
+      hint: 'Классика. Один вопрос — один ответ.'
+    },
+    three: {
+      count: 3,
+      ask: 'Задайте вопрос о развитии ситуации. Три карты — прошлое, настоящее и будущее.',
+      title: 'Три карты',
+      icon: '⫶',
+      positions: ['Прошлое', 'Настоящее', 'Будущее'],
+      hint: 'Не гадайте чаще, чем раз в день.'
+    },
+    yesno: {
+      count: 1,
+      ask: 'Сформулируйте вопрос, на который можно ответить «да» или «нет».',
+      title: 'Да или Нет',
+      icon: '⨯',
+      hint: 'Карта скажет «да», «нет» или «подожди».'
+    },
+    cross: {
+      count: 10,
+      ask: 'Кельтский крест — глубокий расклад. Используйте для важных жизненных вопросов.',
+      title: 'Кельтский крест',
+      icon: '✚',
+      positions: [
+        'Ситуация', 'Препятствие', 'Корень', 'Прошлое', 'Возможность',
+        'Будущее', 'Вы', 'Окружение', 'Надежды и страхи', 'Итог'
+      ],
+      hints: [
+        'что происходит сейчас', 'что мешает', 'основа, фундамент', 'что ушло', 'что может случиться',
+        'что придёт', 'ваша позиция', 'влияние извне', 'внутреннее', 'конечный результат'
+      ],
+      hint: 'Не используйте для бытовых вопросов.'
+    },
+    love: {
+      count: 2,
+      ask: 'Совместимость. Думайте об обоих — о себе и о партнёре.',
+      title: 'Совместимость',
+      icon: '♥',
+      positions: ['Ты', 'Он(а)'],
+      hint: 'Карта покажет, что соединяет, а что разъединяет.'
+    },
+    // ── Новые расклады (из каталога Архангела) ──
+    horseshoe: {
+      count: 7,
+      ask: 'Подкова — универсальный расклад на 7 карт. Подходит для любого важного вопроса.',
+      title: 'Подкова',
+      icon: '⌒',
+      positions: ['Прошлое', 'Настоящее', 'Скрытые влияния', 'Препятствие', 'Возможность', 'Совет', 'Итог'],
+      hint: 'Самая популярная схема после «трёх карт».'
+    },
+    alchemist: {
+      count: 6,
+      ask: 'Расклад Алхимика — классика, приписывают Нострадамусу. Глубокий анализ ситуации.',
+      title: 'Алхимик',
+      icon: '⚗',
+      positions: ['Ситуация', 'Что помогает', 'Что мешает', 'Скрытое', 'Совет', 'Итог'],
+      hint: 'Шесть карт раскрывают то, что лежит на поверхности и под ней.'
+    },
+    choice: {
+      count: 7,
+      ask: 'Расклад на выбор. Если вы между двумя вариантами — этот расклад для вас.',
+      title: 'Выбор',
+      icon: '⚖',
+      positions: ['Вы сейчас', 'Путь A (если пойдёте)', 'Путь B (если пойдёте)', 'Что ведёт к A', 'Что ведёт к B', 'Совет', 'Итог'],
+      hint: 'Думайте о двух конкретных вариантах.'
+    },
+    career: {
+      count: 7,
+      ask: 'Расклад на карьеру и бизнес. Для тех, кто думает о новой работе или своём деле.',
+      title: 'Карьера',
+      icon: '💼',
+      positions: ['Сейчас в работе', 'Что помогает', 'Что мешает', 'Потенциал', 'Новая возможность', 'Совет', 'Итог'],
+      hint: 'Семь карт охватывают всё поле карьеры.'
+    },
+    health: {
+      count: 5,
+      ask: 'Здоровье и настроение. Этот расклад — не медицинская диагностика, а подсказка, на что обратить внимание.',
+      title: 'Здоровье',
+      icon: '🌿',
+      positions: ['Тело', 'Эмоции', 'Энергия', 'Что помогает', 'Что восстановить'],
+      hint: 'Не заменяет врача.'
+    },
+    psyche: {
+      count: 4,
+      ask: 'Психологический портрет. Карты покажут скрытые черты характера.',
+      title: 'Психопортрет',
+      icon: '👁',
+      positions: ['Как вы видите себя', 'Как вас видят другие', 'Что скрыто', 'Потенциал'],
+      hint: 'О вас — со стороны.'
+    },
+    destiny: {
+      count: 8,
+      ask: 'Судьба и будущие события. Серьёзный расклад на 8 карт.',
+      title: 'Судьба',
+      icon: '✴',
+      positions: ['Фундамент', 'Движущая сила', 'Внутренний ресурс', 'Ближайшее будущее', 'Препятствие', 'Помощь', 'Цель', 'Итог'],
+      hint: 'Расклад на долгосрочную перспективу.'
+    }
   };
+
+  function getSpreadConfig(id) {
+    return SPREADS[id] || SPREADS.one;
+  }
+  function getSpreadName(id) {
+    const s = SPREADS[id];
+    return s ? s.title : id;
+  }
+  function getSpreadIcon(id) {
+    const s = SPREADS[id];
+    return s ? s.icon : '✦';
+  }
 
   // ── State ────────────────────────────────────────────────
   const state = {
@@ -147,28 +257,24 @@
   function buildShareText() {
     const deckName = DECKS[state.deck].label;
     if (state.cards.length === 0) return '';
+    const cfg = getSpreadConfig(state.spread);
     if (state.cards.length === 1) {
       const c = state.cards[0];
       const pos = c.reversed ? 'перевёрнутая' : 'прямая';
       return `🂠 ${c.name} (${pos}, ${deckName})\n\n${c.reversed ? c.reversed : c.upright}\n\n— Планчик · Архангел`;
     }
-    const lines = [`🂠 Расклад «${getSpreadName(state.spread)}» (${deckName})`];
+    const lines = [`🂠 Расклад «${cfg.title}» (${deckName})`];
     if (state.question) lines.push(`Вопрос: ${state.question}`);
     state.cards.forEach((c, i) => {
       const pos = c.reversed ? '⤵' : '↗';
-      const label = state.spread === 'three' ? ['Прошлое', 'Настоящее', 'Будущее'][i]
-                   : state.spread === 'cross' ? CROSS_POSITIONS[i]?.label || `#${i+1}`
-                   : state.spread === 'love'  ? (i === 0 ? 'Ты' : 'Он(а)')
-                   : `#${i+1}`;
+      const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
       lines.push(`\n${label} — ${pos} ${c.name}\n${c.reversed ? c.reversed : c.upright}`);
     });
     lines.push('\n— Планчик · Архангел');
     return lines.join('\n');
   }
 
-  function getSpreadName(id) {
-    return { one: 'Одна карта', three: 'Три карты', yesno: 'Да или Нет', cross: 'Кельтский крест', love: 'Совместимость' }[id] || id;
-  }
+  // getSpreadName/getSpreadIcon определены выше (в разделе SPREADS)
 
   function shareResult() {
     const text = buildShareText();
@@ -185,21 +291,7 @@
     }
   }
 
-  // ── 10 позиций Кельтского креста ────────────────────────
-  const CROSS_POSITIONS = [
-    { label: '1. Ситуация',         hint: 'что происходит сейчас' },
-    { label: '2. Препятствие',       hint: 'что мешает' },
-    { label: '3. Корень',            hint: 'основа, фундамент' },
-    { label: '4. Прошлое',           hint: 'что ушло' },
-    { label: '5. Возможность',       hint: 'что может случиться' },
-    { label: '6. Будущее',           hint: 'что придёт' },
-    { label: '7. Вы',                hint: 'ваша позиция' },
-    { label: '8. Окружение',         hint: 'влияние извне' },
-    { label: '9. Надежды и страхи',  hint: 'внутреннее' },
-    { label: '10. Итог',             hint: 'конечный результат' }
-  ];
-
-  // ── Бинарная интерпретация для Да/Нет ──────────────────
+  // ── Внутреннее состояние: stage card grid ───────────────
   // Простая: считаем "да" / "нет" / "может быть" по upright + семантике
   const YES_WORDS = ['да', 'успех', 'любовь', 'счастье', 'радость', 'победа', 'солнце', 'звезда', 'благоприятный', 'согласие', 'союз', 'рост', 'изобилие', 'маг', 'император', 'императрица', 'влюблённ', 'колесниц', 'сил', 'колесо', 'справедлив', 'мир'];
   const NO_WORDS  = ['нет', 'конец', 'разруш', 'тюрьм', 'цепь', 'башн', 'дьявол', 'смерть', 'пятёрк', 'десятк мечей', 'тень', 'страх', 'обман', 'разрыв', 'предательство'];
@@ -240,6 +332,10 @@
   }
 
   // ── Внутреннее состояние: stage card grid ───────────────
+  function cardImage(c) {
+    if (c && c.image) return c.image;
+    return null;
+  }
   function renderCards() {
     const stage = r$('#arcStage');
     if (!stage) return;
@@ -256,23 +352,29 @@
     // Мульти-карты: горизонтальная сетка
     if (n === 1) {
       const c = state.cards[0];
+      const imgSrc = cardImage(c);
       stage.innerHTML = `
         <div id="cardStage" class="is-revealed" role="img" aria-label="Карта ${escapeHtml(c.name)}">
           <div class="arc-card-face arc-card-front">
-            <div class="arc-card-glyph ${c.reversed ? 'is-reversed' : ''}">
-              <div class="arc-card-glyph-symbol">${c.symbol}</div>
-              <div class="arc-card-glyph-name">${escapeHtml(c.name)}</div>
-            </div>
+            ${imgSrc
+              ? `<img src="${imgSrc}" alt="${escapeHtml(c.name)}" class="arc-card-img ${c.reversed ? 'is-reversed' : ''}">`
+              : `<div class="arc-card-glyph ${c.reversed ? 'is-reversed' : ''}">
+                   <div class="arc-card-glyph-symbol">${c.symbol}</div>
+                   <div class="arc-card-glyph-name">${escapeHtml(c.name)}</div>
+                 </div>`
+            }
           </div>
         </div>`;
     } else {
       const cardsHtml = state.cards.map((c, i) => {
-        const label = state.spread === 'three' ? ['Прошлое', 'Настоящее', 'Будущее'][i]
-                    : state.spread === 'cross' ? (i+1) + '. ' + (CROSS_POSITIONS[i]?.label.split('. ')[1] || '')
-                    : state.spread === 'love'  ? (i === 0 ? 'Ты' : 'Он(а)')
-                    : `#${i+1}`;
+        const cfg = getSpreadConfig(state.spread);
+        const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
+        const imgSrc = cardImage(c);
+        const visual = imgSrc
+          ? `<img src="${imgSrc}" alt="${escapeHtml(c.name)}" class="arc-mini-card-img ${c.reversed ? 'is-reversed' : ''}">`
+          : `<div class="arc-mini-card-glyph ${c.reversed ? 'is-reversed' : ''}">${c.symbol || '✦'}</div>`;
         return `<div class="arc-mini-card" data-idx="${i}">
-          <div class="arc-mini-card-glyph ${c.reversed ? 'is-reversed' : ''}">${c.symbol}</div>
+          ${visual}
           <div class="arc-mini-card-name">${escapeHtml(c.name)}</div>
           <div class="arc-mini-card-label">${label}</div>
         </div>`;
@@ -302,19 +404,25 @@
     if (state.spread === 'love') {
       const r = loveInterpret(state.cards[0], state.cards[1]);
       const [a, b] = state.cards;
+      const visA = cardImage(a)
+        ? `<img src="${cardImage(a)}" alt="${escapeHtml(a.name)}" class="arc-love-img ${a.reversed ? 'is-reversed' : ''}">`
+        : `<div class="arc-love-glyph ${a.reversed ? 'is-reversed' : ''}">${a.symbol}</div>`;
+      const visB = cardImage(b)
+        ? `<img src="${cardImage(b)}" alt="${escapeHtml(b.name)}" class="arc-love-img ${b.reversed ? 'is-reversed' : ''}">`
+        : `<div class="arc-love-glyph ${b.reversed ? 'is-reversed' : ''}">${b.symbol}</div>`;
       target.innerHTML = `
         <div class="arc-verdict arc-verdict-score">${r.verdict} · ${r.score}/10</div>
         <div class="arc-love-grid">
           <div class="arc-love-side">
             <div class="arc-love-label">Ты</div>
-            <div class="arc-love-glyph ${a.reversed ? 'is-reversed' : ''}">${a.symbol}</div>
+            ${visA}
             <div class="arc-love-name">${escapeHtml(a.name)}</div>
             <p class="arc-love-text">${escapeHtml(a.reversed ? a.reversed : a.upright)}</p>
           </div>
           <div class="arc-love-connector">⇌</div>
           <div class="arc-love-side">
             <div class="arc-love-label">Он(а)</div>
-            <div class="arc-love-glyph ${b.reversed ? 'is-reversed' : ''}">${b.symbol}</div>
+            ${visB}
             <div class="arc-love-name">${escapeHtml(b.name)}</div>
             <p class="arc-love-text">${escapeHtml(b.reversed ? b.reversed : b.upright)}</p>
           </div>
@@ -322,17 +430,19 @@
         <p class="arc-inter-context">${escapeHtml(r.detail)}</p>`;
       return;
     }
-    // Общий путь: одна / три / кельтский крест
+    // Общий путь: одна / три / кельтский крест / подкова / алхимик / выбор / карьера / здоровье / психея / судьба
+    const cfg = getSpreadConfig(state.spread);
     const sections = state.cards.map((c, i) => {
-      const label = state.spread === 'three' ? ['Прошлое', 'Настоящее', 'Будущее'][i]
-                  : state.spread === 'cross' ? CROSS_POSITIONS[i]?.label || `#${i+1}`
-                  : state.spread === 'one'   ? 'Карта'
-                  : `#${i+1}`;
-      const hint = state.spread === 'cross' ? CROSS_POSITIONS[i]?.hint : '';
+      const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
+      const hint  = (cfg.hints && cfg.hints[i]) || '';
       const headline = c.reversed ? 'Перевёрнутое положение' : 'Прямое положение';
+      const img = cardImage(c);
+      const visual = img
+        ? `<img src="${img}" alt="${escapeHtml(c.name)}" class="arc-inter-img ${c.reversed ? 'is-reversed' : ''}">`
+        : `<span class="arc-inter-glyph ${c.reversed ? 'is-reversed' : ''}">${c.symbol || '✦'}</span>`;
       return `<div class="arc-inter-section">
         <div class="arc-inter-section-head">
-          <span class="arc-inter-glyph ${c.reversed ? 'is-reversed' : ''}">${c.symbol}</span>
+          ${visual}
           <div>
             <h3 class="arc-inter-title">${label}${hint ? ` <span class="arc-inter-hint">— ${hint}</span>` : ''}</h3>
             <p class="arc-inter-card">${escapeHtml(c.name)} · ${headline}</p>
@@ -347,14 +457,7 @@
 
   // ── Шаблон конкретного расклада ─────────────────────────
   function templateSpread() {
-    const s = state.spread;
-    const hint = SPREAD_DECK_HINT[s] || '';
-    if (s === 'one')   return { count: 1, ask: 'Сосредоточьтесь на вопросе и вытяните карту.' };
-    if (s === 'three') return { count: 3, ask: 'Задайте вопрос о развитии ситуации. Три карты — это прошлое, настоящее и будущее.' };
-    if (s === 'yesno') return { count: 1, ask: 'Сформулируйте вопрос, на который можно ответить «да» или «нет».' };
-    if (s === 'cross') return { count: 10, ask: 'Кельтский крест — глубокий расклад. Используйте для важных жизненных вопросов.' };
-    if (s === 'love')  return { count: 2, ask: 'Совместимость. Думайте об обоих — о себе и о партнёре.' };
-    return { count: 1, ask: '' };
+    return getSpreadConfig(state.spread);
   }
 
   // ── Mount конкретного расклада ─────────────────────────
@@ -363,8 +466,9 @@
     if (!main) return;
     const t = templateSpread();
     main.innerHTML = `
-      <div class="arc-panel-title">${getSpreadName(state.spread)}</div>
-      <p class="arc-panel-sub">${t.ask}</p>
+      <div class="arc-panel-title">${escapeHtml(t.title)}</div>
+      <p class="arc-panel-sub">${escapeHtml(t.ask)}</p>
+      ${t.hint ? `<p class="arc-panel-hint">${escapeHtml(t.hint)}</p>` : ''}
 
       <div class="arc-block">
         <label class="arc-label" for="arcQuestion">Ваш вопрос (по желанию)</label>
@@ -438,14 +542,16 @@
       cardEl.setAttribute('role', 'img');
       const c = state.cards[0];
       cardEl.setAttribute('aria-label', `Карта ${c.name}`);
+      const imgSrc = cardImage(c);
+      const frontContent = imgSrc
+        ? `<img src="${imgSrc}" alt="${escapeHtml(c.name)}" class="arc-card-img ${c.reversed ? 'is-reversed' : ''}">`
+        : `<div class="arc-card-glyph ${c.reversed ? 'is-reversed' : ''}">
+             <div class="arc-card-glyph-symbol">${c.symbol}</div>
+             <div class="arc-card-glyph-name">${escapeHtml(c.name)}</div>
+           </div>`;
       cardEl.innerHTML = `
         <div class="arc-card-face arc-card-back"><span class="arc-card-back-mark">⚜</span></div>
-        <div class="arc-card-face arc-card-front">
-          <div class="arc-card-glyph ${c.reversed ? 'is-reversed' : ''}">
-            <div class="arc-card-glyph-symbol">${c.symbol}</div>
-            <div class="arc-card-glyph-name">${escapeHtml(c.name)}</div>
-          </div>
-        </div>`;
+        <div class="arc-card-face arc-card-front">${frontContent}</div>`;
       const st = r$('#arcStage');
       st.innerHTML = '';
       st.appendChild(cardEl);
@@ -476,7 +582,7 @@
 
   // ── Роутер по раскладам ─────────────────────────────────
   function setSpread(id) {
-    if (!['one','three','yesno','cross','love'].includes(id)) return;
+    if (!SPREADS[id]) return;
     state.spread = id;
     state.cards = [];
     // Подсветка в сайдбаре

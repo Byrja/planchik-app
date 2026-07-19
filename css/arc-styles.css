@@ -606,6 +606,29 @@
   padding-left: 6px;
 }
 .arc-aside-list a.is-active .ico { color: var(--gold); }
+.arc-nav-meta {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  color: var(--gold);
+  background: var(--gold-soft);
+  border: 1px solid var(--line-gold);
+  border-radius: 999px;
+  font-family: var(--serif);
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+}
+.arc-panel-hint {
+  font-size: 13px;
+  color: var(--gold);
+  font-style: italic;
+  margin: -8px 0 18px;
+  padding: 8px 12px;
+  background: var(--gold-soft);
+  border-left: 2px solid var(--gold);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
 
 /* ---------- MINI CARDS GRID (multi-card spreads) ---------- */
 .arc-cards-grid {
@@ -618,6 +641,11 @@
 .arc-cards-grid[data-count="1"]  { grid-template-columns: 1fr; max-width: 240px; }
 .arc-cards-grid[data-count="2"]  { grid-template-columns: 1fr 1fr; max-width: 480px; }
 .arc-cards-grid[data-count="3"]  { grid-template-columns: 1fr 1fr 1fr; max-width: 600px; }
+.arc-cards-grid[data-count="4"]  { grid-template-columns: repeat(2, 1fr); max-width: 460px; }
+.arc-cards-grid[data-count="5"]  { grid-template-columns: repeat(3, 1fr); max-width: 600px; }
+.arc-cards-grid[data-count="6"]  { grid-template-columns: repeat(3, 1fr); max-width: 660px; }
+.arc-cards-grid[data-count="7"]  { grid-template-columns: repeat(4, 1fr); max-width: 700px; }
+.arc-cards-grid[data-count="8"]  { grid-template-columns: repeat(4, 1fr); max-width: 720px; }
 .arc-cards-grid[data-count="10"] { grid-template-columns: repeat(5, 1fr); max-width: 720px; }
 .arc-mini-card {
   display: flex; flex-direction: column; align-items: center;
@@ -747,6 +775,12 @@
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .arc-love-glyph.is-reversed { transform: rotate(180deg); display: inline-block; }
+.arc-love-img {
+  width: 100px; height: auto; border-radius: 6px;
+  margin-bottom: 10px;
+  box-shadow: 0 6px 16px -4px rgba(0,0,0,0.5);
+}
+.arc-love-img.is-reversed { transform: rotate(180deg); }
 .arc-love-name {
   font-family: var(--serif);
   font-size: 18px;
@@ -762,6 +796,29 @@
   font-weight: 300;
   flex-shrink: 0;
 }
+
+/* ---------- CARD IMAGES (Rider-Waite PNG) ---------- */
+.arc-card-img {
+  width: 200px; height: auto;
+  max-width: 100%;
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.6), 0 0 0 1px var(--line-gold);
+  display: block;
+}
+.arc-card-img.is-reversed { transform: rotate(180deg); }
+.arc-mini-card-img {
+  width: 100%; height: auto; max-height: 110px; object-fit: contain;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+}
+.arc-mini-card-img.is-reversed { transform: rotate(180deg); }
+.arc-inter-img {
+  width: 56px; height: auto; border-radius: 4px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.arc-inter-img.is-reversed { transform: rotate(180deg); }
 
 /* ---------- A11Y / MOTION ---------- */
 .arc-:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
@@ -781,6 +838,11 @@
 .arc-inter-main { font-size: 20px; }
 .arc-aside-panel { position: static; }
 .arc-cards-grid[data-count="10"] { grid-template-columns: repeat(2, 1fr); }
+.arc-cards-grid[data-count="8"]  { grid-template-columns: repeat(2, 1fr); }
+.arc-cards-grid[data-count="7"]  { grid-template-columns: repeat(2, 1fr); }
+.arc-cards-grid[data-count="6"]  { grid-template-columns: repeat(2, 1fr); }
+.arc-cards-grid[data-count="5"]  { grid-template-columns: 1fr; }
+.arc-cards-grid[data-count="4"]  { grid-template-columns: 1fr; }
 .arc-cards-grid[data-count="3"]  { grid-template-columns: 1fr; }
 .arc-cards-grid[data-count="2"]  { grid-template-columns: 1fr; }
 .arc-love-grid { grid-template-columns: 1fr; }

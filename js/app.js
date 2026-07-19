@@ -407,9 +407,14 @@
       b.onclick = () => closePanel(b.dataset.screen);
     });
 
-    // Arc portal back button
-    const back = $('#arcBack');
-    if (back) back.onclick = closeGadaniePortal;
+    // Arc portal: home link closes any active spread (back to default 'one')
+    const home = $('#arcHomeLink');
+    if (home) {
+      home.onclick = (e) => {
+        e.preventDefault();
+        if (window.ArcApp && window.ArcApp.setSpread) window.ArcApp.setSpread('one');
+      };
+    }
 
     // Mood buttons (используем onclick на каждой кнопке, не addEventListener)
     $$('.mood-btn').forEach(b => {

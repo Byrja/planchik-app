@@ -129,14 +129,94 @@
       </div>
     </section>
 
-    <!-- ─── GadanIE PORTAL (Arkhangel clone) ───────────── -->
+    <!-- ─── ARKHANGEL PORTAL (full clone) ───────────────── -->
     <section class="arc-portal" id="arcPortal" hidden aria-labelledby="arcTitle">
-      <header class="arc-portal-header">
-        <button type="button" class="arc-back" id="arcBack" aria-label="Назад в кабинет">←</button>
-        <h2 id="arcTitle" class="arc-portal-title">🔮 Гадание по одной карте</h2>
+
+      <!-- Site header -->
+      <header class="arc-site-header">
+        <div class="arc-shell">
+          <div class="row">
+            <a href="#" class="arc-brand" id="arcHomeLink" aria-label="Архангел — на главную">
+              <span class="arc-brand-mark">⚜</span>
+              <span>Архангел · Гадания</span>
+            </a>
+            <nav class="arc-crumbs" aria-label="Хлебные крошки">
+              <a href="#">Планчик</a><span class="sep">/</span><span>Гадания</span>
+            </nav>
+          </div>
+        </div>
       </header>
-      <div class="arc-content" id="arcContent">
-        <!-- Сюда вставляется HTML из arc-app.js -->
+
+      <div class="arc-shell">
+
+        <!-- HERO -->
+        <section class="arc-hero">
+          <span class="arc-hero-eyebrow">одна карта · один ответ</span>
+          <h1 id="arcTitle">Когда вопрос один — <em>ответ тоже один</em></h1>
+          <p>Сосредоточьтесь на том, что вас тревожит, и вытяните карту. Таро, руны, ленорман, цыганские или игральные — выберите колоду, которой доверяете. Без регистрации, без оплаты, без обмана.</p>
+        </section>
+
+        <!-- MAIN GRID: sidebar + content -->
+        <div class="arc-main">
+          <main id="arcMain" class="arc-panel">
+            <!-- Сюда монтируется активный расклад -->
+          </main>
+
+          <aside class="arc-aside-panel" aria-label="Выбор расклада">
+            <h3 class="arc-aside-h">Расклады</h3>
+            <ul class="arc-aside-list" id="arcNav">
+              <li><a href="#" data-spread="one"   class="arc-nav-link is-active"><span class="ico">✦</span> Одна карта</a></li>
+              <li><a href="#" data-spread="three" class="arc-nav-link"><span class="ico">⫶</span> Три карты (Прошлое · Настоящее · Будущее)</a></li>
+              <li><a href="#" data-spread="yesno" class="arc-nav-link"><span class="ico">⨯</span> Да или Нет</a></li>
+              <li><a href="#" data-spread="cross" class="arc-nav-link"><span class="ico">✚</span> Кельтский крест (10 карт)</a></li>
+              <li><a href="#" data-spread="love"  class="arc-nav-link"><span class="ico">♥</span> Совместимость</a></li>
+            </ul>
+            <p style="font-size:12px;color:var(--ink-mute);margin-top:14px;line-height:1.5;">Сосредоточьтесь на вопросе, прежде чем тянуть карты. Чем яснее намерение — тем точнее ответ.</p>
+          </aside>
+        </div>
+
+        <!-- INFO CARDS -->
+        <section class="arc-info">
+          <article class="arc-info-card">
+            <span class="arc-info-icon">🂠</span>
+            <h4>78 карт Таро</h4>
+            <p>Полная колода — 22 Старших и 56 Младших Аркана. Прямые и перевёрнутые положения, тени и контекст.</p>
+          </article>
+          <article class="arc-info-card">
+            <span class="arc-info-icon">ᚠ</span>
+            <h4>Руны Elder Futhark</h4>
+            <p>24 руны старшего футарка. Древние символы — короткие, точные, бескомпромиссные ответы.</p>
+          </article>
+          <article class="arc-info-card">
+            <span class="arc-info-icon">🌙</span>
+            <h4>Ленорман и Цыганские</h4>
+            <p>36 карт в каждой колоде. Бытовые, приземлённые символы — для вопросов о деньгах, доме, отношениях.</p>
+          </article>
+          <article class="arc-info-card">
+            <span class="arc-info-icon">♠</span>
+            <h4>Игральные карты</h4>
+            <p>36 карт. Простые образы — для быстрых советов без эзотерического контекста.</p>
+          </article>
+        </section>
+
+        <!-- PROSE / SEO -->
+        <section class="arc-prose">
+          <h2>Как работает онлайн-гадание</h2>
+          <p>Карты — это зеркало, а не предсказание. Они не решают за вас, а <strong>показывают угол, под которым вы ещё не смотрели</strong>. Когда вы задаёте вопрос и тянете карту, происходит встреча между вашим намерением и случайностью — а в случайности, как известно, нет ничего случайного.</p>
+
+          <h2>Когда гадание помогает</h2>
+          <p>Лучше всего карты работают в момент <strong>неопределённости</strong> — когда вы застряли между вариантами и не видите выхода. Хуже всего — когда вы ищете подтверждения уже принятому решению. В этом случае вы получите не ответ, а отражение собственных желаний.</p>
+
+          <h2>Что делать с результатом</h2>
+          <p>Прочитайте интерпретацию. Отложите карту на час. Вернитесь и перечитайте — часто между строк прячется то, что вы не увидели сразу. Если ответ непонятен — задайте уточняющий вопрос и вытяните ещё одну карту, но не больше двух дополнительных за сессию: больше — это уже не ясность, а зависимость.</p>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="arc-site-footer">
+          <p><em>Архангел</em> · Гадания на картах · внутри Планчик Mini App</p>
+          <p style="margin-top:6px;font-size:11px;">v1.0 · карты не принимают решений за вас</p>
+        </footer>
+
       </div>
     </section>
 

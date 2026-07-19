@@ -126,7 +126,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .hero-card-glyph svg { display: block; color: var(--gold-2); filter: drop-shadow(0 0 12px rgba(212,175,55,0.45)); }
 .hero-card-name { font-family: var(--serif); font-size: 24px; font-weight: 500; color: var(--ink); }
 .hero-card-mood { font-size: 12px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
-.hero-card-date { font-size: 12px; color: var(--gold-2); margin-top: 6px; opacity: 0.7; }
+.hero-card-date { font-size: 11px; color: var(--gold-2); margin-top: 8px; opacity: 0.85; letter-spacing: 0.3px; padding: 2px 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); display: inline-block; }
 .hero-card-text {
   font-family: var(--serif);
   font-size: 17px; line-height: 1.5;

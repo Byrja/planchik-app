@@ -95,11 +95,31 @@
   }
 
   // ── Tarot Daily ──────────────────────────────────────────
+  // Стихийные SVG-иконки для glyph (без эмодзи — кросс-платформенно)
+  const ELEMENT_SVG = {
+    'fire': '<svg viewBox="0 0 32 32" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 28c5 0 8-3.5 8-8 0-3-1.5-5-3-7-1-1.2-1.5-2.5-1.5-4 0-1.5 0.5-2.8 1-3.5-1 0.5-2.5 1.8-3.5 4-1.2 2.7-1 5-1 5s-1.5-1-2-2.5c-0.5 2 0 4 1 5.5-2-0.5-3.5-2-4-3.5-0.5 2 0 5 2 7-2 0-3.5-1.5-4-3 0 4.5 3 10 7 10z" fill="currentColor" fill-opacity="0.3"/></svg>',
+    'water': '<svg viewBox="0 0 32 32" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4 C 10 12, 6 18, 6 22 a 10 10 0 0 0 20 0 C 26 18, 22 12, 16 4 z" fill="currentColor" fill-opacity="0.25"/><path d="M10 22 a 3 3 0 0 0 3 3" stroke-opacity="0.6"/></svg>',
+    'air': '<svg viewBox="0 0 32 32" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h14a3 3 0 1 0-3-3"/><path d="M4 16h20a3 3 0 1 1-3 3"/><path d="M4 22h12a3 3 0 1 1-3 3"/></svg>',
+    'earth': '<svg viewBox="0 0 32 32" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="11" fill="currentColor" fill-opacity="0.25"/><path d="M5 16h22M16 5c4 3 6 7 6 11s-2 8-6 11c-4-3-6-7-6-11s2-8 6-11z"/></svg>',
+    'major': '<svg viewBox="0 0 32 32" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4 L 19 13 L 28 13 L 21 19 L 24 28 L 16 22 L 8 28 L 11 19 L 4 13 L 13 13 Z" fill="currentColor" fill-opacity="0.3"/></svg>'
+  };
+  function elementForCard(c) {
+    if (c.kind === 'major') return 'major';
+    if (!c.suit) return 'major';
+    const s = c.suit.toLowerCase();
+    if (s.includes('wand') || s.includes('жезл')) return 'fire';
+    if (s.includes('cup')  || s.includes('кубк')) return 'water';
+    if (s.includes('sword')|| s.includes('меч')) return 'air';
+    if (s.includes('pent') || s.includes('пентакл')) return 'earth';
+    return 'major';
+  }
   function renderTarot() {
     const tgId = state.user.id || 1; // dev fallback
     const date = DATA.todayKey();
     const c = TarotDaily.calc(tgId, date);
-    $('#heroGlyph').textContent = c.glyph;
+    const el = $('#heroGlyph');
+    const key = elementForCard(c);
+    if (el) el.innerHTML = ELEMENT_SVG[key] || ELEMENT_SVG.major;
     $('#heroName').textContent  = c.name;
     $('#heroMood').textContent  = c.mood;
     $('#heroText').textContent  = c.upright;
@@ -138,7 +158,9 @@
     tileActive('biorhythm', true);
 
     if (!state.profile || !state.profile.birthYear) {
-      $('#bioContent').innerHTML = '<div class="bio-empty">Нужен день рождения. Открой <strong>Профиль</strong> и заполни.</div>';
+      $('#bioContent').innerHTML = '<div class="bio-empty"><p>Нужен день рождения для расчёта.</p><button type="button" class="btn btn-primary bio-cta" id="bioCtaOpenProfile">Заполнить профиль →</button></div>';
+      const cta = $('#bioCtaOpenProfile');
+      if (cta) cta.onclick = openProfilePanel;
       return;
     }
     const r = Biorhythm.calc(state.profile.birthYear, state.profile.birthMonth, state.profile.birthDay);

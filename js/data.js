@@ -112,7 +112,8 @@ window.DATA = (function () {
     todayKey() { return fmtKey(new Date()); },
     dateKey(d) { return fmtKey(d instanceof Date ? d : new Date(d)); },
     dateLabel(d) {
-      const x = d instanceof Date ? d : new Date(d);
+      const x = d instanceof Date ? d : (d ? new Date(d) : new Date());
+      if (isNaN(x.getTime())) return 'сегодня';
       return x.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' });
     },
     ZODIAC, zodiacOf

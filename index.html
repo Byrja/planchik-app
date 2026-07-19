@@ -9,7 +9,7 @@
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <link rel="stylesheet" href="css/styles.css?v=3.0">
+  <link rel="stylesheet" href="css/styles.css?v=3.1">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%230b0a1a' stroke='%23d4af37' stroke-width='4'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='%23d4af37' font-family='serif'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
 </head>
 <body>
@@ -47,27 +47,50 @@
     <!-- ─── QUICK ACTIONS ──────────────────────────────── -->
     <section class="quick-grid" aria-label="Быстрые действия">
       <button type="button" class="quick-tile" data-screen="biorhythm" id="tileBiorhythm">
-        <span class="quick-tile-ico">📊</span>
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18l4-6 4 4 4-7 4 5 2-2"/><circle cx="3" cy="18" r="1.2" fill="currentColor"/><circle cx="7" cy="12" r="1.2" fill="currentColor"/><circle cx="11" cy="16" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="19" cy="14" r="1.2" fill="currentColor"/>
+          </svg>
+        </span>
         <span class="quick-tile-label">Биоритмы</span>
         <span class="quick-tile-meta" id="bioToday">—</span>
       </button>
       <button type="button" class="quick-tile" data-screen="evening" id="tileEvening">
-        <span class="quick-tile-ico">🌙</span>
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" fill="currentColor" fill-opacity="0.15"/>
+          </svg>
+        </span>
         <span class="quick-tile-label">Вечер</span>
         <span class="quick-tile-meta" id="eveningMeta">чек-ин</span>
       </button>
       <button type="button" class="quick-tile" data-screen="gadanie" id="tileGadanie">
-        <span class="quick-tile-ico">🔮</span>
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke-opacity="0.5"/>
+            <circle cx="12" cy="12" r="6" fill="currentColor" fill-opacity="0.2"/>
+            <path d="M9 11a3 3 0 0 1 6 0c0 1.5-1.5 2-2 3v.5"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/>
+          </svg>
+        </span>
         <span class="quick-tile-label">Гадание</span>
         <span class="quick-tile-meta">одна карта</span>
       </button>
       <button type="button" class="quick-tile" data-screen="forecast" id="tileForecast">
-        <span class="quick-tile-ico">📅</span>
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="16" rx="2" fill="currentColor" fill-opacity="0.1"/>
+            <path d="M3 9h18M8 3v4M16 3v4"/><circle cx="8" cy="15" r="1" fill="currentColor"/><circle cx="12" cy="15" r="1" fill="currentColor"/><circle cx="16" cy="15" r="1" fill="currentColor"/>
+          </svg>
+        </span>
         <span class="quick-tile-label">Неделя</span>
         <span class="quick-tile-meta">прогноз</span>
       </button>
       <button type="button" class="quick-tile quick-tile-wide" data-screen="profile" id="tileProfile">
-        <span class="quick-tile-ico">👤</span>
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4" fill="currentColor" fill-opacity="0.15"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
+          </svg>
+        </span>
         <span class="quick-tile-label">Профиль</span>
         <span class="quick-tile-meta" id="profileMeta">заполнить</span>
       </button>
@@ -238,17 +261,17 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.0"></script>
-  <script src="js/tarot.js?v=3.0"></script>
-  <script src="js/biorhythm.js?v=3.0"></script>
-  <script src="js/evening.js?v=3.0"></script>
-  <script src="js/arc-runes.js?v=3.0"></script>
-  <script src="js/arc-tarot.js?v=3.0"></script>
-  <script src="js/arc-lenormand.js?v=3.0"></script>
-  <script src="js/arc-gypsy.js?v=3.0"></script>
-  <script src="js/arc-playing.js?v=3.0"></script>
-  <script src="js/arc-app.js?v=3.0"></script>
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.0">
-  <script src="js/app.js?v=3.0"></script>
+  <script src="js/data.js?v=3.1"></script>
+  <script src="js/tarot.js?v=3.1"></script>
+  <script src="js/biorhythm.js?v=3.1"></script>
+  <script src="js/evening.js?v=3.1"></script>
+  <script src="js/arc-runes.js?v=3.1"></script>
+  <script src="js/arc-tarot.js?v=3.1"></script>
+  <script src="js/arc-lenormand.js?v=3.1"></script>
+  <script src="js/arc-gypsy.js?v=3.1"></script>
+  <script src="js/arc-playing.js?v=3.1"></script>
+  <script src="js/arc-app.js?v=3.1"></script>
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.1">
+  <script src="js/app.js?v=3.1"></script>
 </body>
 </html>

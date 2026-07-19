@@ -55,7 +55,7 @@
     renderUser();
     renderTarot();
     renderBiorhythmTile();
-    renderEvening();
+    renderEveningTile();
     renderProfile();
     wireEvents();
   }
@@ -115,6 +115,19 @@
     const avg = Math.round((r.physical.value + r.emotional.value + r.intellectual.value) / 3 * 100);
     const arrow = avg > 0 ? '↗' : avg < 0 ? '↘' : '·';
     $('#bioToday').textContent = `сегодня ${arrow} ${Math.abs(avg)}%`;
+  }
+
+  // ── Evening tile (summary) ──────────────────────────────
+  function renderEveningTile() {
+    const el = $('#eveningMeta');
+    if (!el) return;
+    const today = Evening.today();
+    if (today) {
+      const m = ['', '😞', '😕', '😐', '🙂', '😄'][today.mood] || '·';
+      el.textContent = `${m} готово`;
+    } else {
+      el.textContent = 'чек-ин';
+    }
   }
 
   // ── Biorhythm panel ─────────────────────────────────────
@@ -339,6 +352,7 @@
     $('#eveningStatus').textContent = 'Сохранено в ' + new Date(entry.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     $('#eveningStatus').classList.add('is-ok');
     state.checkins = Evening.last30();
+    renderEveningTile();
     haptic('success');
   }
 

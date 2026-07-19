@@ -42,12 +42,22 @@ window.Evening = (function () {
   }
 
   function shareToBot() {
-    const data = { type: 'checkin', payload: today() };
-    if (window.TelegramApp && window.TelegramApp.tg && window.TelegramApp.tg.sendData) {
-      window.TelegramApp.tg.sendData(JSON.stringify(data));
-      return true;
+    const t = today();
+    if (!t) return false;
+    const date = new Date(t.ts);
+    const dateStr = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    const moodEmoji = ['', '😞', '😕', '😐', '🙂', '😄'][t.mood] || '·';
+    const text = `${moodEmoji} Чек-ин ${dateStr}: настроение ${t.mood}/5${t.note ? ' · ' + t.note : ''}\n\n— Планчик`;
+    const tg = window.TelegramApp && window.TelegramApp.tg;
+    if (tg && tg.openTelegramLink) {
+      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Fitness_byrbot') + '&text=' + encodeURIComponent(text);
+      tg.openTelegramLink(url);
+    } else if (navigator.share) {
+      navigator.share({ text }).catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => {});
     }
-    return false;
+    return true; // local save всегда успешен
   }
 
   return { save, today, last30, loadProfile, saveProfile, shareToBot };

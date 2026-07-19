@@ -297,9 +297,18 @@
   function renderProfile() {
     const p = state.profile;
     const zod = (p && p.birthYear) ? DATA.zodiacOf(p.birthMonth, p.birthDay) : null;
+    // Возраст
+    let age = null;
+    if (p && p.birthYear) {
+      const now = new Date();
+      age = now.getFullYear() - p.birthYear;
+      const hadBirthday = (now.getMonth() + 1 > p.birthMonth) || ((now.getMonth() + 1 === p.birthMonth) && now.getDate() >= p.birthDay);
+      if (!hadBirthday) age--;
+    }
     const fields = [
       { label: 'Имя',          val: p && p.name ? p.name : null },
       { label: 'Дата рождения', val: p && p.birthYear ? `${p.birthDay}.${String(p.birthMonth).padStart(2,'0')}.${p.birthYear}` : null },
+      { label: 'Возраст',      val: age !== null ? `${age} ${ruAge(age)}` : null },
       { label: 'Знак зодиака', val: zod ? `${zod[1]} ${zod[0]}` : null },
       { label: 'Стихия',       val: zod ? zod[3] : null },
       { label: 'Управитель',   val: zod ? zod[4] : null },
@@ -315,10 +324,19 @@
 
     const meta = $('#profileMeta');
     if (p && p.birthYear) {
-      if (meta) meta.textContent = zod ? `${zod[1]} ${zod[0]}` : 'заполнен';
+      if (meta) meta.textContent = zod ? `${zod[1]} ${zod[0]} · ${age} ${ruAge(age)}` : 'заполнен';
     } else {
       if (meta) meta.textContent = 'заполнить';
     }
+  }
+
+  // Склонение «год/года/лет»
+  function ruAge(n) {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return 'год';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'года';
+    return 'лет';
   }
 
   // ── Tile highlight + panel close ────────────────────────
@@ -352,13 +370,17 @@
   function shareTarot() {
     const c = TarotDaily.calc(state.user.id || 1, DATA.todayKey());
     const text = TarotDaily.formatShare(c);
-    if (tg && tg.sendData) {
-      tg.sendData(JSON.stringify({ type: 'tarot', payload: c }));
-      flashToast('Отправлено в бот');
+    const tg = window.TelegramApp && window.TelegramApp.tg;
+    // 1) Telegram share dialog — открывает список чатов для пересылки текста
+    //    (работает в WebApp, не требует серверной обработки)
+    if (tg && tg.openTelegramLink) {
+      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Fitness_byrbot') + '&text=' + encodeURIComponent(text);
+      tg.openTelegramLink(url);
+      flashToast('Выбери чат для отправки');
     } else if (navigator.share) {
-      navigator.share({ title: 'Карта дня — Планчик', text }).catch(()=>{});
+      navigator.share({ title: 'Карта дня — Планчик', text }).catch(() => {});
     } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(()=> flashToast('Скопировано в буфер'));
+      navigator.clipboard.writeText(text).then(() => flashToast('Скопировано в буфер'));
     } else {
       flashToast('Шаринг недоступен');
     }
@@ -416,6 +438,18 @@
   function wireEvents() {
     $('#btnRefreshTarot').onclick = refreshTarot;
     $('#btnShareTarot').onclick   = shareTarot;
+    // Hero-card кликабельна — открывает гадание
+    const hero = $('#heroCard');
+    if (hero) {
+      hero.style.cursor = 'pointer';
+      hero.setAttribute('role', 'button');
+      hero.setAttribute('aria-label', 'Открыть гадание');
+      hero.onclick = (e) => {
+        // Не открывать, если клик на кнопке
+        if (e.target.closest('button')) return;
+        openGadaniePortal();
+      };
+    }
     $('#btnSaveCheckin').onclick  = saveCheckin;
     $('#btnProfileCopy').onclick  = () => {
       // open bot deeplink: t.me/Fitness_byrbot?start=openapp

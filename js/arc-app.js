@@ -279,13 +279,16 @@
   function shareResult() {
     const text = buildShareText();
     if (!text) return;
-    if (window.TelegramApp && window.TelegramApp.tg && window.TelegramApp.tg.sendData) {
-      window.TelegramApp.tg.sendData(JSON.stringify({ type: 'arc_share', payload: { spread: state.spread, deck: state.deck, cards: state.cards, question: state.question } }));
-      flashToast('Отправлено в бот');
+    const tg = window.TelegramApp && window.TelegramApp.tg;
+    // 1) Telegram share dialog — открывает список чатов для пересылки текста
+    if (tg && tg.openTelegramLink) {
+      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Fitness_byrbot') + '&text=' + encodeURIComponent(text);
+      tg.openTelegramLink(url);
+      flashToast('Выбери чат для отправки');
     } else if (navigator.share) {
       navigator.share({ title: 'Гадание — Планчик', text }).catch(()=>{});
     } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(()=> flashToast('Скопировано в буфер'));
+      navigator.clipboard.writeText(text).then(() => flashToast('Скопировано в буфер'));
     } else {
       flashToast('Шаринг недоступен');
     }

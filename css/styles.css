@@ -138,6 +138,25 @@ input, textarea, select { font: inherit; color: inherit; }
 .hero-card-actions .btn { flex: 1 1 auto; min-width: 130px; }
 .hero-card-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .hero-card-actions .btn svg { flex-shrink: 0; }
+/* Hint что hero кликабельна */
+.hero-card { cursor: pointer; }
+.hero-card-hint {
+  position: absolute; top: 14px; right: 14px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--gold-2);
+  background: var(--gold-soft);
+  border: 1px solid var(--line-gold);
+  border-radius: 999px;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: opacity var(--t), transform var(--t);
+  pointer-events: none;
+}
+.hero-card:hover .hero-card-hint,
+.hero-card:focus-visible .hero-card-hint { opacity: 1; transform: translateX(0); }
 
 /* ── Quick grid ───────────────────────────────────────── */
 .quick-grid {
@@ -382,6 +401,34 @@ input, textarea, select { font: inherit; color: inherit; }
 
 /* ── A11y ─────────────────────────────────────────────── */
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+/* ── Toast ───────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 80px;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 20px;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-2) 100%);
+  color: #1a1633;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(212,175,55,0.35), 0 4px 8px rgba(0,0,0,0.3);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(.4,.0,.2,1);
+  max-width: 90vw;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.is-shown {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

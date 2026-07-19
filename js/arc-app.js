@@ -341,11 +341,19 @@
     if (!stage) return;
     const n = state.cards.length;
     if (n === 0) {
+      // Показываем превью колоды — все карты рубашкой в сетке
+      const deckArr = DECKS[state.deck].deck() || [];
+      const previewCount = Math.min(deckArr.length, 12);
+      const backImg = 'img/cards/back.png';
+      const previewHtml = Array.from({ length: previewCount }, (_, i) => {
+        return `<div class="arc-mini-card arc-deck-preview" style="animation-delay:${i * 0.04}s">
+          <img src="${backImg}" alt="Рубашка" class="arc-mini-card-img">
+        </div>`;
+      }).join('');
       stage.innerHTML = `
-        <div id="cardStage" role="img" aria-label="Колода. Нажмите кнопку, чтобы вытянуть.">
-          <div class="arc-card-face arc-card-back">
-            <span class="arc-card-back-mark">⚜</span>
-          </div>
+        <div class="arc-deck-ready" role="img" aria-label="Колода из ${deckArr.length} карт готова. Нажмите «Тянуть».">
+          <div class="arc-cards-grid arc-deck-preview-grid" data-count="6">${previewHtml}</div>
+          <p class="arc-deck-hint">Колода <strong>${DECKS[state.deck].label}</strong> · ${deckArr.length} карт. Нажмите «Тянуть».</p>
         </div>`;
       return;
     }

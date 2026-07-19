@@ -797,6 +797,37 @@
   flex-shrink: 0;
 }
 
+/* ---------- DECK PREVIEW (до клика «Тянуть») ---------- */
+.arc-deck-ready {
+  text-align: center;
+  padding: 12px 0;
+}
+.arc-deck-preview-grid {
+  margin-bottom: 14px;
+  opacity: 0.85;
+}
+.arc-deck-preview {
+  padding: 8px 4px;
+  min-height: 90px;
+  background: linear-gradient(180deg, #1a1832 0%, #0d0c1d 100%);
+  border-color: var(--line);
+  transition: all 0.3s ease;
+}
+.arc-deck-preview:hover {
+  transform: translateY(-3px) !important;
+  border-color: var(--line-gold);
+}
+.arc-deck-hint {
+  font-size: 14px;
+  color: var(--ink-dim);
+  margin: 0;
+  font-style: italic;
+}
+.arc-deck-hint strong {
+  color: var(--gold-2);
+  font-style: normal;
+}
+
 /* ---------- CARD IMAGES (Rider-Waite PNG) ---------- */
 .arc-card-img {
   width: 200px; height: auto;

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0a1a">
+  <title>Планчик — Кабинет</title>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%230b0a1a' stroke='%23d4af37' stroke-width='4'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='%23d4af37' font-family='serif'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+  <div id="app" class="app">
+
+    <!-- ─── HEADER ─────────────────────────────────────── -->
+    <header class="app-header">
+      <div class="app-header-row">
+        <div>
+          <div class="app-eyebrow" id="dateLabel">сегодня</div>
+          <h1 class="app-title">Кабинет <span class="app-title-gold">Планчик</span></h1>
+        </div>
+        <div class="app-user" id="userChip" aria-label="Профиль">
+          <span id="userAvatar">⚜</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ─── HERO CARD: сегодняшний расклад ─────────────── -->
+    <section class="hero-card" id="heroCard" aria-labelledby="heroTitle">
+      <div class="hero-card-eyebrow">Карта дня</div>
+      <div class="hero-card-visual" id="heroVisual">
+        <div class="hero-card-glyph" id="heroGlyph">🌟</div>
+        <div class="hero-card-name" id="heroName">—</div>
+        <div class="hero-card-mood" id="heroMood">—</div>
+      </div>
+      <p class="hero-card-text" id="heroText">Нажми «обновить», чтобы узнать карту сегодня.</p>
+      <div class="hero-card-actions">
+        <button type="button" class="btn btn-ghost" id="btnRefreshTarot">↻  Обновить</button>
+        <button type="button" class="btn btn-primary" id="btnShareTarot">⤴  Поделиться</button>
+      </div>
+    </section>
+
+    <!-- ─── QUICK ACTIONS ──────────────────────────────── -->
+    <section class="quick-grid" aria-label="Быстрые действия">
+      <button type="button" class="quick-tile" data-screen="biorhythm" id="tileBiorhythm">
+        <span class="quick-tile-ico">📊</span>
+        <span class="quick-tile-label">Биоритмы</span>
+        <span class="quick-tile-meta" id="bioToday">—</span>
+      </button>
+      <button type="button" class="quick-tile" data-screen="evening" id="tileEvening">
+        <span class="quick-tile-ico">🌙</span>
+        <span class="quick-tile-label">Вечер</span>
+        <span class="quick-tile-meta" id="eveningMeta">чек-ин</span>
+      </button>
+      <button type="button" class="quick-tile" data-screen="forecast" id="tileForecast">
+        <span class="quick-tile-ico">📅</span>
+        <span class="quick-tile-label">Неделя</span>
+        <span class="quick-tile-meta">прогноз</span>
+      </button>
+      <button type="button" class="quick-tile" data-screen="profile" id="tileProfile">
+        <span class="quick-tile-ico">👤</span>
+        <span class="quick-tile-label">Профиль</span>
+        <span class="quick-tile-meta" id="profileMeta">заполнить</span>
+      </button>
+    </section>
+
+    <!-- ─── PANELS: открываются по клику на тайл ───────── -->
+    <section class="panel" id="panelBiorhythm" hidden>
+      <header class="panel-header">
+        <h2 class="panel-title">📊 Биоритмы</h2>
+        <button type="button" class="panel-close" data-screen="biorhythm" aria-label="Закрыть">✕</button>
+      </header>
+      <div class="bio-content" id="bioContent">
+        <div class="bio-empty">Нужен день рождения. Открой <strong>Профиль</strong> и заполни.</div>
+      </div>
+    </section>
+
+    <section class="panel" id="panelEvening" hidden>
+      <header class="panel-header">
+        <h2 class="panel-title">🌙 Вечерний чек-ин</h2>
+        <button type="button" class="panel-close" data-screen="evening" aria-label="Закрыть">✕</button>
+      </header>
+      <div class="evening-content" id="eveningContent">
+        <p class="evening-question">Как прошёл день?</p>
+        <div class="mood-row" id="moodRow">
+          <button type="button" class="mood-btn" data-mood="1">😞</button>
+          <button type="button" class="mood-btn" data-mood="2">😕</button>
+          <button type="button" class="mood-btn" data-mood="3">😐</button>
+          <button type="button" class="mood-btn" data-mood="4">🙂</button>
+          <button type="button" class="mood-btn" data-mood="5">😄</button>
+        </div>
+        <textarea id="eveningNote" class="evening-note" placeholder="Короткая заметка (необязательно)…" maxlength="280"></textarea>
+        <button type="button" class="btn btn-primary" id="btnSaveCheckin">Сохранить</button>
+        <div class="evening-status" id="eveningStatus"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panelForecast" hidden>
+      <header class="panel-header">
+        <h2 class="panel-title">📅 Прогноз на неделю</h2>
+        <button type="button" class="panel-close" data-screen="forecast" aria-label="Закрыть">✕</button>
+      </header>
+      <div class="forecast-content" id="forecastContent">
+        <p class="forecast-empty">Прогноз строится по твоей натальной карте. Открой <strong>Профиль</strong>, чтобы заполнить данные.</p>
+        <ul class="forecast-list" id="forecastList" hidden></ul>
+      </div>
+    </section>
+
+    <section class="panel" id="panelProfile" hidden>
+      <header class="panel-header">
+        <h2 class="panel-title">👤 Профиль</h2>
+        <button type="button" class="panel-close" data-screen="profile" aria-label="Закрыть">✕</button>
+      </header>
+      <div class="profile-content" id="profileContent">
+        <p class="profile-hint">Эти данные нужны для расчётов. Всё хранится в твоём профиле бота.</p>
+        <div class="profile-fields" id="profileFields"></div>
+        <div class="profile-actions">
+          <button type="button" class="btn btn-ghost" id="btnProfileCopy">↗  Открыть в боте</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── FOOTER ─────────────────────────────────────── -->
+    <footer class="app-footer">
+      <p>Планчик · Telegram Mini App</p>
+      <p class="app-footer-meta">v1.0 · запущено <span id="loadedAt">—</span></p>
+    </footer>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data.js?v=1.0"></script>
+  <script src="js/tarot.js?v=1.0"></script>
+  <script src="js/biorhythm.js?v=1.0"></script>
+  <script src="js/evening.js?v=1.0"></script>
+  <script src="js/app.js?v=1.0"></script>
+</body>
+</html>

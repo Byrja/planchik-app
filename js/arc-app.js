@@ -298,6 +298,11 @@
 
   function yesNoInterpret(c) {
     const t = ((c.upright || '') + ' ' + (c.reversed || '')).toLowerCase();
+    // Спецкарты: не бинарные, требуют контекста
+    const AMBIGUOUS = ['judgement', 'hermit', 'hanged', 'moon', 'tower', 'fool', 'wheel'];
+    if (AMBIGUOUS.some(k => (c.id || '').toLowerCase().includes(k))) {
+      return { verdict: 'ЗАВИСИТ', tone: 'wait', detail: 'Эта карта не даёт прямого ответа. Она требует вашего решения и контекста, которого у карт нет.' };
+    }
     if (c.reversed) {
       return { verdict: 'НЕТ', tone: 'no', detail: 'Карта в перевёрнутом положении. Путь закрыт или неблагоприятен.' };
     }
@@ -306,6 +311,78 @@
     if (isYes && !isNo) return { verdict: 'ДА', tone: 'yes', detail: 'Прямое положение и светлая семантика. Путь открыт.' };
     if (isNo && !isYes) return { verdict: 'НЕТ', tone: 'no', detail: 'Прямое положение, но значение карты — отказ.' };
     return { verdict: 'ПОДОЖДИ', tone: 'wait', detail: 'Прямое положение, но ответ не бинарный. Нужно уточнение или время.' };
+  }
+
+  // Короткий практический совет для yes/no
+  function yesNoAdvice(cardName, reversed) {
+    if (reversed) return `Не спешите. ${cardName} перевёрнута — даже если формально путь открыт, в нём есть подвох. Перечитайте вопрос: возможно, вы спрашиваете не о том, о чём на самом деле хотите знать.`;
+    return `${cardName} прямо — путь свободен. Но «да» карт — это «да» в текущих координатах. Если изменится контекст (люди, время, ваше состояние), ответ может сдвинуться.`;
+  }
+
+  // Толкование пары карт: учитывает их символику и взаимодействие
+  function renderPairReading(a, b) {
+    const both = `${a.name} + ${b.name}`;
+    if (a.reversed && b.reversed) return `${both} — обе карты в тени. Это не приговор, но знак: что-то внутри вас обоих сейчас спит или сопротивляется. Вопрос не «получится ли», а «готовы ли вы оба проснуться».`;
+    if (a.reversed && !b.reversed) return `${a.name} перевёрнута, ${b.name} — прямая. Связь есть, но один из вас сейчас в миноре, и это видно. Поддержка нужна в обе стороны.`;
+    if (!a.reversed && b.reversed) return `${a.name} прямая, ${b.name} перевёрнута. Вы в форме — но партнёр сейчас не в ресурсе. Это не про несовместимость, а про время.`;
+    return `${both} в прямом положении. Связь светлая, оба в моменте. Карты не обещают вечность, но обещают, что сейчас — то самое время, когда эта встреча работает.`;
+  }
+
+  // Итог расклада: 1-2 предложения по семантике всех карт
+  function buildSpreadSummary(cards, cfg, question) {
+    if (!cards || cards.length === 0) return '';
+    // Считаем «светлые» и «теневые» карты
+    let light = 0, shadow = 0;
+    for (const c of cards) {
+      if (c.reversed) shadow++;
+      else light++;
+    }
+    const total = cards.length;
+    const lightRatio = light / total;
+
+    // Если вопрос содержит ключевые слова — контекстный summary
+    const q = (question || '').toLowerCase();
+    const contextChips = [];
+    if (/работ|карьер|бизнес|проект|деньг|зарплат/.test(q)) contextChips.push('work');
+    if (/любов|отношен|партнёр|муж|жен|чувств|встреч/.test(q)) contextChips.push('love');
+    if (/здоровь|тело|энерг|бол|устал|спать/.test(q)) contextChips.push('health');
+    if (/день|сегодня|завтра|недел|месяц/.test(q)) contextChips.push('time');
+
+    let opening;
+    if (lightRatio >= 0.75) opening = `Расклад светлый: ${light} из ${total} карт в прямом положении.`;
+    else if (lightRatio <= 0.25) opening = `Расклад теневой: ${shadow} из ${total} карт перевёрнуты. Это не катастрофа, но знак остановиться.`;
+    else if (lightRatio >= 0.5) opening = `Расклад смешанный, перевес в светлую сторону: ${light} против ${shadow}.`;
+    else opening = `Расклад смешанный, перевес в тень: ${shadow} против ${light}.`;
+
+    // Контекстная подсказка
+    let contextPart = '';
+    if (contextChips.includes('work')) {
+      contextPart = ' Карта про работу, и ответ не в действии, а в том, как вы к нему относитесь.';
+    } else if (contextChips.includes('love')) {
+      contextPart = ' Карта про отношения — здесь ключ не в логике, а в том, что вы оба чувствуете, но не говорите.';
+    } else if (contextChips.includes('health')) {
+      contextPart = ' Карта о теле — не как о диагнозе, а как о сигнале: что вы давно игнорируете?';
+    } else if (contextChips.includes('time')) {
+      contextPart = ' Карта о времени — расклад на ближайшее будущее говорит: события уже в пути.';
+    }
+
+    // Завершение по конфигурации расклада
+    let closing = '';
+    if (cfg.title === 'Кельтский крест') {
+      closing = ' Кельтский крест не про быстрый ответ — он про панораму. Позиция «итог» — самая важная.';
+    } else if (cfg.title === 'Подкова') {
+      closing = ' Подкова — рабочая лошадка среди раскладов. Итог в последней карте, а первые три — фундамент.';
+    } else if (cfg.title === 'Три карты') {
+      closing = ' Прошлое-Настоящее-Будущее — динамика. Смотрите, как энергия движется, а не на отдельные карты.';
+    } else if (cfg.title === 'Судьба') {
+      closing = ' Судьба — расклад на длинный горизонт. Не пытайтесь примерить его на завтра.';
+    } else if (cfg.title === 'Выбор') {
+      closing = ' В раскладе на выбор смотрите на карты A и B как на два голоса. Не на «правильный/неправильный», а на «как вам будет в каждом».'; 
+    } else {
+      closing = ' Доверьтесь первой реакции — перечитывание расклада только размывает.';
+    }
+
+    return opening + contextPart + closing;
   }
 
   // ── Совместимость: считаем совпадение по шкале 1..10 ────
@@ -406,7 +483,11 @@
         <div class="arc-verdict arc-verdict-${r.tone}">${r.verdict}</div>
         <p class="arc-inter-main">${escapeHtml(c.name)} — ${c.reversed ? 'перевёрнутая' : 'прямая'}.</p>
         <p class="arc-inter-shadow"><span class="arc-shadow-label">Значение:</span> ${escapeHtml(c.reversed ? c.reversed : c.upright)}</p>
-        <p class="arc-inter-context">${escapeHtml(r.detail)}</p>`;
+        <p class="arc-inter-context">${escapeHtml(r.detail)}</p>
+        <div class="arc-reading-tips">
+          <p class="arc-tips-title">Совет</p>
+          <p>${escapeHtml(yesNoAdvice(c.name, c.reversed))}</p>
+        </div>`;
       return;
     }
     if (state.spread === 'love') {
@@ -418,6 +499,7 @@
       const visB = cardImage(b)
         ? `<img src="${cardImage(b)}" alt="${escapeHtml(b.name)}" class="arc-love-img ${b.reversed ? 'is-reversed' : ''}">`
         : `<div class="arc-love-glyph ${b.reversed ? 'is-reversed' : ''}">${b.symbol}</div>`;
+      const pairReading = renderPairReading(a, b);
       target.innerHTML = `
         <div class="arc-verdict arc-verdict-score">${r.verdict} · ${r.score}/10</div>
         <div class="arc-love-grid">
@@ -434,6 +516,10 @@
             <div class="arc-love-name">${escapeHtml(b.name)}</div>
             <p class="arc-love-text">${escapeHtml(b.reversed ? b.reversed : b.upright)}</p>
           </div>
+        </div>
+        <div class="arc-reading-pair">
+          <p class="arc-tips-title">Связь между картами</p>
+          <p>${pairReading}</p>
         </div>
         <p class="arc-inter-context">${escapeHtml(r.detail)}</p>`;
       return;
@@ -460,7 +546,11 @@
         ${c.shadow ? `<p class="arc-inter-shadow"><span class="arc-shadow-label">Тень:</span> ${escapeHtml(c.shadow)}</p>` : ''}
       </div>`;
     }).join('');
-    target.innerHTML = sections + (q ? `<p class="arc-inter-context">В контексте вопроса <em>«${escapeHtml(q)}»</em> — карты указывают, что ответ уже формируется. Доверьтесь первому импульсу.</p>` : '');
+    // Общий итог — summary всего расклада
+    const summary = buildSpreadSummary(state.cards, cfg, q);
+    target.innerHTML = sections +
+      (summary ? `<div class="arc-reading-summary"><p class="arc-tips-title">Итог расклада</p><p>${summary}</p></div>` : '') +
+      (q ? `<p class="arc-inter-context">В контексте вопроса <em>«${escapeHtml(q)}»</em> — карты указывают, что ответ уже формируется. Доверьтесь первому импульсу.</p>` : '');
   }
 
   // ── Шаблон конкретного расклада ─────────────────────────
@@ -543,7 +633,7 @@
     const stage = r$('#arcStage');
     if (stage) stage.classList.add('is-lit');
 
-    // Анимация: для одной карты flip; для мульти — сразу показать
+    // Анимация: для одной карты flip; для мульти — поочерёдная раздача
     if (t.count === 1) {
       const cardEl = document.createElement('div');
       cardEl.id = 'cardStage';
@@ -576,15 +666,33 @@
         tryVibrate(20);
       }, 700);
     } else {
-      // мульти — сразу
+      // мульти — поочерёдная раздача: каждая карта появляется с задержкой
       renderCards();
-      r$('#arcResult').classList.add('is-revealed');
-      r$('#ctaDraw').disabled = true;
-      r$('#ctaDraw').textContent = '✓  Готово';
-      r$('#ctaReset').disabled = false;
-      r$('#ctaShare').style.display = 'inline-flex';
-      renderInterpretation();
-      tryVibrate(20);
+      const st = r$('#arcStage');
+      if (st) {
+        const miniCards = st.querySelectorAll('.arc-mini-card');
+        miniCards.forEach((mc, i) => {
+          mc.classList.add('arc-dealing');
+          mc.style.opacity = '0';
+          mc.style.transform = 'translateY(20px) scale(0.85)';
+          setTimeout(() => {
+            mc.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            mc.style.opacity = '1';
+            mc.style.transform = '';
+          }, 100 + i * 180);
+        });
+      }
+      // Интерпретация появляется после раздачи всех карт
+      const totalDelay = 100 + t.count * 180 + 200;
+      setTimeout(() => {
+        r$('#arcResult').classList.add('is-revealed');
+        r$('#ctaDraw').disabled = true;
+        r$('#ctaDraw').textContent = '✓  Готово';
+        r$('#ctaReset').disabled = false;
+        r$('#ctaShare').style.display = 'inline-flex';
+        renderInterpretation();
+        tryVibrate(20);
+      }, totalDelay);
     }
   }
 

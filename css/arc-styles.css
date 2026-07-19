@@ -797,6 +797,44 @@
   flex-shrink: 0;
 }
 
+/* ---------- READING: SUMMARY, TIPS, PAIR ---------- */
+.arc-reading-summary,
+.arc-reading-tips,
+.arc-reading-pair {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(150,90,200,0.05) 100%);
+  border: 1px solid var(--line-gold);
+  border-radius: 10px;
+  position: relative;
+}
+.arc-reading-summary::before,
+.arc-reading-tips::before,
+.arc-reading-pair::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--gold-2) 0%, var(--accent) 100%);
+  border-radius: 10px 0 0 10px;
+}
+.arc-tips-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--gold-2);
+  margin: 0 0 8px 0;
+}
+.arc-reading-summary p:last-child,
+.arc-reading-tips p:last-child,
+.arc-reading-pair p:last-child {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
 /* ---------- DECK PREVIEW (до клика «Тянуть») ---------- */
 .arc-deck-ready {
   text-align: center;

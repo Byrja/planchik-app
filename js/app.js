@@ -123,6 +123,8 @@
     $('#heroName').textContent  = c.name;
     $('#heroMood').textContent  = c.mood;
     $('#heroText').textContent  = c.upright;
+    const hd = $('#heroDate');
+    if (hd) hd.textContent = DATA.dateLabel();
   }
 
   // ── Biorhythm tile (summary) ────────────────────────────

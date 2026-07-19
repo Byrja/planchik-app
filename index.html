@@ -33,14 +33,25 @@
     <section class="hero-card" id="heroCard" aria-labelledby="heroTitle">
       <div class="hero-card-eyebrow">Карта дня</div>
       <div class="hero-card-visual" id="heroVisual">
-        <div class="hero-card-glyph" id="heroGlyph">🌟</div>
+        <div class="hero-card-glyph" id="heroGlyph">⚜</div>
         <div class="hero-card-name" id="heroName">—</div>
         <div class="hero-card-mood" id="heroMood">—</div>
+        <div class="hero-card-date" id="heroDate">—</div>
       </div>
       <p class="hero-card-text" id="heroText">Нажми «обновить», чтобы узнать карту сегодня.</p>
       <div class="hero-card-actions">
-        <button type="button" class="btn btn-ghost" id="btnRefreshTarot">↻  Обновить</button>
-        <button type="button" class="btn btn-primary" id="btnShareTarot">⤴  Поделиться</button>
+        <button type="button" class="btn btn-ghost" id="btnRefreshTarot">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
+          </svg>
+          Обновить
+        </button>
+        <button type="button" class="btn btn-primary" id="btnShareTarot">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/>
+          </svg>
+          Поделиться
+        </button>
       </div>
     </section>
 

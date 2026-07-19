@@ -126,6 +126,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .hero-card-glyph svg { display: block; color: var(--gold-2); filter: drop-shadow(0 0 12px rgba(212,175,55,0.45)); }
 .hero-card-name { font-family: var(--serif); font-size: 24px; font-weight: 500; color: var(--ink); }
 .hero-card-mood { font-size: 12px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
+.hero-card-date { font-size: 12px; color: var(--gold-2); margin-top: 6px; opacity: 0.7; }
 .hero-card-text {
   font-family: var(--serif);
   font-size: 17px; line-height: 1.5;
@@ -135,6 +136,8 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .hero-card-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; align-items: center; }
 .hero-card-actions .btn { flex: 1 1 auto; min-width: 130px; }
+.hero-card-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.hero-card-actions .btn svg { flex-shrink: 0; }
 
 /* ── Quick grid ───────────────────────────────────────── */
 .quick-grid {
@@ -152,9 +155,22 @@ input, textarea, select { font: inherit; color: inherit; }
   text-align: left;
   transition: all var(--t);
   min-height: 96px;
+  position: relative;
+  overflow: hidden;
+}
+.quick-tile::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at center, rgba(212,175,55,0.12), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--t);
+  pointer-events: none;
 }
 .quick-tile:hover, .quick-tile:focus-visible { border-color: var(--line-gold); transform: translateY(-2px); }
+.quick-tile:active { transform: scale(0.97); transition: transform 80ms ease; }
+.quick-tile:active::after { opacity: 1; }
 .quick-tile.is-active { border-color: var(--gold); background: linear-gradient(180deg, rgba(212,175,55,0.12), rgba(212,175,55,0.03)); }
+.quick-tile.is-active::after { opacity: 0.5; }
 .quick-tile-wide { grid-column: 1 / -1; }
 .quick-tile-ico {
   width: 28px; height: 28px;
@@ -368,6 +384,19 @@ input, textarea, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ── Responsive: wider screens (tablet/desktop WebApp) ─ */
+@media (min-width: 540px) {
+  .quick-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .quick-tile-wide { grid-column: 1 / -1; }
+  .hero-card-eyebrow { font-size: 11px; letter-spacing: 2px; }
+}
+@media (min-width: 720px) {
+  .quick-grid { gap: 12px; }
+  .hero-card-text { font-size: 19px; }
 }
 
 /* ── Telegram Desktop safe overrides ──────────────────── */

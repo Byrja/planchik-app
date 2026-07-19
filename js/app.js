@@ -374,9 +374,9 @@
     // 1) Telegram share dialog — открывает список чатов для пересылки текста
     //    (работает в WebApp, не требует серверной обработки)
     if (tg && tg.openTelegramLink) {
+      flashToast('Выбери чат для отправки');
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Fitness_byrbot') + '&text=' + encodeURIComponent(text);
       tg.openTelegramLink(url);
-      flashToast('Выбери чат для отправки');
     } else if (navigator.share) {
       navigator.share({ title: 'Карта дня — Планчик', text }).catch(() => {});
     } else if (navigator.clipboard) {

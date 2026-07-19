@@ -181,7 +181,7 @@ input, textarea, select { font: inherit; color: inherit; }
   animation: slide-in 0.3s ease-out;
 }
 @keyframes slide-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 [hidden] { display: none !important; }
@@ -190,7 +190,8 @@ input, textarea, select { font: inherit; color: inherit; }
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 16px;
 }
-.panel-title { font-family: var(--serif); font-size: 20px; font-weight: 500; color: var(--ink); }
+.panel-title { font-family: var(--serif); font-size: 20px; font-weight: 500; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.panel-title svg { color: var(--gold-2); flex-shrink: 0; }
 .panel-close {
   width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
@@ -205,10 +206,12 @@ input, textarea, select { font: inherit; color: inherit; }
 /* ── Biorhythm panel ──────────────────────────────────── */
 .bio-content { display: flex; flex-direction: column; gap: 16px; }
 .bio-empty, .forecast-empty, .profile-hint {
-  color: var(--ink-dim); font-size: 14px; padding: 16px;
+  color: var(--ink-dim); font-size: 14px; padding: 20px 16px;
   background: var(--bg-3); border-radius: var(--r-md);
   display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
 }
+.bio-empty svg, .forecast-empty svg, .profile-hint svg { color: var(--gold-2); margin-bottom: 4px; }
+.bio-empty p, .forecast-empty p, .profile-hint p { margin: 0; }
 .bio-cta { margin-top: 4px; }
 .bio-cycle { display: flex; flex-direction: column; gap: 6px; }
 .bio-cycle-head { display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
@@ -285,10 +288,17 @@ input, textarea, select { font: inherit; color: inherit; }
   background: var(--bg-3);
   border-radius: var(--r-sm);
   font-size: 14px;
+  transition: background var(--t), border-color var(--t);
+  border-left: 2px solid transparent;
+}
+.forecast-item.is-today {
+  background: linear-gradient(90deg, rgba(212,175,55,0.12) 0%, var(--bg-3) 100%);
+  border-left-color: var(--gold);
+  font-weight: 500;
 }
 .forecast-day { font-weight: 500; min-width: 78px; color: var(--gold); }
 .forecast-card { color: var(--ink); flex: 1; display: flex; align-items: center; gap: 6px; }
-.forecast-glyph { font-size: 18px; }
+.forecast-glyph { font-size: 18px; line-height: 1; }
 .forecast-bio { font-family: var(--serif); font-size: 16px; color: var(--ink-dim); min-width: 50px; text-align: right; }
 
 /* ── Profile panel ────────────────────────────────────── */

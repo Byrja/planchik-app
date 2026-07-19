@@ -237,6 +237,9 @@
     $('#panelForecast').hidden = false;
     tileActive('forecast', true);
     haptic('light');
+    // CTA в empty-state
+    const cta = $('#forecastCtaOpenProfile');
+    if (cta) cta.onclick = openProfilePanel;
     renderWeekForecast();
   }
 
@@ -273,8 +276,11 @@
     list.innerHTML = html;
     list.hidden = false;
     // очистим placeholder
-    const ph = content.querySelector('.forecast-empty');
+    const ph = content.querySelector('#forecastEmpty');
     if (ph) ph.remove();
+    // подсветим «сегодня»
+    const items = list.querySelectorAll('.forecast-item');
+    if (items[0]) items[0].classList.add('is-today');
   }
 
   // ── Profile panel ───────────────────────────────────────

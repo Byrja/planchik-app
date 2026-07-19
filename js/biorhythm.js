@@ -25,9 +25,9 @@ window.Biorhythm = (function () {
     return Math.round(period - cyclePos + peakAt);
   }
 
-  function calc(year, month, day) {
+  function calc(year, month, day, targetDate) {
     const birth = new Date(year, month - 1, day);
-    const now = new Date();
+    const now = targetDate instanceof Date ? targetDate : new Date();
     const days = (now.getTime() - birth.getTime()) / 86400000;
 
     const phys = calcCycle(days, CYCLES.physical);
@@ -67,9 +67,29 @@ window.Biorhythm = (function () {
       intellectual:{ value: intel, percent: percent(intel), phase: phaseInfo(intel).phase, emoji: phaseInfo(intel).emoji, advice: phaseInfo(intel).advice },
       overall, tomorrow: { physical: percent(physT), emotional: percent(emoT), intellectual: percent(intelT), overall: tomorrowOverall },
       recommendations: recs,
-      hasData: true
+      hasData: true,
+      // дополнительно: daysLived, peak в днях до каждого цикла
+      daysLived: Math.floor(days),
+      nextPeak: {
+        physical:     daysToPeak(days, CYCLES.physical),
+        emotional:    daysToPeak(days, CYCLES.emotional),
+        intellectual: daysToPeak(days, CYCLES.intellectual)
+      }
     };
   }
 
-  return { calc, CYCLES };
+  function peakLabel(p) {
+    if (p === 0) return 'пик сегодня';
+    if (p === 1) return 'пик завтра';
+    if (p >= 2 && p <= 4) return `пик через ${p} дн.`;
+    return `пик через ${p} дн.`;
+  }
+  function crisisLabel(p) {
+    const c = Math.round(14 - p);
+    if (c <= 0) return 'кризис сегодня';
+    if (c === 1) return 'кризис завтра';
+    return `кризис через ${c} дн.`;
+  }
+
+  return { calc, CYCLES, peakLabel, crisisLabel };
 })();

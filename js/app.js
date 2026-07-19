@@ -60,6 +60,30 @@
     wireEvents();
   }
 
+  // ── Gadanie (arc portal) ─────────────────────────────────
+  function openGadaniePortal() {
+    closeAllPanels();
+    const portal = $('#arcPortal');
+    if (!portal) return;
+    portal.hidden = false;
+    tileActive('gadanie', true);
+    if (window.ArcApp && window.ArcApp.mount) {
+      window.ArcApp.mount();
+    }
+    haptic('medium');
+    // scroll to top
+    setTimeout(() => portal.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }
+
+  function closeGadaniePortal() {
+    const portal = $('#arcPortal');
+    if (!portal) return;
+    if (window.ArcApp && window.ArcApp.unmount) window.ArcApp.unmount();
+    portal.hidden = true;
+    tileActive('gadanie', false);
+    haptic('light');
+  }
+
   // ── User chip ────────────────────────────────────────────
   function renderUser() {
     const el = $('#userChip');
@@ -172,24 +196,50 @@
     haptic('light');
   }
 
-  // ── Forecast panel (placeholder) ────────────────────────
+  // ── Forecast panel (7-day cards) ──────────────────────
   function openForecastPanel() {
     closeAllPanels();
     $('#panelForecast').hidden = false;
     tileActive('forecast', true);
     haptic('light');
-    // Заглушка: покажем последние 7 чек-инов если есть
-    const arr = state.checkins;
-    if (arr.length === 0) {
-      $('#forecastContent').innerHTML = '<p class="forecast-empty">Прогноз строится по натальной карте. Заполни профиль в боте → <strong>/start</strong>.</p>';
-    } else {
-      $('#forecastContent').innerHTML = '<ul class="forecast-list">' + arr.slice(-7).reverse().map(c => {
-        const d = new Date(c.ts);
-        const day = d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric' });
-        const moodEmoji = ['', '😞', '😕', '😐', '🙂', '😄'][c.mood] || '·';
-        return `<li class="forecast-item"><span class="forecast-day">${day}</span><span class="forecast-card">${moodEmoji} ${c.note || '—'}</span></li>`;
-      }).join('') + '</ul>';
+    renderWeekForecast();
+  }
+
+  function renderWeekForecast() {
+    const list = $('#forecastList');
+    const content = $('#forecastContent');
+    if (!list || !content) return;
+    const tgId = state.user.id || 1;
+    const days = [];
+    const today = new Date();
+    // 7 дней: сегодня + 6 вперёд
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      const key = DATA.dateKey(d);
+      const c = TarotDaily.calc(tgId, key);
+      const dt = DATA.dateLabel(d);
+      // подсчёт биоритма на этот день, если есть профиль
+      let bioLine = null;
+      if (state.profile && state.profile.birthYear) {
+        const r = Biorhythm.calc(state.profile.birthYear, state.profile.birthMonth, state.profile.birthDay, d);
+        const pct = Math.round(((r.physical.value + r.emotional.value + r.intellectual.value) / 3) * 100);
+        bioLine = pct;
+      }
+      days.push({ key, dt, card: c, bioLine });
     }
+    const html = days.map((d, i) => {
+      const dayShort = i === 0 ? 'Сегодня' : d.dt.split(',')[0];
+      return `<li class="forecast-item">
+        <span class="forecast-day">${dayShort}</span>
+        <span class="forecast-card"><span class="forecast-glyph">${d.card.glyph}</span> ${escapeHtml(d.card.name)}</span>
+        <span class="forecast-bio">${d.bioLine !== null ? (d.bioLine > 0 ? '+' : '') + d.bioLine + '%' : '—'}</span>
+      </li>`;
+    }).join('');
+    list.innerHTML = html;
+    list.hidden = false;
+    // очистим placeholder
+    const ph = content.querySelector('.forecast-empty');
+    if (ph) ph.remove();
   }
 
   // ── Profile panel ───────────────────────────────────────
@@ -203,9 +253,13 @@
 
   function renderProfile() {
     const p = state.profile;
+    const zod = (p && p.birthYear) ? DATA.zodiacOf(p.birthMonth, p.birthDay) : null;
     const fields = [
       { label: 'Имя',          val: p && p.name ? p.name : null },
       { label: 'Дата рождения', val: p && p.birthYear ? `${p.birthDay}.${String(p.birthMonth).padStart(2,'0')}.${p.birthYear}` : null },
+      { label: 'Знак зодиака', val: zod ? `${zod[1]} ${zod[0]}` : null },
+      { label: 'Стихия',       val: zod ? zod[3] : null },
+      { label: 'Управитель',   val: zod ? zod[4] : null },
       { label: 'Время',         val: p && p.birthTime ? p.birthTime : null },
       { label: 'Место',         val: p && p.birthPlace ? p.birthPlace : null }
     ];
@@ -216,22 +270,30 @@
       </div>`
     ).join('');
 
+    const meta = $('#profileMeta');
     if (p && p.birthYear) {
-      $('#profileMeta').textContent = 'заполнен';
+      if (meta) meta.textContent = zod ? `${zod[1]} ${zod[0]}` : 'заполнен';
     } else {
-      $('#profileMeta').textContent = 'заполнить';
+      if (meta) meta.textContent = 'заполнить';
     }
   }
 
   // ── Tile highlight + panel close ────────────────────────
   function tileActive(name, on) {
-    const map = { biorhythm:'tileBiorhythm', evening:'tileEvening', forecast:'tileForecast', profile:'tileProfile' };
+    const map = { biorhythm:'tileBiorhythm', evening:'tileEvening', forecast:'tileForecast', profile:'tileProfile', gadanie:'tileGadanie' };
     const el = $('#' + map[name]);
     if (el) el.classList.toggle('is-active', on);
   }
   function closeAllPanels() {
     ['panelBiorhythm','panelEvening','panelForecast','panelProfile'].forEach(id => $('#' + id).hidden = true);
     ['biorhythm','evening','forecast','profile'].forEach(n => tileActive(n, false));
+    // arc portal
+    const ap = $('#arcPortal');
+    if (ap && !ap.hidden) {
+      if (window.ArcApp && window.ArcApp.unmount) window.ArcApp.unmount();
+      ap.hidden = true;
+      tileActive('gadanie', false);
+    }
   }
   function closePanel(name) {
     $('#panel' + name[0].toUpperCase() + name.slice(1)).hidden = true;
@@ -312,20 +374,42 @@
     $('#btnShareTarot').onclick   = shareTarot;
     $('#btnSaveCheckin').onclick  = saveCheckin;
     $('#btnProfileCopy').onclick  = () => {
-      if (tg && tg.close) tg.close();
-      else window.close();
+      // open bot deeplink: t.me/Fitness_byrbot?start=openapp
+      const url = 'https://t.me/Fitness_byrbot?start=openapp';
+      if (tg && tg.openLink) {
+        tg.openLink(url);
+        setTimeout(() => tg.close && tg.close(), 300);
+      } else if (tg && tg.openTelegramLink) {
+        tg.openTelegramLink(url);
+      } else {
+        window.open(url, '_blank');
+      }
     };
 
     // Quick tiles
     $('#tileBiorhythm').onclick = openBiorhythmPanel;
     $('#tileEvening').onclick   = openEveningPanel;
+    $('#tileGadanie').onclick   = openGadaniePortal;
     $('#tileForecast').onclick  = openForecastPanel;
     $('#tileProfile').onclick   = openProfilePanel;
+
+    // User chip — открывает профиль
+    const chip = $('#userChip');
+    if (chip) {
+      chip.onclick = openProfilePanel;
+      chip.setAttribute('role', 'button');
+      chip.setAttribute('tabindex', '0');
+      chip.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProfilePanel(); } };
+    }
 
     // Panel close buttons
     $$('.panel-close').forEach(b => {
       b.onclick = () => closePanel(b.dataset.screen);
     });
+
+    // Arc portal back button
+    const back = $('#arcBack');
+    if (back) back.onclick = closeGadaniePortal;
 
     // Mood buttons (используем onclick на каждой кнопке, не addEventListener)
     $$('.mood-btn').forEach(b => {

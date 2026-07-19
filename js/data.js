@@ -65,6 +65,42 @@ window.DATA = (function () {
     });
   }));
 
+  const ZODIAC = [
+    ['Овен',     '♈', '20.03 — 19.04', 'огонь',  'Марс'],
+    ['Телец',    '♉', '20.04 — 20.05', 'земля', 'Венера'],
+    ['Близнецы', '♊', '21.05 — 20.06', 'воздух', 'Меркурий'],
+    ['Рак',      '♋', '21.06 — 22.07', 'вода',  'Луна'],
+    ['Лев',      '♌', '23.07 — 22.08', 'огонь', 'Солнце'],
+    ['Дева',     '♍', '23.08 — 22.09', 'земля', 'Меркурий'],
+    ['Весы',     '♎', '23.09 — 22.10', 'воздух', 'Венера'],
+    ['Скорпион', '♏', '23.10 — 21.11', 'вода',  'Плутон'],
+    ['Стрелец',  '♐', '22.11 — 21.12', 'огонь', 'Юпитер'],
+    ['Козерог',  '♑', '22.12 — 19.01', 'земля', 'Сатурн'],
+    ['Водолей',  '♒', '20.01 — 18.02', 'воздух', 'Уран'],
+    ['Рыбы',     '♓', '19.02 — 19.03', 'вода',  'Нептун']
+  ];
+
+  // дата -> знак (учитываем граничные даты)
+  function zodiacOf(month, day) {
+    const md = month * 100 + day;
+    if (md >= 321  && md <= 419)  return ZODIAC[0];
+    if (md >= 420  && md <= 520)  return ZODIAC[1];
+    if (md >= 521  && md <= 620)  return ZODIAC[2];
+    if (md >= 621  && md <= 722)  return ZODIAC[3];
+    if (md >= 723  && md <= 822)  return ZODIAC[4];
+    if (md >= 823  && md <= 922)  return ZODIAC[5];
+    if (md >= 923  && md <= 1022) return ZODIAC[6];
+    if (md >= 1023 && md <= 1121) return ZODIAC[7];
+    if (md >= 1122 && md <= 1221) return ZODIAC[8];
+    if (md >= 1222 || md <= 119)  return ZODIAC[9];
+    if (md >= 120  && md <= 218)  return ZODIAC[10];
+    return ZODIAC[11];
+  }
+
+  function fmtKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
   return {
     CARDS,
     cardsCount: CARDS.length,
@@ -73,13 +109,12 @@ window.DATA = (function () {
       for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
       return Math.abs(h);
     },
-    todayKey() {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    todayKey() { return fmtKey(new Date()); },
+    dateKey(d) { return fmtKey(d instanceof Date ? d : new Date(d)); },
+    dateLabel(d) {
+      const x = d instanceof Date ? d : new Date(d);
+      return x.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' });
     },
-    dateLabel() {
-      const d = new Date();
-      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' });
-    }
+    ZODIAC, zodiacOf
   };
 })();

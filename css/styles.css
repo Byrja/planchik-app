@@ -16,6 +16,7 @@
   --ink-mute:  #6f6a85;
   --line:      #2a2745;
   --line-gold: rgba(212,175,55,0.35);
+  --gold-soft: rgba(212,175,55,0.12);
   --danger:    #d13b3b;
   --ok:        #2db872;
   --serif:     'Cormorant Garamond', 'Times New Roman', serif;
@@ -75,7 +76,11 @@ input, textarea, select { font: inherit; color: inherit; }
   color: var(--gold-2);
   font-size: 20px;
   border-radius: 50%;
+  transition: transform var(--t), border-color var(--t);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+.app-user:hover, .app-user:focus-visible { transform: scale(1.05); border-color: var(--gold); }
 .app-user img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
 /* ── Hero card (Tarot Daily) ─────────────────────────── */
@@ -147,6 +152,7 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .quick-tile:hover, .quick-tile:focus-visible { border-color: var(--line-gold); transform: translateY(-2px); }
 .quick-tile.is-active { border-color: var(--gold); background: linear-gradient(180deg, rgba(212,175,55,0.12), rgba(212,175,55,0.03)); }
+.quick-tile-wide { grid-column: 1 / -1; }
 .quick-tile-ico { font-size: 26px; margin-bottom: 8px; line-height: 1; }
 .quick-tile-label { font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
 .quick-tile-meta { font-size: 12px; color: var(--ink-mute); letter-spacing: 0.3px; }
@@ -264,8 +270,10 @@ input, textarea, select { font: inherit; color: inherit; }
   border-radius: var(--r-sm);
   font-size: 14px;
 }
-.forecast-day { font-weight: 500; min-width: 70px; color: var(--gold); }
-.forecast-card { color: var(--ink); flex: 1; }
+.forecast-day { font-weight: 500; min-width: 78px; color: var(--gold); }
+.forecast-card { color: var(--ink); flex: 1; display: flex; align-items: center; gap: 6px; }
+.forecast-glyph { font-size: 18px; }
+.forecast-bio { font-family: var(--serif); font-size: 16px; color: var(--ink-dim); min-width: 50px; text-align: right; }
 
 /* ── Profile panel ────────────────────────────────────── */
 .profile-content { display: flex; flex-direction: column; gap: 14px; }

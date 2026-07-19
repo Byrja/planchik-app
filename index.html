@@ -56,12 +56,17 @@
         <span class="quick-tile-label">Вечер</span>
         <span class="quick-tile-meta" id="eveningMeta">чек-ин</span>
       </button>
+      <button type="button" class="quick-tile" data-screen="gadanie" id="tileGadanie">
+        <span class="quick-tile-ico">🔮</span>
+        <span class="quick-tile-label">Гадание</span>
+        <span class="quick-tile-meta">одна карта</span>
+      </button>
       <button type="button" class="quick-tile" data-screen="forecast" id="tileForecast">
         <span class="quick-tile-ico">📅</span>
         <span class="quick-tile-label">Неделя</span>
         <span class="quick-tile-meta">прогноз</span>
       </button>
-      <button type="button" class="quick-tile" data-screen="profile" id="tileProfile">
+      <button type="button" class="quick-tile quick-tile-wide" data-screen="profile" id="tileProfile">
         <span class="quick-tile-ico">👤</span>
         <span class="quick-tile-label">Профиль</span>
         <span class="quick-tile-meta" id="profileMeta">заполнить</span>
@@ -124,6 +129,17 @@
       </div>
     </section>
 
+    <!-- ─── GadanIE PORTAL (Arkhangel clone) ───────────── -->
+    <section class="arc-portal" id="arcPortal" hidden aria-labelledby="arcTitle">
+      <header class="arc-portal-header">
+        <button type="button" class="arc-back" id="arcBack" aria-label="Назад в кабинет">←</button>
+        <h2 id="arcTitle" class="arc-portal-title">🔮 Гадание по одной карте</h2>
+      </header>
+      <div class="arc-content" id="arcContent">
+        <!-- Сюда вставляется HTML из arc-app.js -->
+      </div>
+    </section>
+
     <!-- ─── FOOTER ─────────────────────────────────────── -->
     <footer class="app-footer">
       <p>Планчик · Telegram Mini App</p>
@@ -139,6 +155,13 @@
   <script src="js/tarot.js?v=1.0"></script>
   <script src="js/biorhythm.js?v=1.0"></script>
   <script src="js/evening.js?v=1.0"></script>
+  <script src="js/arc-runes.js?v=1.0"></script>
+  <script src="js/arc-tarot.js?v=1.0"></script>
+  <script src="js/arc-lenormand.js?v=1.0"></script>
+  <script src="js/arc-gypsy.js?v=1.0"></script>
+  <script src="js/arc-playing.js?v=1.0"></script>
+  <script src="js/arc-app.js?v=1.0"></script>
+  <link rel="stylesheet" href="css/arc-styles.css?v=1.0">
   <script src="js/app.js?v=1.0"></script>
 </body>
 </html>

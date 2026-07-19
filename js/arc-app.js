@@ -704,8 +704,9 @@
     if (!SPREADS[id]) return;
     state.spread = id;
     state.cards = [];
-    // Подсветка в сайдбаре
+    // Подсветка в сайдбаре и mobile-nav
     $$('.arc-nav-link').forEach(a => a.classList.toggle('is-active', a.dataset.spread === id));
+    syncMobileNavLabel();
     mountSpread();
     tryVibrate(10);
     // прокрутить к началу main
@@ -755,6 +756,75 @@
     // init
     setSpread('one');
     bindInfoCards();
+    bindMobileNav();
+  }
+
+  // ── Mobile sticky spread picker ─────────────────────────
+  function bindMobileNav() {
+    const btn   = $('#arcMobileNavBtn');
+    const popup = $('#arcMobileNavPopup');
+    const list  = $('#arcMobileNavList');
+    const lbl   = $('#arcMobileNavLabel');
+    if (!btn || !popup || !list) return;
+    // Собираем список раскладов из сайдбара (один источник истины)
+    list.innerHTML = $$('#arcNav li').map(li => {
+      const a = li.querySelector('a');
+      if (!a) return '';
+      const spread = a.dataset.spread;
+      const ico = (a.querySelector('.ico') || {}).textContent || '✦';
+      const meta = a.querySelector('.arc-nav-meta');
+      const metaHtml = meta ? `<span class="arc-nav-meta">${meta.textContent}</span>` : '';
+      // вытащим текст без ico и meta
+      let label = '';
+      a.childNodes.forEach(n => {
+        if (n.nodeType === 3) label += n.textContent;
+      });
+      label = label.trim();
+      return `<li><a href="#" data-spread="${spread}" class="arc-nav-link"><span class="ico">${ico}</span> ${label} ${metaHtml}</a></li>`;
+    }).join('');
+    // wire внутри popup
+    list.querySelectorAll('a').forEach(a => {
+      a.onclick = (e) => {
+        e.preventDefault();
+        setSpread(a.dataset.spread);
+        closePopup();
+      };
+    });
+    // toggle popup
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const isOpen = btn.getAttribute('aria-expanded') === 'true';
+      if (isOpen) closePopup(); else openPopup();
+    };
+    // закрыть при клике вне
+    document.addEventListener('click', (e) => {
+      if (popup.hidden) return;
+      if (!popup.contains(e.target) && !btn.contains(e.target)) closePopup();
+    });
+    // закрыть по Esc
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !popup.hidden) closePopup();
+    });
+    function openPopup() {
+      popup.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+    }
+    function closePopup() {
+      popup.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  }
+  // обновляем label в mobile-nav когда меняется spread
+  function syncMobileNavLabel() {
+    const lbl = $('#arcMobileNavLabel');
+    if (!lbl) return;
+    const cfg = getSpreadConfig(state.spread);
+    lbl.textContent = cfg.title;
+    // подсветка в popup
+    const list = $('#arcMobileNavList');
+    if (list) {
+      list.querySelectorAll('a').forEach(a => a.classList.toggle('is-active', a.dataset.spread === state.spread));
+    }
   }
 
   function unmount() {

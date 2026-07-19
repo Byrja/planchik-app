@@ -262,6 +262,22 @@
           </aside>
         </div>
 
+        <!-- MOBILE STICKY SPREAD PICKER (visible только на mobile) -->
+        <nav class="arc-mobile-nav" id="arcMobileNav" aria-label="Сменить расклад">
+          <button type="button" class="arc-mobile-nav-btn" id="arcMobileNavBtn" aria-haspopup="true" aria-expanded="false">
+            <span class="arc-mobile-nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </span>
+            <span class="arc-mobile-nav-label" id="arcMobileNavLabel">Одна карта</span>
+            <span class="arc-mobile-nav-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="arc-mobile-nav-popup" id="arcMobileNavPopup" hidden>
+            <ul id="arcMobileNavList" class="arc-mobile-nav-list"></ul>
+          </div>
+        </nav>
+
         <!-- INFO CARDS -->
         <section class="arc-info">
           <article class="arc-info-card">

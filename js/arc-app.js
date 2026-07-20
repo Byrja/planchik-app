@@ -280,7 +280,24 @@
     const text = buildShareText();
     if (!text) return;
     const tg = window.TelegramApp && window.TelegramApp.tg;
-    // 1) Telegram share dialog — открывает список чатов для пересылки текста
+    // 1) Пробуем отправить структурированные данные в бот
+    if (tg && tg.sendData) {
+      try {
+        const payload = {
+          type: 'arc_share',
+          payload: {
+            spread: state.spread,
+            deck: state.deck,
+            question: state.question,
+            cards: state.cards.map(c => ({ id: c.id, name: c.name, reversed: c.reversed }))
+          }
+        };
+        tg.sendData(JSON.stringify(payload));
+        flashToast('Сохранено в боте');
+        return;
+      } catch (e) { /* fallback */ }
+    }
+    // 2) Fallback: Telegram share dialog
     if (tg && tg.openTelegramLink) {
       flashToast('Выбери чат для отправки');
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Fitness_byrbot') + '&text=' + encodeURIComponent(text);

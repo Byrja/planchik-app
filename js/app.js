@@ -30,18 +30,30 @@
   // ── State ────────────────────────────────────────────────
   const state = {
     user: parseUser(),
-    profile: Evening.loadProfile(),
+    profile: enrichProfile(Evening.loadProfile()),
     mood: null,
     checkins: Evening.last30()
   };
 
+  function enrichProfile(p) {
+    if (!p) return null;
+    if (state.user.id) p.telegramId = state.user.id;
+    return p;
+  }
+
+  function setProfile(p) {
+    state.profile = enrichProfile(p);
+    Evening.saveProfile(p);
+  }
+
   function parseUser() {
+    const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       const u = tg.initDataUnsafe.user;
-      return { id: u.id, name: u.first_name || 'друг', username: u.username || null, photo: u.photo_url || null };
+      return { id: u.id, name: u.first_name || 'друг', username: u.username || null, photo: u.photo_url || null, startParam };
     }
     // Dev fallback (открыли в браузере напрямую)
-    return { id: 0, name: 'друг', username: null, photo: null };
+    return { id: 0, name: 'друг', username: null, photo: null, startParam };
   }
 
   // ── DOM refs ─────────────────────────────────────────────
@@ -58,6 +70,9 @@
     renderEveningTile();
     renderProfile();
     wireEvents();
+    if (state.user.startParam === 'mychart') {
+      setTimeout(openChartPanel, 50);
+    }
   }
 
   // ── Gadanie (arc portal) ─────────────────────────────────
@@ -341,13 +356,13 @@
 
   // ── Tile highlight + panel close ────────────────────────
   function tileActive(name, on) {
-    const map = { biorhythm:'tileBiorhythm', evening:'tileEvening', forecast:'tileForecast', profile:'tileProfile', gadanie:'tileGadanie' };
+    const map = { biorhythm:'tileBiorhythm', evening:'tileEvening', forecast:'tileForecast', profile:'tileProfile', chart:'tileChart', gadanie:'tileGadanie' };
     const el = $('#' + map[name]);
     if (el) el.classList.toggle('is-active', on);
   }
   function closeAllPanels() {
-    ['panelBiorhythm','panelEvening','panelForecast','panelProfile'].forEach(id => $('#' + id).hidden = true);
-    ['biorhythm','evening','forecast','profile'].forEach(n => tileActive(n, false));
+    ['panelBiorhythm','panelEvening','panelForecast','panelProfile','panelChart'].forEach(id => $('#' + id).hidden = true);
+    ['biorhythm','evening','forecast','profile','chart'].forEach(n => tileActive(n, false));
     // arc portal
     const ap = $('#arcPortal');
     if (ap && !ap.hidden) {
@@ -355,6 +370,121 @@
       ap.hidden = true;
       tileActive('gadanie', false);
     }
+  }
+
+  // ── Chart panel ─────────────────────────────────────────
+  function openChartPanel() {
+    closeAllPanels();
+    $('#panelChart').hidden = false;
+    tileActive('chart', true);
+    haptic('light');
+    renderChart();
+  }
+
+  function renderChart() {
+    const root = $('#chartContent');
+    if (!root) return;
+    const p = state.profile;
+    if (!p || !p.birthYear) {
+      root.innerHTML = `
+        <div class="chart-empty">
+          <svg viewBox="0 0 32 32" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="16" cy="16" r="11" fill="currentColor" fill-opacity="0.1"/>
+            <path d="M16 8v8l5 5"/>
+          </svg>
+          <p>Для натальной карты нужен профиль: имя, дата, время и место рождения.</p>
+          <button type="button" class="btn btn-primary" id="chartCtaOpenProfile">Заполнить профиль →</button>
+        </div>`;
+      const cta = $('#chartCtaOpenProfile');
+      if (cta) cta.onclick = openProfilePanel;
+      return;
+    }
+    const chart = NatalChart.calc(p);
+    if (!chart) {
+      root.innerHTML = '<p class="chart-empty">Не удалось рассчитать карту.</p>';
+      return;
+    }
+    const elements = Object.entries(chart.elements)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(' · ');
+    root.innerHTML = `
+      <div class="chart-summary">
+        <div class="chart-big">
+          <div class="chart-big-item">
+            <span class="label">Солнце</span>
+            <span class="value">${chart.sunSign}</span>
+          </div>
+          <div class="chart-big-item">
+            <span class="label">Луна</span>
+            <span class="value">${chart.moonSign}</span>
+          </div>
+          <div class="chart-big-item">
+            <span class="label">Асцендент</span>
+            <span class="value">${chart.ascendant}</span>
+          </div>
+        </div>
+        <p class="chart-meta">${elements}</p>
+      </div>
+      <h3 class="chart-h3">Планеты</h3>
+      <div class="chart-planets" id="chartPlanets"></div>
+      <h3 class="chart-h3">Аспекты</h3>
+      <div class="chart-aspects" id="chartAspects"></div>
+    `;
+    renderPlanetTable(chart.planets);
+    renderAspects(chart.aspects);
+  }
+
+  function renderPlanetTable(planets) {
+    const root = $('#chartPlanets');
+    if (!root) return;
+    const html = planets.map(p => {
+      const retro = p.retro ? '℞' : '';
+      return `
+        <div class="chart-row">
+          <span class="chart-row-sym">${p.symbol}</span>
+          <span class="chart-row-name">${p.name}</span>
+          <span class="chart-row-sign">${p.sign.symbol} ${p.sign.name}</span>
+          <span class="chart-row-deg">${p.dms}${retro}</span>
+        </div>`;
+    }).join('');
+    root.innerHTML = html;
+  }
+
+  function renderAspects(aspects) {
+    const root = $('#chartAspects');
+    if (!root) return;
+    if (!aspects.length) {
+      root.innerHTML = '<p class="chart-empty">Аспектов не найдено.</p>';
+      return;
+    }
+    const html = aspects.slice(0, 16).map(a => `
+      <div class="chart-row aspect">
+        <span class="chart-row-sym">${a.glyph}</span>
+        <span class="chart-row-name">${a.p1.name} · ${a.p2.name}</span>
+        <span class="chart-row-deg">${a.name} ±${a.orb}°</span>
+      </div>
+    `).join('');
+    root.innerHTML = html;
+  }
+
+  function sendToBot(type, payload) {
+    const tg = window.TelegramApp && window.TelegramApp.tg;
+    if (tg && tg.sendData) {
+      try {
+        tg.sendData(JSON.stringify({ type, payload }));
+        return true;
+      } catch (e) { /* noop */ }
+    }
+    return false;
+  }
+
+  function saveProfileToBot() {
+    if (!state.profile || !state.profile.birthYear) {
+      flashToast('Заполни профиль');
+      return;
+    }
+    const ok = sendToBot('profile_update', state.profile);
+    flashToast(ok ? 'Профиль отправлен в бот' : 'Отправка недоступна');
   }
   function closePanel(name) {
     $('#panel' + name[0].toUpperCase() + name.slice(1)).hidden = true;
@@ -371,8 +501,16 @@
     const c = TarotDaily.calc(state.user.id || 1, DATA.todayKey());
     const text = TarotDaily.formatShare(c);
     const tg = window.TelegramApp && window.TelegramApp.tg;
-    // 1) Telegram share dialog — открывает список чатов для пересылки текста
-    //    (работает в WebApp, не требует серверной обработки)
+    // 1) Пробуем отправить в бот через sendData
+    if (tg && tg.sendData) {
+      try {
+        tg.sendData(JSON.stringify({ type: 'tarot', payload: { id: c.id, name: c.name, upright: c.upright, mood: c.mood, glyph: c.glyph } }));
+        flashToast('Отправлено в бот');
+        haptic('light');
+        return;
+      } catch (e) { /* fallback */ }
+    }
+    // 2) Fallback: Telegram share dialog / native share
     if (tg && tg.openTelegramLink) {
       flashToast('Выбери чат для отправки');
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Fitness_byrbot') + '&text=' + encodeURIComponent(text);
@@ -451,18 +589,7 @@
       };
     }
     $('#btnSaveCheckin').onclick  = saveCheckin;
-    $('#btnProfileCopy').onclick  = () => {
-      // open bot deeplink: t.me/Fitness_byrbot?start=openapp
-      const url = 'https://t.me/Fitness_byrbot?start=openapp';
-      if (tg && tg.openLink) {
-        tg.openLink(url);
-        setTimeout(() => tg.close && tg.close(), 300);
-      } else if (tg && tg.openTelegramLink) {
-        tg.openTelegramLink(url);
-      } else {
-        window.open(url, '_blank');
-      }
-    };
+    $('#btnProfileCopy').onclick  = () => saveProfileToBot();
 
     // Quick tiles
     $('#tileBiorhythm').onclick = openBiorhythmPanel;
@@ -470,6 +597,7 @@
     $('#tileGadanie').onclick   = openGadaniePortal;
     $('#tileForecast').onclick  = openForecastPanel;
     $('#tileProfile').onclick   = openProfilePanel;
+    $('#tileChart').onclick     = openChartPanel;
 
     // User chip — открывает профиль
     const chip = $('#userChip');

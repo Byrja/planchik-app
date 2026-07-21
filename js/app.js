@@ -700,18 +700,19 @@
         openGadaniePortal();
       };
     }
-    $('#btnSaveCheckin').onclick  = saveCheckin;
-    $('#btnProfileEdit').onclick = toggleProfileEdit;
-    $('#btnProfileSave').onclick = saveProfileToBot;
-    $('#btnProfileCopy').onclick = openProfileInBot;
+    const $bind = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
+    $bind('#btnSaveCheckin',   saveCheckin);
+    $bind('#btnProfileEdit',  toggleProfileEdit);
+    $bind('#btnProfileSave',  saveProfileToBot);
+    $bind('#btnProfileCopy',  openProfileInBot);
 
     // Quick tiles
-    $('#tileBiorhythm').onclick = tileBiorhythmClick;
-    $('#tileEvening').onclick   = openEveningPanel;
-    $('#tileGadanie').onclick   = openGadaniePortal;
-    $('#tileForecast').onclick  = openForecastPanel;
-    $('#tileProfile').onclick   = openProfilePanel;
-    $('#tileChart').onclick     = openChartPanel;
+    $bind('#tileBiorhythm',   tileBiorhythmClick);
+    $bind('#tileEvening',     openEveningPanel); // no-op после удаления чекина
+    $bind('#tileGadanie',     openGadaniePortal);
+    $bind('#tileForecast',    openForecastPanel);
+    $bind('#tileProfile',     openProfilePanel);
+    $bind('#tileChart',       openChartPanel);
 
     // User chip — открывает профиль
     const chip = $('#userChip');

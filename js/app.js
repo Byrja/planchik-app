@@ -439,7 +439,9 @@
     if (el) el.classList.toggle('is-active', on);
   }
   function closeAllPanels() {
-    ['panelBiorhythm','panelEvening','panelForecast','panelProfile','panelChart'].forEach(id => $('#' + id).hidden = true);
+    ['panelBiorhythm','panelEvening','panelForecast','panelProfile','panelChart'].forEach(id => {
+      const el = $('#' + id); if (el) el.hidden = true;
+    });
     ['biorhythm','evening','forecast','profile','chart'].forEach(n => tileActive(n, false));
     // arc portal
     const ap = $('#arcPortal');

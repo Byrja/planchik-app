@@ -233,11 +233,11 @@ input, textarea, select { font: inherit; color: inherit; }
   border-radius: var(--r-lg);
   padding: 20px;
   margin-bottom: 16px;
-  animation: slide-in 0.3s ease-out;
+  animation: panel-in 360ms cubic-bezier(.2,.7,.2,1) both;
 }
-@keyframes slide-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 [hidden] { display: none !important; }
 
@@ -1068,4 +1068,53 @@ body.landing-mode .app { display: none !important; }
   .starfield { animation: none; }
   .hero-card::before { animation: none; }
   .quick-tile::after { transition: none; }
+}
+
+/* ── Motion: stagger tiles + card flip + progress (Batch B) ── */
+.quick-tile {
+  animation: tile-in 420ms cubic-bezier(.2,.7,.2,1) both;
+}
+.quick-tile:nth-child(1) { animation-delay:  40ms; }
+.quick-tile:nth-child(2) { animation-delay:  90ms; }
+.quick-tile:nth-child(3) { animation-delay: 140ms; }
+.quick-tile:nth-child(4) { animation-delay: 190ms; }
+.quick-tile:nth-child(5) { animation-delay: 240ms; }
+.quick-tile:nth-child(6) { animation-delay: 290ms; }
+@keyframes tile-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Card-flip easing for arc portal */
+.tarot-card-inner {
+  transition: transform 700ms cubic-bezier(.4,.2,.2,1.05);
+}
+
+/* Progress bar draw */
+.progress-fill {
+  transform-origin: left center;
+  animation: bar-draw 1200ms cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes bar-draw {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Lazy reveal for history/forecast items on scroll */
+.arc-history-item, .forecast-item {
+  animation: item-in 460ms cubic-bezier(.2,.7,.2,1) both;
+}
+.arc-history-item:nth-child(odd),  .forecast-item:nth-child(odd)  { animation-delay:  30ms; }
+.arc-history-item:nth-child(even), .forecast-item:nth-child(even) { animation-delay:  70ms; }
+@keyframes item-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .panel, .quick-tile, .arc-history-item, .forecast-item, .progress-fill {
+    animation: none !important;
+  }
+  .tarot-card-inner { transition: none; }
 }

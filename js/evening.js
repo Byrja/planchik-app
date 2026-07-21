@@ -57,7 +57,7 @@ window.Evening = (function () {
     const moodEmoji = ['', '😞', '😕', '😐', '🙂', '😄'][t.mood] || '·';
     const text = `${moodEmoji} Чек-ин ${dateStr}: настроение ${t.mood}/5${t.note ? ' · ' + t.note : ''}\n\n— Планчик`;
     if (tg && tg.openTelegramLink) {
-      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Fitness_byrbot') + '&text=' + encodeURIComponent(text);
+      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/astro_byrbot') + '&text=' + encodeURIComponent(text);
       tg.openTelegramLink(url);
     } else if (navigator.share) {
       navigator.share({ text }).catch(() => {});

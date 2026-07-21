@@ -1,6 +1,6 @@
 # Планчик — Telegram Mini App
 
-Mini App для бота @Fitness_byrbot (astrology).
+Mini App для бота @astro_byrbot (astrology).
 
 **Что внутри:**
 - Таро-совет дня (78 карт, детерминировано по telegramId+date)

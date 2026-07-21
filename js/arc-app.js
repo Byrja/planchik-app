@@ -300,7 +300,7 @@
     // 2) Fallback: Telegram share dialog
     if (tg && tg.openTelegramLink) {
       flashToast('Выбери чат для отправки');
-      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Fitness_byrbot') + '&text=' + encodeURIComponent(text);
+      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/astro_byrbot') + '&text=' + encodeURIComponent(text);
       tg.openTelegramLink(url);
     } else if (navigator.share) {
       navigator.share({ title: 'Гадание — Планчик', text }).catch(()=>{});

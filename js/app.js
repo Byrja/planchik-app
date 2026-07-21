@@ -321,21 +321,58 @@
       if (!hadBirthday) age--;
     }
     const fields = [
-      { label: 'Имя',          val: p && p.name ? p.name : null },
-      { label: 'Дата рождения', val: p && p.birthYear ? `${p.birthDay}.${String(p.birthMonth).padStart(2,'0')}.${p.birthYear}` : null },
-      { label: 'Возраст',      val: age !== null ? `${age} ${ruAge(age)}` : null },
-      { label: 'Знак зодиака', val: zod ? `${zod[1]} ${zod[0]}` : null },
-      { label: 'Стихия',       val: zod ? zod[3] : null },
-      { label: 'Управитель',   val: zod ? zod[4] : null },
-      { label: 'Время',         val: p && p.birthTime ? p.birthTime : null },
-      { label: 'Место',         val: p && p.birthPlace ? p.birthPlace : null }
+      { label: 'Имя',          val: p && p.name ? p.name : null, key: 'name', kind: 'text' },
+      { label: 'Дата рождения', val: p && p.birthYear ? `${p.birthDay}.${String(p.birthMonth).padStart(2,'0')}.${p.birthYear}` : null, key: 'birthDate', kind: 'date' },
+      { label: 'Время',         val: p && p.birthTime ? p.birthTime : null, key: 'birthTime', kind: 'time' },
+      { label: 'Место',         val: p && p.birthPlace ? p.birthPlace : null, key: 'birthPlace', kind: 'text' }
     ];
-    $('#profileFields').innerHTML = fields.map(f =>
-      `<div class="profile-field">
-        <label>${f.label}</label>
-        <div class="val ${f.val ? '' : 'is-empty'}">${f.val ? escapeHtml(f.val) : 'не заполнено'}</div>
-      </div>`
-    ).join('');
+    if (profileEditing) {
+      const cur = (key) => {
+        if (key === 'birthDate') {
+          if (p && p.birthYear) {
+            return `${p.birthYear}-${String(p.birthMonth).padStart(2,'0')}-${String(p.birthDay).padStart(2,'0')}`;
+          }
+          return '';
+        }
+        return p && p[key] ? String(p[key]) : '';
+      };
+      const inputHtml = (f) => {
+        const type = f.kind === 'date' ? 'date' : (f.kind === 'time' ? 'time' : 'text');
+        return `<div class="profile-field">
+          <label>${f.label}</label>
+          <input type="${type}" data-key="${f.key}" value="${escapeHtml(cur(f.key))}" placeholder="${f.label}">
+        </div>`;
+      };
+      $('#profileFields').innerHTML = fields.map(inputHtml).join('');
+      // wire change handlers to local state
+      $$('#profileFields input').forEach(inp => {
+        inp.oninput = () => {
+          const key = inp.dataset.key;
+          if (!state.profile) state.profile = {};
+          if (key === 'birthDate') {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(inp.value);
+            if (m) {
+              state.profile.birthYear = +m[1];
+              state.profile.birthMonth = +m[2];
+              state.profile.birthDay = +m[3];
+            } else {
+              delete state.profile.birthYear;
+              delete state.profile.birthMonth;
+              delete state.profile.birthDay;
+            }
+          } else {
+            state.profile[key] = inp.value || null;
+          }
+        };
+      });
+    } else {
+      $('#profileFields').innerHTML = fields.map(f =>
+        `<div class="profile-field">
+          <label>${f.label}</label>
+          <div class="val ${f.val ? '' : 'is-empty'}">${f.val ? escapeHtml(f.val) : 'не заполнено'}</div>
+        </div>`
+      ).join('');
+    }
 
     const meta = $('#profileMeta');
     if (p && p.birthYear) {
@@ -343,6 +380,18 @@
     } else {
       if (meta) meta.textContent = 'заполнить';
     }
+
+    const editBtn = $('#btnProfileEdit');
+    if (editBtn) editBtn.textContent = profileEditing ? 'Отмена' : (p && p.birthYear ? 'Изменить' : 'Заполнить');
+    const saveBtn = $('#btnProfileSave');
+    if (saveBtn) saveBtn.hidden = !profileEditing;
+  }
+
+  let profileEditing = false;
+  function toggleProfileEdit() {
+    profileEditing = !profileEditing;
+    renderProfile();
+    haptic('light');
   }
 
   // Склонение «год/года/лет»
@@ -480,11 +529,42 @@
 
   function saveProfileToBot() {
     if (!state.profile || !state.profile.birthYear) {
-      flashToast('Заполни профиль');
+      flashToast('Заполни дату рождения');
       return;
     }
-    const ok = sendToBot('profile_update', state.profile);
-    flashToast(ok ? 'Профиль отправлен в бот' : 'Отправка недоступна');
+    const p = state.profile;
+    const payload = {
+      name: p.name || undefined,
+      birthYear:  p.birthYear,
+      birthMonth: p.birthMonth,
+      birthDay:   p.birthDay,
+      birthTime:  p.birthTime || undefined,
+      birthPlace: p.birthPlace || undefined,
+      timezone: (p.timezone !== undefined ? p.timezone : (Intl.DateTimeFormat().resolvedOptions().timeZone || undefined)),
+    };
+    const ok = sendToBot('profile_update', payload);
+    if (ok) {
+      Evening.saveProfile(p);
+      flashToast('Профиль отправлен в бот');
+      haptic('success');
+      profileEditing = false;
+      renderProfile();
+    } else {
+      flashToast('Не удалось — открой через кнопку «Открыть в боте»');
+    }
+  }
+
+  function openProfileInBot() {
+    const tg = window.TelegramApp && window.TelegramApp.tg;
+    const url = 'https://t.me/astro_byrbot?start=profile';
+    if (tg && tg.openTelegramLink) {
+      try { tg.openTelegramLink(url); haptic('light'); return; } catch (e) {}
+    }
+    if (tg && tg.openLink) {
+      try { tg.openLink(url); haptic('light'); return; } catch (e) {}
+    }
+    // fallback (dev / desktop browser)
+    window.open(url, '_blank', 'noopener');
   }
   function closePanel(name) {
     $('#panel' + name[0].toUpperCase() + name.slice(1)).hidden = true;
@@ -592,7 +672,9 @@
       };
     }
     $('#btnSaveCheckin').onclick  = saveCheckin;
-    $('#btnProfileCopy').onclick  = () => saveProfileToBot();
+    $('#btnProfileEdit').onclick = toggleProfileEdit;
+    $('#btnProfileSave').onclick = saveProfileToBot;
+    $('#btnProfileCopy').onclick = openProfileInBot;
 
     // Quick tiles
     $('#tileBiorhythm').onclick = openBiorhythmPanel;

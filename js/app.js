@@ -255,28 +255,6 @@
       </div>`;
   }
 
-  // ── Evening panel ───────────────────────────────────────
-  function openEveningPanel() {
-    closeAllPanels();
-    $('#panelEvening').hidden = false;
-    tileActive('evening', true);
-    const today = Evening.today();
-    if (today) {
-      state.mood = today.mood;
-      $('#eveningNote').value = today.note || '';
-      $$('.mood-btn').forEach(b => b.classList.toggle('is-selected', Number(b.dataset.mood) === today.mood));
-      $('#eveningStatus').textContent = 'Сохранено сегодня в ' + new Date(today.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-      $('#eveningStatus').classList.add('is-ok');
-    } else {
-      state.mood = null;
-      $('#eveningNote').value = '';
-      $$('.mood-btn').forEach(b => b.classList.remove('is-selected'));
-      $('#eveningStatus').textContent = '';
-      $('#eveningStatus').classList.remove('is-ok');
-    }
-    haptic('light');
-  }
-
   // ── Forecast panel (7-day cards) ──────────────────────
   function openForecastPanel() {
     closeAllPanels();
@@ -434,15 +412,15 @@
 
   // ── Tile highlight + panel close ────────────────────────
   function tileActive(name, on) {
-    const map = { biorhythm:'tileBiorhythm', evening:'tileEvening', forecast:'tileForecast', profile:'tileProfile', chart:'tileChart', gadanie:'tileGadanie' };
+    const map = { biorhythm:'tileBiorhythm', forecast:'tileForecast', profile:'tileProfile', chart:'tileChart', gadanie:'tileGadanie' };
     const el = $('#' + map[name]);
     if (el) el.classList.toggle('is-active', on);
   }
   function closeAllPanels() {
-    ['panelBiorhythm','panelEvening','panelForecast','panelProfile','panelChart'].forEach(id => {
+    ['panelBiorhythm','panelForecast','panelProfile','panelChart'].forEach(id => {
       const el = $('#' + id); if (el) el.hidden = true;
     });
-    ['biorhythm','evening','forecast','profile','chart'].forEach(n => tileActive(n, false));
+    ['biorhythm','forecast','profile','chart'].forEach(n => tileActive(n, false));
     // arc portal
     const ap = $('#arcPortal');
     if (ap && !ap.hidden) {
@@ -645,20 +623,7 @@
     $$('.mood-btn').forEach(b => b.classList.toggle('is-selected', b === btn));
     haptic('selection');
   }
-  function saveCheckin() {
-    if (!state.mood) { flashToast('Выбери настроение'); haptic('error'); return; }
-    const entry = Evening.save(state.mood, $('#eveningNote').value);
-    if (Evening.shareToBot()) {
-      flashToast('Сохранено и отправлено в бот');
-    } else {
-      flashToast('Сохранено локально');
-    }
-    $('#eveningStatus').textContent = 'Сохранено в ' + new Date(entry.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    $('#eveningStatus').classList.add('is-ok');
-    state.checkins = Evening.last30();
-    // renderEveningTile(); // removed: чек-ин выпилен
-    haptic('success');
-  }
+  // saveCheckin удалён: чек-ин выпилен из UI
 
   // ── Haptics (no-op если TG недоступен) ──────────────────
   function haptic(kind) {
@@ -703,14 +668,14 @@
       };
     }
     const $bind = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
-    $bind('#btnSaveCheckin',   saveCheckin);
+    // saveCheckin удалён — no-op safety
     $bind('#btnProfileEdit',  toggleProfileEdit);
     $bind('#btnProfileSave',  saveProfileToBot);
     $bind('#btnProfileCopy',  openProfileInBot);
 
     // Quick tiles
     $bind('#tileBiorhythm',   tileBiorhythmClick);
-    $bind('#tileEvening',     openEveningPanel); // no-op после удаления чекина
+    // tileEvening удалён: чек-ин выпилен
     $bind('#tileGadanie',     openGadaniePortal);
     $bind('#tileForecast',    openForecastPanel);
     $bind('#tileProfile',     openProfilePanel);

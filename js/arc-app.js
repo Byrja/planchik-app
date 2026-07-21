@@ -306,6 +306,10 @@
   }
 
   // ── Тянем N случайных карт (без повторов) ───────────────
+  // Колоды без понятия «перевёрнутое положение» (руны читаются как лежат;
+  // игральные карты в раскладах интерпретируются по номиналу, а не по стороне).
+  const NO_REVERSED = new Set(['runes', 'playing']);
+
   function drawN(n) {
     const deckArr = DECKS[state.deck].deck() || [];
     if (!deckArr.length) return [];
@@ -315,8 +319,9 @@
       const j = Math.floor(Math.random() * (i + 1));
       [copy[i], copy[j]] = [copy[j], copy[i]];
     }
+    const allowReversed = !NO_REVERSED.has(state.deck);
     return copy.slice(0, n).map(c => {
-      const isRev = Math.random() < 0.30;
+      const isRev = allowReversed && Math.random() < 0.30;
       return {
         ...c,
         reversed: isRev ? (c.reversed || 'Перевёрнутая карта — обратите внимание на скрытые качества.') : false

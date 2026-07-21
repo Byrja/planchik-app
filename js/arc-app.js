@@ -800,9 +800,24 @@
   // ── Роутер по раскладам ─────────────────────────────────
   function setSpread(id) {
     if (!SPREADS[id]) return;
+    const cfg = SPREADS[id];
     const changing = state.spread !== id;
     state.spread = id;
     state.cards = [];
+    // Обновляем заголовок и подзаголовок в hero портала
+    const title = $('#arcTitle');
+    if (title) {
+      // Берём только первое предложение из ask для hero, hint — мелким курсивом
+      const ask = (cfg.ask || '').trim();
+      const firstSentence = (ask.split(/[.!?]/)[0] || ask).trim() || ask;
+      title.innerHTML = escapeHtml(firstSentence) + (cfg.hint ? ' <em>' + escapeHtml(cfg.hint) + '</em>' : '');
+    }
+    const eyebrow = document.querySelector('.arc-hero-eyebrow');
+    if (eyebrow) {
+      const c = cfg.count;
+      const word = c === 1 ? 'карта' : (c >= 2 && c <= 4 ? 'карты' : 'карт');
+      eyebrow.textContent = cfg.title ? `${cfg.title.toLowerCase()} · ${c} ${word}` : `${c} ${word}`;
+    }
     // Подсветка в сайдбаре и mobile-nav
     $$('.arc-nav-link').forEach(a => a.classList.toggle('is-active', a.dataset.spread === id));
     syncMobileNavLabel();

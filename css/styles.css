@@ -605,3 +605,194 @@ body.landing-mode .app { display: none !important; }
   margin: 16px 0 0;
   font-size: 12px; color: var(--ink-mute);
 }
+
+/* ═══ BOTTOM TAB BAR (sticky, нативный вид) ═══════════════ */
+.bottom-tabs {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: linear-gradient(180deg, rgba(11,10,26,0.85), rgba(11,10,26,0.98));
+  border-top: 1px solid rgba(212,175,55,0.18);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  padding: 6px 4px calc(env(safe-area-inset-bottom, 0px) + 6px);
+}
+.bottom-tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  color: var(--ink-mute);
+  font: 600 11px/1 var(--sans, system-ui);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  position: relative;
+  transition: color 160ms ease, transform 120ms ease;
+}
+.bottom-tab svg { display: block; }
+.bottom-tab:active { transform: scale(0.94); }
+.bottom-tab.is-active { color: var(--gold-2); }
+.bottom-tab.is-active::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  width: 24px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  border-radius: 2px;
+}
+.bottom-tab-badge {
+  position: absolute;
+  top: 2px; right: calc(50% - 22px);
+  min-width: 16px; height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--gold);
+  color: #1a1530;
+  font: 700 10px/16px var(--sans, system-ui);
+  text-align: center;
+  box-sizing: border-box;
+}
+/* Когда bottom-tabs показан — добавляем отступ у .app, чтобы контент не уходил под бар */
+.app.has-bottom-tabs { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+
+/* ═══ FLIP CARD (карта дня — настоящая карта таро) ════════ */
+.tarot-card-wrap {
+  perspective: 1200px;
+  width: 220px; height: 340px;
+  margin: 8px auto 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tarot-card-flip {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(.4,.2,.2,1.2);
+}
+.tarot-card-flip.is-flipped { transform: rotateY(180deg); }
+.tarot-card-face {
+  position: absolute; inset: 0;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,0.35),
+    0 12px 40px -10px rgba(212,175,55,0.35),
+    0 4px 14px -4px rgba(0,0,0,0.6);
+}
+/* Рубашка */
+.tarot-card-back {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(212,175,55,0.18), transparent 55%),
+    linear-gradient(135deg, #1d1a3a 0%, #0b0a1a 100%);
+}
+.tarot-card-back::before {
+  content: '';
+  position: absolute; inset: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(212,175,55,0.35);
+}
+.tarot-card-back::after {
+  content: '✦';
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font: 600 70px/1 var(--serif, serif);
+  color: var(--gold);
+  text-shadow: 0 0 24px rgba(212,175,55,0.5);
+}
+/* Лицо */
+.tarot-card-front {
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(160deg, #15132a 0%, #1d1a3a 50%, #0b0a1a 100%);
+}
+.tarot-card-front::before {
+  content: '';
+  position: absolute; inset: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(212,175,55,0.45);
+  pointer-events: none;
+}
+.tarot-front-content {
+  text-align: center;
+  padding: 16px 18px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  z-index: 1;
+}
+.tarot-glyph {
+  font: 600 96px/1 var(--serif, serif);
+  color: var(--gold-2);
+  text-shadow: 0 0 30px rgba(212,175,55,0.4);
+  margin-bottom: 4px;
+}
+.tarot-name {
+  font: 600 18px/1.2 var(--serif, serif);
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.tarot-mood {
+  font-size: 12px;
+  color: var(--ink-mute);
+  margin-top: 2px;
+}
+.tarot-rev-banner {
+  position: absolute; top: 14px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(220, 60, 90, 0.92);
+  color: #fff;
+  font: 700 10px/1 var(--sans, system-ui);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+.tarot-card-hint {
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-top: 6px;
+  text-align: center;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ═══ PROFILE FIELD HINT ═════════════════════════════════ */
+.profile-field.has-hint input { border-color: rgba(212,175,55,0.35); }
+.profile-field-hint {
+  font-size: 11px;
+  color: var(--gold-2);
+  opacity: 0.75;
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+}
+
+/* ═══ HISTORY PANEL (главная страница) ═════════════════════ */
+.history-panel { padding-bottom: 24px; }
+.arc-history-list { list-style: none; padding: 0; margin: 8px 0 16px; display: flex; flex-direction: column; gap: 10px; }
+.arc-history-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--bg-2);
+  border: 1px solid rgba(212,175,55,0.18);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.arc-history-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+.arc-history-spread { color: var(--gold-2); font-weight: 600; }
+.arc-history-date { color: var(--ink-mute); }
+.arc-history-q { font-size: 12px; color: var(--ink-dim); font-style: italic; }
+.arc-history-cards { display: flex; flex-wrap: wrap; gap: 4px; }
+.arc-history-card-chip {
+  background: var(--gold-soft);
+  color: var(--gold-2);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.arc-history-card-chip.is-rev { background: rgba(220,60,90,0.18); color: #f4a8b6; }
+.arc-history-more { color: var(--ink-mute); }
+.arc-history-empty { text-align: center; color: var(--ink-mute); padding: 24px 8px; font-size: 13px; }

@@ -107,6 +107,9 @@
     // renderEveningTile(); // removed: чек-ин выпилен
     renderProfile();
     wireEvents();
+    wireBottomTabs();
+    wireHeroFlip();
+    updateHistoryBadge();
     if (state.user.startParam === 'mychart') {
       setTimeout(openChartPanel, 50);
     }
@@ -169,14 +172,31 @@
     const tgId = state.user.id || 1; // dev fallback
     const date = DATA.todayKey();
     const c = TarotDaily.calc(tgId, date);
-    const el = $('#heroGlyph');
+    // Заполняем лицо флип-карты
+    const glyph = $('#heroGlyphFront');
+    const nameEl = $('#heroNameFront');
+    const moodEl = $('#heroMoodFront');
+    const revEl  = $('#heroRevBanner');
     const key = elementForCard(c);
-    if (el) el.innerHTML = ELEMENT_SVG[key] || ELEMENT_SVG.major;
-    $('#heroName').textContent  = c.name;
-    $('#heroMood').textContent  = c.mood;
-    $('#heroText').textContent  = c.upright;
+    if (glyph) {
+      // Если глиф — стихия, берём юникод-символ; иначе показываем короткий знак
+      const elemGlyph = ({fire:'🜂', water:'🜄', air:'🜁', earth:'🜃', major:'✦'})[key] || '✦';
+      glyph.textContent = elemGlyph;
+    }
+    if (nameEl) nameEl.textContent = c.name;
+    if (moodEl) moodEl.textContent = c.mood || '';
+    if (revEl) {
+      // TarotDaily даёт объект карты; reversed — поле. Если нет — флаг false
+      revEl.style.display = c.reversed ? '' : 'none';
+    }
     const hd = $('#heroDate');
     if (hd) hd.textContent = DATA.dateLabel();
+    // По умолчанию — карта рубашкой вверх; флипаем через 250мс для драмы
+    const flip = $('#heroFlip');
+    if (flip) {
+      flip.classList.remove('is-flipped');
+      setTimeout(() => flip.classList.add('is-flipped'), 350);
+    }
   }
 
   // ── Biorhythm tile (summary) ────────────────────────────
@@ -355,10 +375,11 @@
       if (!hadBirthday) age--;
     }
     const fields = [
-      { label: 'Имя',          val: p && p.name ? p.name : null, key: 'name', kind: 'text' },
-      { label: 'Дата рождения', val: p && p.birthYear ? `${p.birthDay}.${String(p.birthMonth).padStart(2,'0')}.${p.birthYear}` : null, key: 'birthDate', kind: 'date' },
-      { label: 'Время',         val: p && p.birthTime ? p.birthTime : null, key: 'birthTime', kind: 'time' },
-      { label: 'Место',         val: p && p.birthPlace ? p.birthPlace : null, key: 'birthPlace', kind: 'text' }
+      { label: 'Имя',          val: p && p.name ? p.name : null, key: 'name', kind: 'text', placeholder: 'Имя', hint: 'для натальной карты нужно полное ФИО' },
+      { label: 'Фамилия',      val: p && p.lastName ? p.lastName : null, key: 'lastName', kind: 'text', placeholder: 'Фамилия' },
+      { label: 'Дата рождения', val: p && p.birthYear ? `${p.birthDay}.${String(p.birthMonth).padStart(2,'0')}.${p.birthYear}` : null, key: 'birthDate', kind: 'date', hint: 'для натальной карты нужна полная дата' },
+      { label: 'Время',         val: p && p.birthTime ? p.birthTime : null, key: 'birthTime', kind: 'time', hint: 'если не знаешь — поставь 12:00' },
+      { label: 'Место',         val: p && p.birthPlace ? p.birthPlace : null, key: 'birthPlace', kind: 'text', placeholder: 'Город, страна' }
     ];
     if (profileEditing) {
       const cur = (key) => {
@@ -372,9 +393,12 @@
       };
       const inputHtml = (f) => {
         const type = f.kind === 'date' ? 'date' : (f.kind === 'time' ? 'time' : 'text');
-        return `<div class="profile-field">
+        const ph = f.placeholder ? ` placeholder="${escapeHtml(f.placeholder)}"` : '';
+        const hint = f.hint ? `<div class="profile-field-hint">${escapeHtml(f.hint)}</div>` : '';
+        return `<div class="profile-field${f.hint ? ' has-hint' : ''}">
           <label>${f.label}</label>
-          <input type="${type}" data-key="${f.key}" value="${escapeHtml(cur(f.key))}" placeholder="${f.label}">
+          <input type="${type}" data-key="${f.key}" value="${escapeHtml(cur(f.key))}"${ph}>
+          ${hint}
         </div>`;
       };
       $('#profileFields').innerHTML = fields.map(inputHtml).join('');
@@ -571,6 +595,7 @@
     const p = state.profile;
     const payload = {
       name: p.name || undefined,
+      lastName: p.lastName || undefined,
       birthYear:  p.birthYear,
       birthMonth: p.birthMonth,
       birthDay:   p.birthDay,
@@ -731,9 +756,160 @@
       };
     }
 
+    // History (главная) — кнопки "Очистить" / "Открыть гадание"
+    const btnClear = $('#btnHomeHistoryClear');
+    if (btnClear) {
+      btnClear.onclick = () => {
+        if (!loadHistory().length) return;
+        if (!confirm('Очистить всю историю раскладов?')) return;
+        try { localStorage.removeItem('arhHistory'); } catch (_) {}
+        renderHomeHistory();
+        updateHistoryBadge();
+      };
+    }
+    const btnOpen = $('#btnHomeHistoryOpen');
+    if (btnOpen) {
+      btnOpen.onclick = () => {
+        // Переключаемся на таб "arc" (открывает arc-portal)
+        setActiveTab('arc');
+      };
+    }
+
     // Mood buttons (используем onclick на каждой кнопке, не addEventListener)
     $$('.mood-btn').forEach(b => {
       b.onclick = () => selectMood(b);
+    });
+  }
+
+  // ── BOTTOM TAB BAR ────────────────────────────────────────
+  // Делим app на 4 экрана: home / arc / history / profile
+  // Логика переключения:
+  //  - home: закрыть все panels и arc-portal
+  //  - arc (Карты): открыть arc-portal
+  //  - history: открыть #panelHistory (новая секция на главной, не зависит от arc-portal)
+  //  - profile: открыть #panelProfile
+  function wireBottomTabs() {
+    const app = $('#app');
+    if (app) app.classList.add('has-bottom-tabs');
+
+    const tabs = $$('.bottom-tab');
+    if (!tabs.length) return;
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const which = tab.dataset.tab;
+        if (!which) return;
+        setActiveTab(which);
+      });
+    });
+  }
+
+  function setActiveTab(which) {
+    $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === which));
+    switch (which) {
+      case 'home': {
+        closeAllPanels();
+        const portal = $('#arcPortal');
+        if (portal) portal.hidden = true;
+        // Скроллим в начало
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
+        break;
+      }
+      case 'arc': {
+        // Гадание = arc-portal
+        openGadaniePortal();
+        break;
+      }
+      case 'history': {
+        closeAllPanels();
+        const portal = $('#arcPortal');
+        if (portal) portal.hidden = true;
+        const p = $('#panelHistory');
+        if (p) {
+          p.hidden = false;
+          renderHomeHistory();
+        }
+        break;
+      }
+      case 'profile': {
+        closeAllPanels();
+        const portal = $('#arcPortal');
+        if (portal) portal.hidden = true;
+        const p = $('#panelProfile');
+        if (p) p.hidden = false;
+        // Скроллим к началу секции профиля
+        try { p && p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+        break;
+      }
+    }
+  }
+
+  function closeAllPanels() {
+    $$('.panel').forEach(p => p.hidden = true);
+  }
+
+  // ── HISTORY (главная) ────────────────────────────────────
+  // Рендерит localStorage-историю раскладов в #homeHistoryList.
+  // Источник: тот же localStorage, что и arc-portal использует ('arhHistory').
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem('arhHistory') || '[]'); } catch { return []; }
+  }
+  function renderHomeHistory() {
+    const list = $('#homeHistoryList');
+    const empty = $('#homeHistoryEmpty');
+    if (!list) return;
+    const items = loadHistory();
+    if (!items.length) {
+      list.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    const SPREAD_LABELS = {
+      one: 'Одна карта', three: 'Три карты', five: 'Пять карт',
+      relation: 'Отношения', day: 'День', celtic: 'Кельтский крест',
+      week: 'Неделя', yesno: 'Да/Нет', horseshoe: 'Подкова',
+      love: 'Любовь', mind: 'Разум', mirror: 'Зеркало'
+    };
+    const monthNames = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+    list.innerHTML = items.slice(0, 30).map((h, i) => {
+      const d = new Date(h.ts || Date.now());
+      const dateStr = `${d.getDate()} ${monthNames[d.getMonth()]} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      const cards = (h.cards || []).slice(0, 4).map(c =>
+        `<span class="arc-history-card-chip${c.reversed ? ' is-rev' : ''}">${escapeHtml(c.name || c.id || '')}${c.reversed ? ' ⇄' : ''}</span>`
+      ).join('') + ((h.cards || []).length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${(h.cards || []).length - 4}</span>` : '');
+      const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
+      return `<li class="arc-history-item" data-idx="${i}">
+        <div class="arc-history-meta">
+          <span class="arc-history-spread">${SPREAD_LABELS[h.spread] || h.spread || 'расклад'}</span>
+          <span class="arc-history-date">${dateStr}</span>
+        </div>
+        ${q}
+        <div class="arc-history-cards">${cards}</div>
+      </li>`;
+    }).join('');
+  }
+  function updateHistoryBadge() {
+    const badge = $('#historyCount');
+    if (!badge) return;
+    const n = loadHistory().length;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
+
+  // ── HERO FLIP CARD ───────────────────────────────────────
+  function wireHeroFlip() {
+    const wrap = $('#heroCard');
+    if (!wrap) return;
+    const flip = $('#heroFlip');
+    if (!flip) return;
+    wrap.addEventListener('click', (e) => {
+      // Не флипаем, если кликнули по кнопке/ссылке внутри
+      if (e.target.closest('button, a, input, select, textarea')) return;
+      flip.classList.toggle('is-flipped');
     });
   }
 

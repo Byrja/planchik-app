@@ -34,8 +34,8 @@
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <link rel="stylesheet" href="css/styles.css?v=3.21">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.21">
+  <link rel="stylesheet" href="css/styles.css?v=3.22">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.22">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -76,19 +76,48 @@
 
     <!-- ─── HERO CARD: сегодняшний расклад ─────────────── -->
     <section class="hero-card" id="heroCard" aria-labelledby="heroTitle">
-      <div class="hero-card-hint" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 12h14M13 5l7 7-7 7"/>
-        </svg>
-        Гадание
-      </div>
       <div class="hero-card-eyebrow">Карта дня</div>
-      <div class="hero-card-visual" id="heroVisual">
-        <div class="hero-card-glyph" id="heroGlyph">⚜</div>
-        <div class="hero-card-name" id="heroName">—</div>
-        <div class="hero-card-mood" id="heroMood">—</div>
-        <div class="hero-card-date" id="heroDate">—</div>
+
+      <!-- Tap-to-flip card -->
+      <div class="tarot-card" id="heroTarotCard" data-state="back" role="button" tabindex="0" aria-label="Нажми, чтобы открыть карту">
+        <div class="tarot-card-inner">
+          <div class="tarot-card-face tarot-card-back">
+            <svg class="tarot-back-pattern" viewBox="0 0 200 280" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1a1530"/>
+                  <stop offset="100%" stop-color="#0b0a1a"/>
+                </linearGradient>
+                <pattern id="p1" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <circle cx="10" cy="10" r="0.8" fill="#d4af37" opacity="0.35"/>
+                </pattern>
+              </defs>
+              <rect width="200" height="280" rx="10" fill="url(#g1)"/>
+              <rect width="200" height="280" rx="10" fill="url(#p1)"/>
+              <rect x="6" y="6" width="188" height="268" rx="6" fill="none" stroke="#d4af37" stroke-width="1.2" opacity="0.55"/>
+              <rect x="14" y="14" width="172" height="252" rx="3" fill="none" stroke="#d4af37" stroke-width="0.6" opacity="0.3"/>
+              <g transform="translate(100 140)">
+                <circle r="38" fill="none" stroke="#d4af37" stroke-width="1" opacity="0.4"/>
+                <circle r="22" fill="none" stroke="#d4af37" stroke-width="0.6" opacity="0.6"/>
+                <path d="M -10 0 L 0 -18 L 10 0 L 0 18 Z" fill="#d4af37" opacity="0.7"/>
+                <circle r="3" fill="#0b0a1a"/>
+              </g>
+              <text x="100" y="32" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#d4af37" opacity="0.7" letter-spacing="2">ГАДАЛКА</text>
+            </svg>
+            <div class="tarot-tap-hint">тапни, чтобы открыть</div>
+          </div>
+          <div class="tarot-card-face tarot-card-front">
+            <div class="tarot-front-content">
+              <div class="tarot-glyph" id="heroGlyph">⚜</div>
+              <div class="tarot-name" id="heroName">—</div>
+              <div class="tarot-mood" id="heroMood">—</div>
+            </div>
+            <div class="tarot-rev-banner" id="heroRev" hidden>перевёрнутая</div>
+          </div>
+        </div>
       </div>
+
+      <div class="hero-card-date" id="heroDate">—</div>
       <p class="hero-card-text" id="heroText">Загляни в свою сегодняшнюю карту…</p>
       <div class="hero-card-actions">
         <button type="button" class="btn btn-ghost" id="btnRefreshTarot">
@@ -126,7 +155,7 @@
           </svg>
         </span>
         <span class="quick-tile-label">Гадание</span>
-        <span class="quick-tile-meta">одна карта</span>
+        <span class="quick-tile-meta" id="gadanieMeta">12 раскладов</span>
       </button>
       <button type="button" class="quick-tile" data-screen="chart" id="tileChart">
         <span class="quick-tile-ico" aria-hidden="true">
@@ -258,6 +287,25 @@
           <p>Для натальной карты нужен профиль.</p>
           <button type="button" class="btn btn-primary" id="chartCtaOpenProfile">Заполнить профиль →</button>
         </div>
+      </div>
+    </section>
+
+    <!-- ─── HISTORY PANEL (главная страница, без зависимости от arc-portal) ── -->
+    <section class="panel history-panel" id="panelHistory" hidden aria-label="История раскладов">
+      <header class="panel-header">
+        <h2 class="panel-title">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/><path d="M12 7v5l3 2"/>
+          </svg>
+          История
+        </h2>
+        <button type="button" class="panel-close" data-screen="history" aria-label="Закрыть">✕</button>
+      </header>
+      <ul id="homeHistoryList" class="arc-history-list"></ul>
+      <p class="arc-history-empty" id="homeHistoryEmpty" hidden>Пока пусто. Тяните первую карту.</p>
+      <div class="profile-actions">
+        <button type="button" class="btn btn-ghost" id="btnHomeHistoryClear">Очистить историю</button>
+        <button type="button" class="btn btn-primary" id="btnHomeHistoryOpen">Открыть гадание →</button>
       </div>
     </section>
 
@@ -402,17 +450,49 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.21"></script>
-  <script src="js/tarot.js?v=3.21"></script>
-  <script src="js/biorhythm.js?v=3.21"></script>
-  <script src="js/arc-runes.js?v=3.21"></script>
-  <script src="js/arc-lenormand.js?v=3.21"></script>
-  <script src="js/arc-gypsy.js?v=3.21"></script>
-  <script src="js/arc-playing.js?v=3.21"></script>
-  <script src="js/arc-tarot.js?v=3.21"></script>
-  <script src="js/arc-tarot-minor.js?v=3.21"></script>
-  <script src="js/chart.js?v=3.21"></script>
-  <script src="js/arc-app.js?v=3.21"></script>
-  <script src="js/app.js?v=3.21"></script>
+  <script src="js/data.js?v=3.22"></script>
+  <script src="js/tarot.js?v=3.22"></script>
+  <script src="js/biorhythm.js?v=3.22"></script>
+  <script src="js/arc-runes.js?v=3.22"></script>
+  <script src="js/arc-lenormand.js?v=3.22"></script>
+  <script src="js/arc-gypsy.js?v=3.22"></script>
+  <script src="js/arc-playing.js?v=3.22"></script>
+  <script src="js/arc-tarot.js?v=3.22"></script>
+  <script src="js/arc-tarot-minor.js?v=3.22"></script>
+  <script src="js/chart.js?v=3.22"></script>
+  <script src="js/arc-app.js?v=3.22"></script>
+  <script src="js/app.js?v=3.22"></script>
+
+  <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
+  <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">
+    <button type="button" class="bottom-tab is-active" data-tab="home">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/>
+      </svg>
+      <span>День</span>
+    </button>
+    <button type="button" class="bottom-tab" data-tab="arc">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>
+        <circle cx="12" cy="12" r="4"/>
+      </svg>
+      <span>Карты</span>
+    </button>
+    <button type="button" class="bottom-tab" data-tab="history">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>
+        <path d="M12 7v5l3 2"/>
+      </svg>
+      <span>История</span>
+      <span class="bottom-tab-badge" id="historyCount" hidden>0</span>
+    </button>
+    <button type="button" class="bottom-tab" data-tab="profile">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
+      </svg>
+      <span>Профиль</span>
+    </button>
+  </nav>
 </body>
 </html>

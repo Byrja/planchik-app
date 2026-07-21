@@ -122,6 +122,8 @@
     if (!portal) return;
     portal.hidden = false;
     tileActive('gadanie', true);
+    // Синхронизировать bottom-tabs (если юзер пришёл через quick-tile)
+    $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'arc'));
     if (window.ArcApp && window.ArcApp.mount) {
       window.ArcApp.mount();
     }
@@ -136,6 +138,8 @@
     if (window.ArcApp && window.ArcApp.unmount) window.ArcApp.unmount();
     portal.hidden = true;
     tileActive('gadanie', false);
+    // Вернуть подсветку на home в bottom-tabs
+    $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'home'));
     haptic('light');
   }
 
@@ -172,30 +176,34 @@
     const tgId = state.user.id || 1; // dev fallback
     const date = DATA.todayKey();
     const c = TarotDaily.calc(tgId, date);
-    // Заполняем лицо флип-карты
-    const glyph = $('#heroGlyphFront');
-    const nameEl = $('#heroNameFront');
-    const moodEl = $('#heroMoodFront');
-    const revEl  = $('#heroRevBanner');
-    const key = elementForCard(c);
+    // Заполняем лицо flip-карты (новая разметка: #heroTarotCard > .tarot-card-inner)
+    const glyph = $('#heroGlyph');
+    const nameEl = $('#heroName');
+    const moodEl = $('#heroMood');
+    const textEl = $('#heroText');
+    const revEl  = $('#heroRev');
     if (glyph) {
-      // Если глиф — стихия, берём юникод-символ; иначе показываем короткий знак
-      const elemGlyph = ({fire:'🜂', water:'🜄', air:'🜁', earth:'🜃', major:'✦'})[key] || '✦';
+      // Элементный глиф по масти/типу карты
+      const key = elementForCard(c);
+      const elemGlyph = ({fire:'🜂', water:'🜄', air:'🜁', earth:'🜃', major:'✦'})[key] || (c.glyph || '✦');
       glyph.textContent = elemGlyph;
     }
-    if (nameEl) nameEl.textContent = c.name;
+    if (nameEl) nameEl.textContent = c.name || '';
     if (moodEl) moodEl.textContent = c.mood || '';
+    if (textEl) textEl.textContent = c.advice || c.upright || c.text || '';
     if (revEl) {
-      // TarotDaily даёт объект карты; reversed — поле. Если нет — флаг false
-      revEl.style.display = c.reversed ? '' : 'none';
+      revEl.hidden = !c.reversed;
     }
     const hd = $('#heroDate');
     if (hd) hd.textContent = DATA.dateLabel();
-    // По умолчанию — карта рубашкой вверх; флипаем через 250мс для драмы
-    const flip = $('#heroFlip');
-    if (flip) {
-      flip.classList.remove('is-flipped');
-      setTimeout(() => flip.classList.add('is-flipped'), 350);
+    // Авто-флип на 400мс (даём глазам поймать рубашку)
+    const card = $('#heroTarotCard');
+    if (card) {
+      card.dataset.state = 'back';
+      // Двойной rAF: гарантируем, что back реально отрисовался, потом flip
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setTimeout(() => { card.dataset.state = 'flipped'; }, 350);
+      }));
     }
   }
 
@@ -801,6 +809,10 @@
         setActiveTab(which);
       });
     });
+    // Синхронизация бейджа истории между вкладками/сессиями
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'arhHistory') updateHistoryBadge();
+    });
   }
 
   function setActiveTab(which) {
@@ -810,6 +822,8 @@
         closeAllPanels();
         const portal = $('#arcPortal');
         if (portal) portal.hidden = true;
+        // При возврате на главную — обновить бейдж истории (могли тянуть в гадании)
+        updateHistoryBadge();
         // Скроллим в начало
         try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
         break;
@@ -902,14 +916,22 @@
 
   // ── HERO FLIP CARD ───────────────────────────────────────
   function wireHeroFlip() {
-    const wrap = $('#heroCard');
-    if (!wrap) return;
-    const flip = $('#heroFlip');
-    if (!flip) return;
-    wrap.addEventListener('click', (e) => {
-      // Не флипаем, если кликнули по кнопке/ссылке внутри
-      if (e.target.closest('button, a, input, select, textarea')) return;
-      flip.classList.toggle('is-flipped');
+    const card = $('#heroTarotCard');
+    if (!card) return;
+    // Click-to-toggle flip
+    const onToggle = (e) => {
+      // Не флипаем по клику на кнопки внутри hero-card-actions
+      if (e.target && e.target.closest && e.target.closest('button, a, input, select, textarea')) return;
+      const cur = card.dataset.state || 'back';
+      card.dataset.state = cur === 'back' ? 'flipped' : 'back';
+    };
+    card.addEventListener('click', onToggle);
+    // Клавиатура (Enter/Space) — у карты tabindex=0
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onToggle(e);
+      }
     });
   }
 

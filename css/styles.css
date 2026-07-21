@@ -796,3 +796,48 @@ body.landing-mode .app { display: none !important; }
 .arc-history-card-chip.is-rev { background: rgba(220,60,90,0.18); color: #f4a8b6; }
 .arc-history-more { color: var(--ink-mute); }
 .arc-history-empty { text-align: center; color: var(--ink-mute); padding: 24px 8px; font-size: 13px; }
+
+/* ═══ FLIP CARD v2 (.tarot-card + .tarot-card-inner + data-state) ═══ */
+/* Внешний контейнер — perspective + размеры */
+.tarot-card {
+  perspective: 1200px;
+  width: 220px; height: 320px;
+  margin: 8px auto 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.tarot-card:focus-visible { box-shadow: 0 0 0 2px rgba(212,175,55,0.6); border-radius: 20px; }
+/* Внутренний — 3D-rotate, переключается по data-state */
+.tarot-card-inner {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(.4,.2,.2,1.2);
+}
+.tarot-card[data-state="flipped"] .tarot-card-inner { transform: rotateY(180deg); }
+.tarot-card[data-state="back"]    .tarot-card-inner { transform: rotateY(0); }
+/* SVG рубашки — заполняет face */
+.tarot-back-pattern { width: 100%; height: 100%; display: block; }
+.tarot-tap-hint {
+  position: absolute; bottom: 14px; left: 0; right: 0;
+  text-align: center;
+  font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--gold-2); opacity: 0.75;
+  pointer-events: none;
+}
+/* front content уже стилизован (.tarot-front-content, .tarot-glyph, etc) */
+.tarot-name { font: 600 18px/1.2 var(--serif, serif); color: var(--ink); letter-spacing: 0.01em; }
+.tarot-mood { font-size: 12px; color: var(--ink-mute); margin-top: 2px; }
+.tarot-glyph { font: 600 88px/1 var(--serif, serif); color: var(--gold-2); text-shadow: 0 0 30px rgba(212,175,55,0.4); }
+.tarot-rev-banner {
+  position: absolute; top: 14px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(220, 60, 90, 0.92);
+  color: #fff;
+  font: 700 10px/1 var(--sans, system-ui);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 5px 10px; border-radius: 6px;
+  z-index: 2;
+}

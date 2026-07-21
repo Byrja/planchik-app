@@ -28,18 +28,19 @@
   }
 
   // ── State ────────────────────────────────────────────────
+  const _user = parseUser();
+  function enrichProfile(p) {
+    if (!p) return null;
+    if (_user.id) p.telegramId = _user.id;
+    return p;
+  }
+
   const state = {
-    user: parseUser(),
+    user: _user,
     profile: enrichProfile(Evening.loadProfile()),
     mood: null,
     checkins: Evening.last30()
   };
-
-  function enrichProfile(p) {
-    if (!p) return null;
-    if (state.user.id) p.telegramId = state.user.id;
-    return p;
-  }
 
   function setProfile(p) {
     state.profile = enrichProfile(p);

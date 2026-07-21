@@ -144,14 +144,29 @@
 
   // ── Biorhythm tile (summary) ────────────────────────────
   function renderBiorhythmTile() {
+    const el = $('#bioToday');
+    if (!el) return;
     if (!state.profile || !state.profile.birthYear) {
-      $('#bioToday').textContent = 'нет данных';
+      el.textContent = 'заполни профиль →';
+      el.classList.add('is-cta');
+      $('#tileBiorhythm').classList.add('is-empty');
       return;
     }
+    el.classList.remove('is-cta');
+    $('#tileBiorhythm').classList.remove('is-empty');
     const r = Biorhythm.calc(state.profile.birthYear, state.profile.birthMonth, state.profile.birthDay);
     const avg = Math.round((r.physical.value + r.emotional.value + r.intellectual.value) / 3 * 100);
     const arrow = avg > 0 ? '↗' : avg < 0 ? '↘' : '·';
-    $('#bioToday').textContent = `сегодня ${arrow} ${Math.abs(avg)}%`;
+    el.textContent = `сегодня ${arrow} ${Math.abs(avg)}%`;
+  }
+
+  // Умный клик по «Биоритмы» — если профиля нет, сразу ведём заполнять
+  function tileBiorhythmClick() {
+    if (!state.profile || !state.profile.birthYear) {
+      openProfilePanel();
+      return;
+    }
+    openBiorhythmPanel();
   }
 
   // ── Evening tile (summary) ──────────────────────────────
@@ -677,7 +692,7 @@
     $('#btnProfileCopy').onclick = openProfileInBot;
 
     // Quick tiles
-    $('#tileBiorhythm').onclick = openBiorhythmPanel;
+    $('#tileBiorhythm').onclick = tileBiorhythmClick;
     $('#tileEvening').onclick   = openEveningPanel;
     $('#tileGadanie').onclick   = openGadaniePortal;
     $('#tileForecast').onclick  = openForecastPanel;

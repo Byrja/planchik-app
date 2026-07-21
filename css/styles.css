@@ -194,6 +194,13 @@ input, textarea, select { font: inherit; color: inherit; }
 .quick-tile:active::after { opacity: 1; }
 .quick-tile.is-active { border-color: var(--gold); background: linear-gradient(180deg, rgba(212,175,55,0.12), rgba(212,175,55,0.03)); }
 .quick-tile.is-active::after { opacity: 0.5; }
+/* Empty-CTA highlight (например, «Биоритмы» без профиля → подсветка) */
+.quick-tile.is-empty {
+  border-color: rgba(212,175,55,0.45);
+  background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(29,26,58,0.4));
+}
+.quick-tile-meta.is-cta { color: var(--gold-2); font-weight: 500; }
+.quick-tile-meta.is-cta::after { content: ''; }
 .quick-tile-wide { grid-column: 1 / -1; }
 .quick-tile-ico {
   width: 28px; height: 28px;

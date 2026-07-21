@@ -35,6 +35,15 @@
     return p;
   }
 
+  // ── Evening shim (no-op: чек-ин выпилен, но код app.js ещё зовёт Evening.*) ──
+  const Evening = {
+    loadProfile() { try { return JSON.parse(localStorage.getItem('arProfile') || 'null'); } catch { return null; } },
+    saveProfile(p) { try { localStorage.setItem('arProfile', JSON.stringify(p)); } catch {} },
+    last30() { return []; },
+    today() { return null; },
+    save() { return { ts: Date.now() }; }
+  };
+
   const state = {
     user: _user,
     profile: enrichProfile(Evening.loadProfile()),
@@ -170,18 +179,22 @@
     openBiorhythmPanel();
   }
 
-  // ── Evening tile (summary) ──────────────────────────────
-  function renderEveningTile() {
-    const el = $('#eveningMeta');
+  // ── Bio tile (summary) ───────────────────────────────────
+  function renderBioTile() {
+    const el = $('#bioToday');
     if (!el) return;
-    const today = Evening.today();
-    if (today) {
-      const m = ['', '😞', '😕', '😐', '🙂', '😄'][today.mood] || '·';
-      el.textContent = `${m} готово`;
-    } else {
-      el.textContent = 'чек-ин';
-    }
+    try {
+      const profile = JSON.parse(localStorage.getItem('arProfile') || 'null');
+      if (profile && profile.birthDate) {
+        el.textContent = 'готово';
+      } else {
+        el.textContent = 'заполните';
+      }
+    } catch { el.textContent = '—'; }
   }
+
+  // ── Evenin g tile removed ────────────────────────────────
+  function _renderEveningRemoved() { /* noop */ }
 
   // ── Biorhythm panel ─────────────────────────────────────
   function openBiorhythmPanel() {

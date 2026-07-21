@@ -910,25 +910,193 @@
   padding: 12px 0;
 }
 .arc-deck-preview-grid {
-  margin-bottom: 14px;
-  opacity: 0.85;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
 }
-.arc-deck-preview {
-  padding: 8px 4px;
-  min-height: 90px;
+.arc-preview-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 90px;
+  transition: transform 0.3s ease;
+}
+.arc-preview-card:hover {
+  transform: translateY(-4px);
+}
+.arc-preview-img {
+  width: 80px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.arc-preview-glyph {
+  width: 80px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(180deg, #1a1832 0%, #0d0c1d 100%);
-  border-color: var(--line);
-  transition: all 0.3s ease;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 42px;
+  color: var(--gold-2);
 }
-.arc-deck-preview:hover {
-  transform: translateY(-3px) !important;
-  border-color: var(--line-gold);
+.arc-preview-name {
+  font-size: 12px;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.2;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .arc-deck-hint {
   font-size: 14px;
   color: var(--ink-dim);
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+/* ── Кнопка «История» в сайдбаре ── */
+.arc-aside-history-btn {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.arc-aside-history-btn:hover {
+  border-color: var(--line-gold);
+  background: rgba(212,175,55,0.05);
+}
+
+/* ── Панель истории раскладов ── */
+.arc-history-panel {
+  max-width: 760px;
+  margin: 28px auto 0;
+  padding: 18px 20px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.arc-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.arc-history-head h3 {
   margin: 0;
+  font-size: 18px;
+  color: var(--ink);
+}
+.arc-history-close {
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.arc-history-close:hover {
+  color: var(--ink);
+  background: rgba(255,255,255,0.05);
+}
+.arc-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.arc-history-item {
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.arc-history-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.arc-history-spread {
+  color: var(--gold-2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.arc-history-date {
+  color: var(--ink-mute);
+}
+.arc-history-q {
+  font-size: 13px;
+  color: var(--ink-dim);
   font-style: italic;
+  margin: 4px 0 8px;
+  line-height: 1.4;
+}
+.arc-history-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.arc-history-card-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  background: rgba(212,175,55,0.08);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--ink);
+}
+.arc-history-card-chip.arc-history-more {
+  background: transparent;
+  color: var(--ink-mute);
+}
+.arc-history-empty {
+  text-align: center;
+  color: var(--ink-mute);
+  font-style: italic;
+  margin: 24px 0;
+}
+.arc-history-actions {
+  margin-top: 14px;
+  text-align: right;
+}
+.arc-history-clear {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-mute);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.arc-history-clear:hover {
+  border-color: #c55;
+  color: #c55;
 }
 .arc-deck-hint strong {
   color: var(--gold-2);

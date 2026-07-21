@@ -72,15 +72,6 @@
         <span class="quick-tile-label">Биоритмы</span>
         <span class="quick-tile-meta" id="bioToday">—</span>
       </button>
-      <button type="button" class="quick-tile" data-screen="evening" id="tileEvening">
-        <span class="quick-tile-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" fill="currentColor" fill-opacity="0.15"/>
-          </svg>
-        </span>
-        <span class="quick-tile-label">Вечер</span>
-        <span class="quick-tile-meta" id="eveningMeta">чек-ин</span>
-      </button>
       <button type="button" class="quick-tile" data-screen="gadanie" id="tileGadanie">
         <span class="quick-tile-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -143,31 +134,6 @@
           <p>Нужен день рождения для расчёта.</p>
           <button type="button" class="btn btn-primary bio-cta" id="bioCtaOpenProfile">Заполнить профиль →</button>
         </div>
-      </div>
-    </section>
-
-    <section class="panel" id="panelEvening" hidden>
-      <header class="panel-header">
-        <h2 class="panel-title">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" fill="currentColor" fill-opacity="0.2"/>
-          </svg>
-          Вечерний чек-ин
-        </h2>
-        <button type="button" class="panel-close" data-screen="evening" aria-label="Закрыть">✕</button>
-      </header>
-      <div class="evening-content" id="eveningContent">
-        <p class="evening-question">Как прошёл день?</p>
-        <div class="mood-row" id="moodRow">
-          <button type="button" class="mood-btn" data-mood="1" aria-label="Плохо">😞</button>
-          <button type="button" class="mood-btn" data-mood="2" aria-label="Так себе">😕</button>
-          <button type="button" class="mood-btn" data-mood="3" aria-label="Нормально">😐</button>
-          <button type="button" class="mood-btn" data-mood="4" aria-label="Хорошо">🙂</button>
-          <button type="button" class="mood-btn" data-mood="5" aria-label="Отлично">😄</button>
-        </div>
-        <textarea id="eveningNote" class="evening-note" placeholder="Короткая заметка (необязательно)…" maxlength="280"></textarea>
-        <button type="button" class="btn btn-primary" id="btnSaveCheckin">Сохранить</button>
-        <div class="evening-status" id="eveningStatus"></div>
       </div>
     </section>
 
@@ -392,7 +358,6 @@
   <script src="js/data.js?v=3.8"></script>
   <script src="js/tarot.js?v=3.8"></script>
   <script src="js/biorhythm.js?v=3.8"></script>
-  <script src="js/evening.js?v=3.8"></script>
   <script src="js/arc-runes.js?v=3.8"></script>
   <script src="js/arc-tarot.js?v=3.8"></script>
   <script src="js/arc-lenormand.js?v=3.8"></script>
@@ -401,6 +366,6 @@
   <script src="js/arc-app.js?v=3.14"></script>
   <script src="js/chart.js?v=3.8"></script>
   <link rel="stylesheet" href="css/arc-styles.css?v=3.12">
-  <script src="js/app.js?v=3.9"></script>
+  <script src="js/app.js?v=3.10"></script>
 </body>
 </html>

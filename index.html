@@ -300,8 +300,22 @@
               <li><a href="#" data-spread="cross"      class="arc-nav-link"><span class="ico">✚</span> Кельтский крест <span class="arc-nav-meta">10</span></a></li>
             </ul>
             <p style="font-size:12px;color:var(--ink-mute);margin-top:14px;line-height:1.5;">Сосредоточьтесь на вопросе, прежде чем тянуть карты. Чем яснее намерение — тем точнее ответ.</p>
+            <button type="button" id="arcHistoryBtn" class="arc-aside-history-btn">📜 История раскладов</button>
           </aside>
         </div>
+
+        <!-- История раскладов (скрыта по умолчанию) -->
+        <section id="arcHistory" class="arc-history-panel" hidden aria-label="История раскладов">
+          <div class="arc-history-head">
+            <h3>📜 История раскладов</h3>
+            <button type="button" id="arcHistoryClose" class="arc-history-close" aria-label="Закрыть историю">×</button>
+          </div>
+          <ul id="arcHistoryList" class="arc-history-list"></ul>
+          <p class="arc-history-empty" id="arcHistoryEmpty" hidden>Пока пусто. Тяните первую карту.</p>
+          <div class="arc-history-actions">
+            <button type="button" id="arcHistoryClear" class="arc-history-clear">Очистить историю</button>
+          </div>
+        </section>
 
         <!-- MOBILE STICKY SPREAD PICKER (visible только на mobile) -->
         <nav class="arc-mobile-nav" id="arcMobileNav" aria-label="Сменить расклад">
@@ -384,9 +398,9 @@
   <script src="js/arc-lenormand.js?v=3.8"></script>
   <script src="js/arc-gypsy.js?v=3.8"></script>
   <script src="js/arc-playing.js?v=3.8"></script>
-  <script src="js/arc-app.js?v=3.11"></script>
+  <script src="js/arc-app.js?v=3.14"></script>
   <script src="js/chart.js?v=3.8"></script>
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.10">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.12">
   <script src="js/app.js?v=3.8"></script>
 </body>
 </html>

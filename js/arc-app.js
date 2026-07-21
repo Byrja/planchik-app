@@ -4,6 +4,24 @@
 (function () {
   'use strict';
 
+  // ── DIAG: показывать ошибки прямо в UI (для TG WebView где нет консоли) ──
+  function _showErr(e) {
+    try {
+      const msg = (e && (e.message || e.error && e.error.message)) || String(e);
+      const stack = (e && e.error && e.error.stack) || (e && e.stack) || '';
+      let bar = document.getElementById('arcErrorBar');
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'arcErrorBar';
+        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;padding:10px;font:12px monospace;white-space:pre-wrap;max-height:50vh;overflow:auto;';
+        document.body && document.body.appendChild(bar);
+      }
+      bar.textContent = '⚠️ ' + msg + '\n' + stack.split('\n').slice(0,3).join('\n');
+    } catch (_) {}
+  }
+  window.addEventListener('error', (e) => _showErr(e));
+  window.addEventListener('unhandledrejection', (e) => _showErr(e.reason || e));
+
   // ── Колода и источники ────────────────────────────────────
   const DECKS = {
     tarot:    { label: 'Таро',          deck: () => window.DECK_TAROT,     hint: 'Старшие + Младшие Арканы' },
@@ -168,6 +186,56 @@
     try { localStorage.setItem('arhHistory', JSON.stringify(state.history.slice(0, 30))); } catch (e) {}
   }
 
+  // ── Рендер истории раскладов ──────────────────────────────
+  function renderHistory() {
+    const list = r$('#arcHistoryList');
+    const empty = r$('#arcHistoryEmpty');
+    if (!list || !empty) return;
+    const items = state.history || [];
+    if (!items.length) {
+      list.innerHTML = '';
+      empty.hidden = false;
+      return;
+    }
+    empty.hidden = true;
+    const SPREAD_LABELS = {
+      one: 'Одна карта', three: 'Три карты', yesno: 'Да/Нет', love: 'Совместимость',
+      horseshoe: 'Подкова', alchemist: 'Алхимик', choice: 'Выбор', career: 'Карьера',
+      health: 'Здоровье', psyche: 'Психопортрет', destiny: 'Судьба', cross: 'Кельтский крест'
+    };
+    list.innerHTML = items.map((h, i) => {
+      const date = new Date(h.ts);
+      const dateStr = date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const cardsNames = (h.cards || []).slice(0, 4).map(c => {
+        const rev = c.reversed ? '↺' : '';
+        return `<span class="arc-history-card-chip">${escapeHtml(c.name)}${rev}</span>`;
+      }).join('') + ((h.cards || []).length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${(h.cards || []).length - 4}</span>` : '');
+      const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
+      return `<li class="arc-history-item" data-idx="${i}">
+        <div class="arc-history-meta">
+          <span class="arc-history-spread">${SPREAD_LABELS[h.spread] || h.spread}</span>
+          <span class="arc-history-date">${dateStr}</span>
+        </div>
+        ${q}
+        <div class="arc-history-cards">${cardsNames}</div>
+      </li>`;
+    }).join('');
+  }
+
+  function showHistory() {
+    const panel = r$('#arcHistory');
+    if (!panel) return;
+    renderHistory();
+    panel.hidden = false;
+    // Скроллим к панели на мобилке
+    try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+  }
+
+  function hideHistory() {
+    const panel = r$('#arcHistory');
+    if (panel) panel.hidden = true;
+  }
+
   // ── Toast ────────────────────────────────────────────────
   let toastT;
   function flashToast(msg) {
@@ -247,10 +315,13 @@
       const j = Math.floor(Math.random() * (i + 1));
       [copy[i], copy[j]] = [copy[j], copy[i]];
     }
-    return copy.slice(0, n).map(c => ({
-      ...c,
-      reversed: Math.random() < 0.30
-    }));
+    return copy.slice(0, n).map(c => {
+      const isRev = Math.random() < 0.30;
+      return {
+        ...c,
+        reversed: isRev ? (c.reversed || 'Перевёрнутая карта — обратите внимание на скрытые качества.') : false
+      };
+    });
   }
 
   // ── Шаринг: текст для navigator.share / tg.sendData ────
@@ -438,19 +509,24 @@
     if (!stage) return;
     const n = state.cards.length;
     if (n === 0) {
-      // Показываем превью колоды — все карты рубашкой в сетке
+      // Показываем полезное превью колоды — 3 реальные открытые карты из колоды
       const deckArr = DECKS[state.deck].deck() || [];
-      const previewCount = Math.min(deckArr.length, 12);
-      const backImg = 'img/cards/back.png';
-      const previewHtml = Array.from({ length: previewCount }, (_, i) => {
-        return `<div class="arc-mini-card arc-deck-preview" style="animation-delay:${i * 0.04}s">
-          <img src="${backImg}" alt="Рубашка" class="arc-mini-card-img">
+      const previewCount = Math.min(deckArr.length, 3);
+      // Берём детерминированный срез (первые N) — стабильное превью, не «прыгает» при каждом рендере
+      const preview = deckArr.slice(0, previewCount);
+      const previewHtml = preview.map((c, i) => {
+        const visual = c.image
+          ? `<img src="${c.image}" alt="${escapeHtml(c.name)}" class="arc-preview-img" loading="lazy">`
+          : `<div class="arc-preview-glyph">${c.symbol || '✦'}</div>`;
+        return `<div class="arc-preview-card" data-idx="${i}">
+          ${visual}
+          <div class="arc-preview-name">${escapeHtml(c.name)}</div>
         </div>`;
       }).join('');
       stage.innerHTML = `
-        <div class="arc-deck-ready" role="img" aria-label="Колода из ${deckArr.length} карт готова. Нажмите «Тянуть».">
-          <div class="arc-cards-grid arc-deck-preview-grid" data-count="6">${previewHtml}</div>
-          <p class="arc-deck-hint">Колода <strong>${DECKS[state.deck].label}</strong> · ${deckArr.length} карт. Нажмите «Тянуть».</p>
+        <div class="arc-deck-ready" role="img" aria-label="Колода ${DECKS[state.deck].label} готова. ${deckArr.length} карт.">
+          <div class="arc-deck-preview-grid" data-count="${previewCount}">${previewHtml}</div>
+          <p class="arc-deck-hint"><strong>${DECKS[state.deck].label}</strong> · ${DECKS[state.deck].hint}. Задайте вопрос и нажмите «Тянуть».</p>
         </div>`;
       return;
     }
@@ -527,14 +603,14 @@
             <div class="arc-love-label">Ты</div>
             ${visA}
             <div class="arc-love-name">${escapeHtml(a.name)}</div>
-            <p class="arc-love-text">${escapeHtml(a.reversed === true ? 'Перевёрнутая карта — внутренние противоречия.' : (typeof a.reversed === 'string' ? a.reversed : a.upright))}</p>
+            <p class="arc-love-text">${escapeHtml(a.reversed || a.upright)}</p>
           </div>
           <div class="arc-love-connector">⇌</div>
           <div class="arc-love-side">
             <div class="arc-love-label">Он(а)</div>
             ${visB}
             <div class="arc-love-name">${escapeHtml(b.name)}</div>
-            <p class="arc-love-text">${escapeHtml(b.reversed === true ? 'Перевёрнутая карта — скрытые мотивы.' : (typeof b.reversed === 'string' ? b.reversed : b.upright))}</p>
+            <p class="arc-love-text">${escapeHtml(b.reversed || b.upright)}</p>
           </div>
         </div>
         <div class="arc-reading-pair">
@@ -562,7 +638,7 @@
             <p class="arc-inter-card">${escapeHtml(c.name)} · ${headline}</p>
           </div>
         </div>
-        <p class="arc-inter-main">${escapeHtml(c.reversed === true ? 'Перевёрнутая карта — обратите внимание на скрытые или ослабленные качества.' : (typeof c.reversed === 'string' ? c.reversed : c.upright))}</p>
+        <p class="arc-inter-main">${escapeHtml(c.reversed || c.upright)}</p>
         ${c.shadow ? `<p class="arc-inter-shadow"><span class="arc-shadow-label">Тень:</span> ${escapeHtml(c.shadow)}</p>` : ''}
       </div>`;
     }).join('');
@@ -779,18 +855,46 @@
   }
 
   function mount() {
-    state.history = loadHistory();
-    // wire nav
-    $$('.arc-nav-link').forEach(a => {
-      a.onclick = (e) => { e.preventDefault(); setSpread(a.dataset.spread); };
-    });
-    // home link
-    const home = $('#arcHomeLink');
-    if (home) home.onclick = (e) => { e.preventDefault(); setSpread('one'); };
-    // init
-    setSpread('one');
-    bindInfoCards();
-    bindMobileNav();
+    try {
+      console.log('[ArcApp] mount() start');
+      state.history = loadHistory();
+      console.log('[ArcApp] history loaded:', state.history.length);
+      // wire nav
+      const navLinks = $$('.arc-nav-link');
+      console.log('[ArcApp] nav links found:', navLinks.length);
+      navLinks.forEach(a => {
+        a.onclick = (e) => { e.preventDefault(); setSpread(a.dataset.spread); };
+      });
+      // home link
+      const home = $('#arcHomeLink');
+      if (home) home.onclick = (e) => { e.preventDefault(); setSpread('one'); };
+      // init
+      setSpread('one');
+      console.log('[ArcApp] setSpread done');
+      bindInfoCards();
+      bindMobileNav();
+      bindHistory();
+      console.log('[ArcApp] mount() OK');
+    } catch (e) {
+      console.error('[ArcApp] mount FAILED', e);
+      _showErr({ message: 'mount() failed: ' + e.message, stack: e.stack });
+    }
+  }
+
+  // ── История — wire кнопки ────────────────────────────────
+  function bindHistory() {
+    const btn = r$('#arcHistoryBtn');
+    const close = r$('#arcHistoryClose');
+    const clear = r$('#arcHistoryClear');
+    if (btn) btn.onclick = (e) => { e.preventDefault(); showHistory(); };
+    if (close) close.onclick = (e) => { e.preventDefault(); hideHistory(); };
+    if (clear) clear.onclick = (e) => {
+      e.preventDefault();
+      if (!confirm('Очистить всю историю раскладов?')) return;
+      state.history = [];
+      try { localStorage.removeItem('arhHistory'); } catch (err) {}
+      renderHistory();
+    };
   }
 
   // ── Mobile sticky spread picker ─────────────────────────

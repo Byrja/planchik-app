@@ -17,6 +17,10 @@
   --line:      #2a2745;
   --line-gold: rgba(212,175,55,0.35);
   --gold-soft: rgba(212,175,55,0.12);
+  --accent:    #9b7dff;
+  --bg-glass:  rgba(27, 23, 56, 0.72);
+  --panel-bg:  rgba(29, 26, 58, 0.55);
+  --panel-border: var(--line);
   --danger:    #d13b3b;
   --ok:        #2db872;
   --serif:     'Cormorant Garamond', 'Times New Roman', serif;

@@ -66,6 +66,25 @@
     return { id: 0, name: 'друг', username: null, photo: null, startParam };
   }
 
+  // ── Compat deep-link ─────────────────────────────────────
+  // /start compat_<tgId> → startParam = "compat_123" → compatTgId = 123
+  function parseCompatStartParam() {
+    const sp = (state.user.startParam || '').toLowerCase();
+    if (!sp.startsWith('compat_')) return null;
+    const n = Number(sp.slice('compat_'.length));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const COMPAT_CATEGORY_LABEL = {
+    excellent:   'Исключительная',
+    good:        'Хорошая',
+    average:     'Неплохая',
+    challenging: 'Непростая',
+    difficult:   'Сложная',
+  };
+  const COMPAT_CATEGORY_GLYPH = {
+    excellent: '✨', good: '🌟', average: '🌙', challenging: '🌒', difficult: '☁',
+  };
+
   // ── DOM refs ─────────────────────────────────────────────
   const $  = (s) => document.querySelector(s);
   const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -112,6 +131,12 @@
     updateHistoryBadge();
     if (state.user.startParam === 'mychart') {
       setTimeout(openChartPanel, 50);
+    }
+
+    // Compat deep-link: /start compat_<tgId>
+    const compatTgId = parseCompatStartParam();
+    if (compatTgId) {
+      setTimeout(() => openCompatPanel(compatTgId), 50);
     }
   }
 
@@ -495,6 +520,204 @@
     tileActive('chart', true);
     haptic('light');
     renderChart();
+  }
+
+  // ── Compat panel (deep-link compat_<tgId>) ──────────────
+  let _compatPartnerTgId = null; // хранится для share
+
+  function openCompatPanel(partnerTgId) {
+    if (!tg || !tg.initData) {
+      // Не открываем без initData — иначе API отдаст 401
+      flashToast('Открой через Telegram');
+      return;
+    }
+    if (!state.user.id) {
+      flashToast('Сначала нажми /start в боте');
+      return;
+    }
+    _compatPartnerTgId = partnerTgId;
+    closeAllPanels();
+    const panel = $('#panelCompat');
+    panel.hidden = false;
+    tileActive('compat', true);
+    haptic('light');
+    setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    loadCompat(partnerTgId);
+  }
+
+  async function loadCompat(partnerTgId) {
+    const root = $('#compatContent');
+    if (!root) return;
+    root.innerHTML = `
+      <div class="compat-loader">
+        <div class="compat-loader-glyph">⚜</div>
+        <p>Считаю совместимость…</p>
+      </div>
+    `;
+    try {
+      const initData = encodeURIComponent(tg.initData || '');
+      const url = `/api/compat?initData=${initData}&with=${partnerTgId}`;
+      const resp = await fetch(url, { method: 'GET' });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        renderCompatError(data.error || `HTTP ${resp.status}`, partnerTgId);
+        return;
+      }
+      renderCompat(data, partnerTgId);
+    } catch (e) {
+      renderCompatError('network_error', partnerTgId);
+    }
+  }
+
+  function renderCompatError(errCode, partnerTgId) {
+    const root = $('#compatContent');
+    if (!root) return;
+    let msg = 'Не удалось посчитать совместимость.';
+    let cta = `<button type="button" class="btn btn-ghost" data-screen="compat">Закрыть</button>`;
+    if (errCode === 'partner_no_profile') {
+      msg = 'У партнёра пока нет заполненного профиля.\nПопроси его нажать /start у бота и заполнить дату рождения.';
+    } else if (errCode === 'caller_no_profile') {
+      msg = 'Сначала заполни свой профиль — открой «Профиль» на главной.';
+    } else if (errCode === 'partner_not_started_bot') {
+      msg = 'Этот пользователь ещё не запускал бота.\nПопроси его нажать /start у @astro_byrbot.';
+    } else if (errCode === 'invalid_initData') {
+      msg = 'Открой приложение через Telegram.';
+    } else if (errCode === 'self_compat_not_allowed') {
+      msg = 'Нельзя считать совместимость с самим собой 🙂';
+    }
+    root.innerHTML = `
+      <div class="compat-empty">
+        <div class="compat-empty-glyph">☁</div>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        ${cta}
+      </div>
+    `;
+    const closeBtn = root.querySelector('[data-screen="compat"]');
+    if (closeBtn) closeBtn.onclick = () => closePanel('compat');
+  }
+
+  function renderCompat(data, partnerTgId) {
+    const root = $('#compatContent');
+    if (!root) return;
+    const { score = 0, category = 'average', breakdown = {}, interpretation = '', topPositive = [], topNegative = [], personA, personB } = data;
+    const nameA = personA?.firstName || 'Ты';
+    const nameB = personB?.firstName || 'партнёр';
+    const dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    const catLabel = COMPAT_CATEGORY_LABEL[category] || 'Совместимость';
+    const catGlyph = COMPAT_CATEGORY_GLYPH[category] || '✨';
+    const breakdownHtml = ['communication', 'emotions', 'passion', 'stability']
+      .map((k) => {
+        const v = Math.max(0, Math.min(100, Number(breakdown[k]) || 0));
+        const labels = { communication: 'Общение', emotions: 'Эмоции', passion: 'Страсть', stability: 'Стабильность' };
+        return `
+          <div class="compat-bd-row">
+            <div class="compat-bd-label">${labels[k]}</div>
+            <div class="compat-bd-bar"><div class="compat-bd-fill" style="width:${v}%"></div></div>
+            <div class="compat-bd-val">${v}</div>
+          </div>
+        `;
+      })
+      .join('');
+    const aspectRow = (a) => {
+      const sign = a.score > 0 ? '+' : '';
+      return `
+        <li class="compat-aspect-row">
+          <span class="compat-aspect-name">${escapeHtml(a.name || (a.planet_a + '–' + a.planet_b))}</span>
+          <span class="compat-aspect-score ${a.score > 0 ? 'is-pos' : 'is-neg'}">${sign}${a.score}</span>
+        </li>
+      `;
+    };
+    const positiveHtml = topPositive.length
+      ? `<ul class="compat-aspect-list">${topPositive.map(aspectRow).join('')}</ul>`
+      : '<p class="compat-empty-hint">Ярких совпадений не нашлось</p>';
+    const negativeHtml = topNegative.length
+      ? `<ul class="compat-aspect-list">${topNegative.map(aspectRow).join('')}</ul>`
+      : '';
+    const birthA = personA?.birthDate ? formatShortDate(personA.birthDate) : '';
+    const birthB = personB?.birthDate ? formatShortDate(personB.birthDate) : '';
+    root.innerHTML = `
+      <div class="compat-hero">
+        <div class="compat-score-ring" data-cat="${escapeHtml(category)}" style="--p: ${Math.max(0, Math.min(100, Math.round(score)))}%">
+          <div class="compat-score-num">${Math.round(score)}</div>
+          <div class="compat-score-of">/ 100</div>
+        </div>
+        <div class="compat-cat">
+          <div class="compat-cat-glyph">${catGlyph}</div>
+          <div class="compat-cat-label">${escapeHtml(catLabel)}</div>
+        </div>
+        <div class="compat-pair">
+          <span class="compat-pair-name">${escapeHtml(nameA)}</span>
+          ${birthA ? `<span class="compat-pair-date">${escapeHtml(birthA)}</span>` : ''}
+          <span class="compat-pair-amp">&</span>
+          <span class="compat-pair-name">${escapeHtml(nameB)}</span>
+          ${birthB ? `<span class="compat-pair-date">${escapeHtml(birthB)}</span>` : ''}
+        </div>
+        <div class="compat-date">${escapeHtml(dateStr)}</div>
+      </div>
+
+      <div class="compat-section">
+        <h3 class="compat-section-title">По сферам</h3>
+        <div class="compat-bd">${breakdownHtml}</div>
+      </div>
+
+      <div class="compat-section">
+        <h3 class="compat-section-title">Что между вами сильно</h3>
+        ${positiveHtml}
+      </div>
+
+      ${negativeHtml ? `
+      <div class="compat-section">
+        <h3 class="compat-section-title">Где будет непросто</h3>
+        ${negativeHtml}
+      </div>
+      ` : ''}
+
+      ${interpretation ? `
+      <div class="compat-section compat-interpretation">
+        <h3 class="compat-section-title">Расклад</h3>
+        <div class="compat-interpretation-text">${escapeHtml(interpretation)}</div>
+      </div>
+      ` : ''}
+
+      <div class="compat-actions">
+        <button type="button" class="btn btn-primary" id="btnCompatShare">↗ Поделиться</button>
+        <button type="button" class="btn btn-ghost" data-screen="compat">Закрыть</button>
+      </div>
+    `;
+    const shareBtn = root.querySelector('#btnCompatShare');
+    if (shareBtn) shareBtn.onclick = () => shareCompat(data, partnerTgId, nameA, nameB);
+    const closeBtn = root.querySelector('[data-screen="compat"]');
+    if (closeBtn) closeBtn.onclick = () => closePanel('compat');
+    setTimeout(() => root.querySelector('.compat-hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
+  }
+
+  function formatShortDate(iso) {
+    // ISO: YYYY-MM-DD → "12 марта 1985"
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return iso;
+    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    return `${d} ${months[m - 1] || ''} ${y}`;
+  }
+
+  function shareCompat(data, partnerTgId, nameA, nameB) {
+    const { score = 0, category = 'average' } = data || {};
+    const catLabel = COMPAT_CATEGORY_LABEL[category] || '';
+    const text = `🔮 ${nameA} & ${nameB} — ${catLabel} совместимость: ${Math.round(score)}/100\n\nПосчитай свою 👇`;
+    const shareUrl = 'https://t.me/astro_byrbot?start=compat_' + (state.user.id || '');
+    const t = window.TelegramApp && window.TelegramApp.tg;
+    const tgShareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(text);
+    if (t && t.openTelegramLink) {
+      try { t.openTelegramLink(tgShareUrl); haptic('light'); return; } catch (e) {}
+    }
+    if (navigator.share) {
+      try { navigator.share({ title: 'Совместимость — Гадалка', text, url: shareUrl }).catch(() => {}); return; } catch (e) {}
+    }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text + '\n' + shareUrl).then(() => flashToast('Скопировано в буфер'));
+    } else {
+      flashToast('Шаринг недоступен');
+    }
   }
 
   function renderChart() {

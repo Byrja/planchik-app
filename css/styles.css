@@ -347,7 +347,40 @@ input, textarea, select { font: inherit; color: inherit; }
 .profile-field label { font-size: 12px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 1px; }
 .profile-field .val { font-family: var(--serif); font-size: 18px; color: var(--ink); }
 .profile-field .val.is-empty { color: var(--danger); font-style: italic; font-size: 14px; font-family: var(--sans); }
-.profile-actions { display: flex; gap: 10px; margin-top: 4px; }
+.profile-field input {
+  font: inherit;
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--bg-3);
+  border: 1px solid var(--line, rgba(212,175,55,0.25));
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: dark;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.profile-field input::placeholder { color: var(--ink-mute); font-style: italic; }
+.profile-field input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.18);
+}
+.profile-field input[type="date"],
+.profile-field input[type="time"] {
+  font-family: var(--sans);
+  color: var(--ink);
+}
+.profile-field input[type="date"]::-webkit-calendar-picker-indicator,
+.profile-field input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85) sepia(0.5) saturate(2.5) hue-rotate(10deg);
+  cursor: pointer;
+  opacity: 0.9;
+}
+.profile-actions { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
 
 /* ── Buttons ──────────────────────────────────────────── */
 .btn {

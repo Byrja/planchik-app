@@ -1,4 +1,4 @@
-# Планчик — Telegram Mini App
+# Гадалка — Telegram Mini App
 
 Mini App для бота @astro_byrbot (astrology).
 
@@ -12,4 +12,4 @@ Mini App для бота @astro_byrbot (astrology).
 
 **Деплой:** GitHub Pages, URL подставляется в `WEBAPP_URL` env бота.
 
-**Автор:** @Byrja (Планчик — Astro Natal Bot)
+**Автор:** @Byrja (Гадалка — Astro Natal Bot)

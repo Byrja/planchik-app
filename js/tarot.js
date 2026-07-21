@@ -60,7 +60,7 @@ window.TarotDaily = (function () {
   }
 
   function formatShare(c) {
-    return `🂠 ${c.name}\n${c.upright}\n\nСовет: ${c.advice}\nНастроение: ${c.mood}\n\n— Планчик`;
+    return `🂠 ${c.name}\n${c.upright}\n\nСовет: ${c.advice}\nНастроение: ${c.mood}\n\n— Гадалка`;
   }
 
   return { calc, formatShare, dailyIndex, bumpSalt };

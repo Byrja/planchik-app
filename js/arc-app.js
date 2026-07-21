@@ -337,7 +337,7 @@
     if (state.cards.length === 1) {
       const c = state.cards[0];
       const pos = c.reversed ? 'перевёрнутая' : 'прямая';
-      return `🂠 ${c.name} (${pos}, ${deckName})\n\n${c.reversed ? c.reversed : c.upright}\n\n— Планчик · Архангел`;
+      return `🂠 ${c.name} (${pos}, ${deckName})\n\n${c.reversed ? c.reversed : c.upright}\n\n— Гадалка · Архангел`;
     }
     const lines = [`🂠 Расклад «${cfg.title}» (${deckName})`];
     if (state.question) lines.push(`Вопрос: ${state.question}`);
@@ -346,7 +346,7 @@
       const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
       lines.push(`\n${label} — ${pos} ${c.name}\n${c.reversed ? c.reversed : c.upright}`);
     });
-    lines.push('\n— Планчик · Архангел');
+    lines.push('\n— Гадалка · Архангел');
     return lines.join('\n');
   }
 
@@ -379,7 +379,7 @@
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/astro_byrbot') + '&text=' + encodeURIComponent(text);
       tg.openTelegramLink(url);
     } else if (navigator.share) {
-      navigator.share({ title: 'Гадание — Планчик', text }).catch(()=>{});
+      navigator.share({ title: 'Гадание — Гадалка', text }).catch(()=>{});
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(text).then(() => flashToast('Скопировано в буфер'));
     } else {

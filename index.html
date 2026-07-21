@@ -4,16 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#0b0a1a">
-  <title>Планчик — Кабинет</title>
+  <title>Гадалка</title>
 
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <link rel="stylesheet" href="css/styles.css?v=3.14">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.14">
+  <link rel="stylesheet" href="css/styles.css?v=3.20">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.20">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%230b0a1a' stroke='%23d4af37' stroke-width='4'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='%23d4af37' font-family='serif'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
 </head>
 <body>
+
+  <!-- ─── LANDING: показывается, если открыли не из Telegram ─ -->
+  <div id="landingGate" class="landing-gate" hidden aria-modal="true" role="dialog" aria-labelledby="landingGateTitle">
+    <div class="landing-card">
+      <div class="landing-glyph" aria-hidden="true">⚜</div>
+      <h1 class="landing-title" id="landingGateTitle">Гадалка</h1>
+      <p class="landing-sub">Мини-приложение астролога в Telegram</p>
+      <ul class="landing-feats">
+        <li>Карта дня · 78 таро, 36 Ленорман, руны, цыганские</li>
+        <li>Натальная карта по дате рождения</li>
+        <li>Биоритмы и прогноз на неделю</li>
+      </ul>
+      <a class="landing-cta" id="landingCtaOpen" href="https://t.me/astro_byrbot?startapp=open" rel="noopener">
+        Открыть в Telegram
+      </a>
+      <p class="landing-hint" id="landingHint">Это Mini App — работает внутри Telegram</p>
+    </div>
+  </div>
 
   <div id="app" class="app">
 
@@ -22,7 +40,7 @@
       <div class="app-header-row">
         <div>
           <div class="app-eyebrow" id="dateLabel">сегодня</div>
-          <h1 class="app-title">Кабинет <span class="app-title-gold">Планчик</span></h1>
+          <h1 class="app-title">Гадалка</h1>
         </div>
         <div class="app-user" id="userChip" aria-label="Профиль">
           <span id="userAvatar">⚜</span>
@@ -229,7 +247,7 @@
               <span>Архангел · Гадания</span>
             </a>
             <nav class="arc-crumbs" aria-label="Хлебные крошки">
-              <a href="#">Планчик</a><span class="sep">/</span><span>Гадания</span>
+              <a href="#">Гадалка</a><span class="sep">/</span><span>Гадания</span>
             </nav>
           </div>
         </div>
@@ -340,7 +358,7 @@
 
         <!-- FOOTER -->
         <footer class="arc-site-footer">
-          <p><em>Архангел</em> · Гадания на картах · внутри Планчик Mini App</p>
+          <p><em>Архангел</em> · Гадания на картах · внутри Гадалка Mini App</p>
           <p style="margin-top:6px;font-size:11px;">v1.0 · карты не принимают решений за вас</p>
         </footer>
 
@@ -349,7 +367,7 @@
 
     <!-- ─── FOOTER ─────────────────────────────────────── -->
     <footer class="app-footer">
-      <p>Планчик · Telegram Mini App</p>
+      <p>Гадалка · Telegram Mini App</p>
       <p class="app-footer-meta">запущено <span id="loadedAt">—</span></p>
     </footer>
 
@@ -358,17 +376,17 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.16"></script>
-  <script src="js/tarot.js?v=3.16"></script>
-  <script src="js/biorhythm.js?v=3.16"></script>
-  <script src="js/arc-runes.js?v=3.16"></script>
-  <script src="js/arc-lenormand.js?v=3.16"></script>
-  <script src="js/arc-gypsy.js?v=3.16"></script>
-  <script src="js/arc-playing.js?v=3.16"></script>
-  <script src="js/arc-tarot.js?v=3.16"></script>
-  <script src="js/arc-tarot-minor.js?v=3.16"></script>
-  <script src="js/chart.js?v=3.16"></script>
-  <script src="js/arc-app.js?v=3.16"></script>
-  <script src="js/app.js?v=3.16"></script>
+  <script src="js/data.js?v=3.20"></script>
+  <script src="js/tarot.js?v=3.20"></script>
+  <script src="js/biorhythm.js?v=3.20"></script>
+  <script src="js/arc-runes.js?v=3.20"></script>
+  <script src="js/arc-lenormand.js?v=3.20"></script>
+  <script src="js/arc-gypsy.js?v=3.20"></script>
+  <script src="js/arc-playing.js?v=3.20"></script>
+  <script src="js/arc-tarot.js?v=3.20"></script>
+  <script src="js/arc-tarot-minor.js?v=3.20"></script>
+  <script src="js/chart.js?v=3.20"></script>
+  <script src="js/arc-app.js?v=3.20"></script>
+  <script src="js/app.js?v=3.20"></script>
 </body>
 </html>

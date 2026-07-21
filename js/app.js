@@ -72,6 +72,33 @@
 
   // ── Init ─────────────────────────────────────────────────
   function init() {
+    // Landing gate: показываем, если открыли не из Telegram.
+    // В Telegram всегда есть initDataUnsafe.user; в чистом браузере — нет.
+    const inTelegram = !!(tg && tg.initDataUnsafe && tg.initDataUnsafe.user);
+    const gate = document.getElementById('landingGate');
+    if (gate) {
+      if (inTelegram) {
+        gate.hidden = true;
+        document.body.classList.remove('landing-mode');
+      } else {
+        gate.hidden = false;
+        document.body.classList.add('landing-mode');
+        // Если доступен tg.openTelegramLink — подменим href на нативный вызов
+        const cta = document.getElementById('landingCtaOpen');
+        if (cta && tg && tg.openTelegramLink) {
+          cta.addEventListener('click', (e) => {
+            e.preventDefault();
+            try { tg.openTelegramLink(cta.href); } catch (_) { window.location.href = cta.href; }
+          });
+        }
+        // Не инициализируем основной app, если не из Telegram —
+        // это сэкономит трафик и избежит ложной «Карты дня» на dev-fallback.
+        $('#dateLabel').textContent  = DATA.dateLabel();
+        $('#loadedAt').textContent   = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        return;
+      }
+    }
+
     $('#dateLabel').textContent  = DATA.dateLabel();
     $('#loadedAt').textContent   = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     renderUser();
@@ -608,7 +635,7 @@
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/astro_byrbot') + '&text=' + encodeURIComponent(text);
       tg.openTelegramLink(url);
     } else if (navigator.share) {
-      navigator.share({ title: 'Карта дня — Планчик', text }).catch(() => {});
+      navigator.share({ title: 'Карта дня — Гадалка', text }).catch(() => {});
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(text).then(() => flashToast('Скопировано в буфер'));
     } else {

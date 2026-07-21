@@ -39,8 +39,8 @@
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.39">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.39">
+  <link rel="stylesheet" href="css/styles.css?v=3.40">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.40">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -151,7 +151,10 @@
             <img class="tarot-img" id="heroImg" alt="" loading="lazy" decoding="async" draggable="false">
             <div class="tarot-front-content">
               <div class="tarot-name" id="heroName">—</div>
-              <div class="tarot-mood" id="heroMood">—</div>
+              <div class="tarot-element-row">
+                <span class="tarot-element-chip" id="heroElement" hidden></span>
+                <span class="tarot-mood" id="heroMood">—</span>
+              </div>
             </div>
             <div class="tarot-rev-banner" id="heroRev" hidden>перевёрнутая</div>
           </div>
@@ -159,7 +162,8 @@
       </div>
 
       <div class="hero-card-date" id="heroDate">—</div>
-      <p class="hero-card-text" id="heroText">Загляни в свою сегодняшнюю карту…</p>
+      <p class="hero-card-meaning" id="heroMeaning">Загляни в свою сегодняшнюю карту…</p>
+      <p class="hero-card-text" id="heroText">—</p>
       <div class="hero-card-actions">
         <button type="button" class="btn btn-ghost" id="btnRefreshTarot">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -377,9 +381,9 @@
       <header class="arc-site-header">
         <div class="arc-shell">
           <div class="row">
-            <a href="#" class="arc-brand" id="arcHomeLink" aria-label="Архангел — на главную">
+            <a href="#" class="arc-brand" id="arcHomeLink" aria-label="Гадалка — на главную">
               <span class="arc-brand-mark">⚜</span>
-              <span>Архангел · Гадания</span>
+              <span>Гадалка · Гадания</span>
             </a>
             <nav class="arc-crumbs" aria-label="Хлебные крошки">
               <a href="#">Гадалка</a><span class="sep">/</span><span>Гадания</span>
@@ -392,9 +396,9 @@
 
         <!-- HERO -->
         <section class="arc-hero">
-          <span class="arc-hero-eyebrow">одна карта · один ответ</span>
-          <h1 id="arcTitle">Когда вопрос один — <em>ответ тоже один</em></h1>
-          <p>Сосредоточьтесь на том, что вас тревожит, и вытяните карту. Таро, руны, ленорман, цыганские или игральные — выберите колоду, которой доверяете. Без регистрации, без оплаты, без обмана.</p>
+          <span class="arc-hero-eyebrow">12 раскладов · 5 колод</span>
+          <h1 id="arcTitle">Гадалка</h1>
+          <p>Сосредоточьтесь на вопросе, выберите колоду — и тяните карту. Без регистрации и оплаты.</p>
         </section>
 
         <!-- MAIN GRID: sidebar + content -->
@@ -511,18 +515,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.39"></script>
-  <script src="js/tarot.js?v=3.39"></script>
-  <script src="js/biorhythm.js?v=3.39"></script>
-  <script src="js/arc-runes.js?v=3.39"></script>
-  <script src="js/arc-lenormand.js?v=3.39"></script>
-  <script src="js/arc-gypsy.js?v=3.39"></script>
-  <script src="js/arc-playing.js?v=3.39"></script>
-  <script src="js/arc-tarot.js?v=3.39"></script>
-  <script src="js/arc-tarot-minor.js?v=3.39"></script>
-  <script src="js/chart.js?v=3.39"></script>
-  <script src="js/arc-app.js?v=3.39"></script>
-  <script src="js/app.js?v=3.39"></script>
+  <script src="js/data.js?v=3.40"></script>
+  <script src="js/tarot.js?v=3.40"></script>
+  <script src="js/biorhythm.js?v=3.40"></script>
+  <script src="js/arc-runes.js?v=3.40"></script>
+  <script src="js/arc-lenormand.js?v=3.40"></script>
+  <script src="js/arc-gypsy.js?v=3.40"></script>
+  <script src="js/arc-playing.js?v=3.40"></script>
+  <script src="js/arc-tarot.js?v=3.40"></script>
+  <script src="js/arc-tarot-minor.js?v=3.40"></script>
+  <script src="js/chart.js?v=3.40"></script>
+  <script src="js/arc-app.js?v=3.40"></script>
+  <script src="js/app.js?v=3.40"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

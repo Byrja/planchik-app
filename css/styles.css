@@ -151,11 +151,35 @@ input, textarea, select { font: inherit; color: inherit; }
 .hero-card-date { font-size: 11px; color: var(--gold-2); margin-top: 8px; opacity: 0.85; letter-spacing: 0.3px; padding: 2px 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); display: inline-block; }
 .hero-card-text {
   font-family: var(--serif);
-  font-size: 17px; line-height: 1.5;
-  color: var(--ink-dim);
-  margin: 12px 0 18px;
+  font-size: 15px; line-height: 1.5;
+  color: var(--ink-mute);
+  margin: 0 0 18px;
   max-width: 360px; margin-left: auto; margin-right: auto;
+  font-style: italic;
 }
+/* «Суть карты» — мистическое описание upright, показано КАК основной текст */
+.hero-card-meaning {
+  font-family: var(--serif);
+  font-size: 17px; line-height: 1.55;
+  color: var(--ink-dim);
+  margin: 12px 0 8px;
+  max-width: 380px; margin-left: auto; margin-right: auto;
+}
+/* Стихия-чип в front-content (только минорные арканы) */
+.tarot-element-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.tarot-element-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 999px;
+  background: rgba(212, 175, 55, 0.18);
+  color: var(--gold-2);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  font-weight: 500;
+}
+.tarot-element-chip[data-element="wands"]     { background: rgba(220, 80, 50, 0.22);  border-color: rgba(220, 80, 50, 0.45);  color: #ffb199; }
+.tarot-element-chip[data-element="cups"]      { background: rgba(60, 130, 200, 0.22); border-color: rgba(60, 130, 200, 0.45); color: #9ec8f0; }
+.tarot-element-chip[data-element="swords"]    { background: rgba(180, 180, 200, 0.18); border-color: rgba(200, 200, 220, 0.40); color: #d8d8ea; }
+.tarot-element-chip[data-element="pentacles"] { background: rgba(120, 180, 90, 0.22); border-color: rgba(120, 180, 90, 0.45);  color: #c5e0a8; }
 .hero-card-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; align-items: center; }
 .hero-card-actions .btn { flex: 1 1 auto; min-width: 130px; }
 .hero-card-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }

@@ -202,11 +202,13 @@
     const date = DATA.todayKey();
     const c = TarotDaily.calc(tgId, date);
     // Заполняем лицо flip-карты (новая разметка: #heroTarotCard > .tarot-card-inner)
-    const imgEl  = $('#heroImg');
-    const nameEl = $('#heroName');
-    const moodEl = $('#heroMood');
-    const textEl = $('#heroText');
-    const revEl  = $('#heroRev');
+    const imgEl    = $('#heroImg');
+    const nameEl   = $('#heroName');
+    const moodEl   = $('#heroMood');
+    const textEl   = $('#heroText');
+    const meanEl   = $('#heroMeaning');
+    const revEl    = $('#heroRev');
+    const elemEl   = $('#heroElement');
     if (imgEl) {
       // Реальная JPG Rider-Waite-Smith вместо unicode-глифа
       imgEl.src = DATA.imageFor(c);
@@ -214,9 +216,27 @@
     }
     if (nameEl) nameEl.textContent = c.name || '';
     if (moodEl) moodEl.textContent = c.mood || '';
-    if (textEl) textEl.textContent = c.advice || c.upright || c.text || '';
+    // «Суть» карты = upright (мистическое описание) — над «Советом дня» (advice)
+    if (meanEl) meanEl.textContent = c.upright || c.mood || '';
+    if (textEl) textEl.textContent = c.advice || '';
     if (revEl) {
       revEl.hidden = !c.reversed;
+    }
+    // Стихия-чип для минорных арканов (по `suit`); для старших не показываем
+    if (elemEl) {
+      if (c.kind === 'minor' && c.suit) {
+        const ELEMENT_LABEL = {
+          wands:     '🔥 Огонь',
+          cups:      '💧 Вода',
+          swords:    '💨 Воздух',
+          pentacles: '🌍 Земля'
+        };
+        elemEl.textContent = ELEMENT_LABEL[c.suit] || '';
+        elemEl.dataset.element = c.suit;
+        elemEl.hidden = false;
+      } else {
+        elemEl.hidden = true;
+      }
     }
     const hd = $('#heroDate');
     if (hd) hd.textContent = DATA.dateLabel();

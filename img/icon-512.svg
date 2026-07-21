@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#1a1530"/>
+      <stop offset="100%" stop-color="#0b0a1a"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5d77a"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#a8821e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="208" fill="none" stroke="url(#gold)" stroke-width="5" opacity="0.45"/>
+  <circle cx="256" cy="256" r="186" fill="none" stroke="url(#gold)" stroke-width="2" opacity="0.25"/>
+  <g transform="translate(256 256)" stroke="url(#gold)" fill="none" stroke-linecap="round">
+    <circle r="112" stroke-width="8"/>
+    <path d="M0 -112 L0 -22 M0 112 L0 22 M-112 0 L-22 0 M112 0 L22 0" stroke-width="7"/>
+    <path d="M-80 -80 L-16 -16 M80 -80 L16 -16 M-80 80 L-16 16 M80 80 L16 16" stroke-width="4" opacity="0.7"/>
+    <circle r="16" fill="url(#gold)" stroke="none"/>
+    <path d="M0 -112 q 11 16 0 32 q -11 -16 0 -32 z" fill="url(#gold)" stroke="none"/>
+    <path d="M0 112 q 11 -16 0 -32 q -11 16 0 32 z" fill="url(#gold)" stroke="none"/>
+    <path d="M-112 0 q 16 11 32 0 q -16 -11 -32 0 z" fill="url(#gold)" stroke="none"/>
+    <path d="M112 0 q -16 11 -32 0 q 16 -11 32 0 z" fill="url(#gold)" stroke="none"/>
+  </g>
+  <path d="M256 80 a 38 38 0 1 0 0 76 a 28 28 0 1 1 0 -76 z" fill="url(#gold)" opacity="0.9"/>
+  <!-- Tiny stars -->
+  <circle cx="120" cy="120" r="2" fill="#d4af37" opacity="0.7"/>
+  <circle cx="400" cy="140" r="2" fill="#d4af37" opacity="0.6"/>
+  <circle cx="380" cy="380" r="2" fill="#d4af37" opacity="0.5"/>
+  <circle cx="140" cy="380" r="2" fill="#d4af37" opacity="0.6"/>
+  <circle cx="256" cy="60" r="1.5" fill="#d4af37" opacity="0.5"/>
+</svg>

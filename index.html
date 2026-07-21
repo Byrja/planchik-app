@@ -3,15 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#0b0a1a">
+  <meta name="theme-color" content="#0b0a1a" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="dark">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Гадалка">
+  <meta name="application-name" content="Гадалка">
+  <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon-180.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="img/apple-touch-icon-167.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="img/apple-touch-icon-152.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="img/apple-touch-icon-120.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="img/apple-touch-icon-76.png">
+  <link rel="mask-icon" href="img/icon-192.svg" color="#d4af37">
+
+  <!-- Open Graph / Telegram preview -->
+  <meta property="og:title" content="Гадалка — Mini App астролога">
+  <meta property="og:description" content="Карта дня, биоритмы, натальные карты, гадания на 78 таро, 36 Ленорман, рунах и цыганских картах.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="img/og-image-512.png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta name="twitter:card" content="summary_large_image">
+
   <title>Гадалка</title>
 
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <link rel="stylesheet" href="css/styles.css?v=3.20">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.20">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%230b0a1a' stroke='%23d4af37' stroke-width='4'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='%23d4af37' font-family='serif'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css?v=3.21">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.21">
+  <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
+  <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
 <body>
 
@@ -376,17 +402,17 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.20"></script>
-  <script src="js/tarot.js?v=3.20"></script>
-  <script src="js/biorhythm.js?v=3.20"></script>
-  <script src="js/arc-runes.js?v=3.20"></script>
-  <script src="js/arc-lenormand.js?v=3.20"></script>
-  <script src="js/arc-gypsy.js?v=3.20"></script>
-  <script src="js/arc-playing.js?v=3.20"></script>
-  <script src="js/arc-tarot.js?v=3.20"></script>
-  <script src="js/arc-tarot-minor.js?v=3.20"></script>
-  <script src="js/chart.js?v=3.20"></script>
-  <script src="js/arc-app.js?v=3.20"></script>
-  <script src="js/app.js?v=3.20"></script>
+  <script src="js/data.js?v=3.21"></script>
+  <script src="js/tarot.js?v=3.21"></script>
+  <script src="js/biorhythm.js?v=3.21"></script>
+  <script src="js/arc-runes.js?v=3.21"></script>
+  <script src="js/arc-lenormand.js?v=3.21"></script>
+  <script src="js/arc-gypsy.js?v=3.21"></script>
+  <script src="js/arc-playing.js?v=3.21"></script>
+  <script src="js/arc-tarot.js?v=3.21"></script>
+  <script src="js/arc-tarot-minor.js?v=3.21"></script>
+  <script src="js/chart.js?v=3.21"></script>
+  <script src="js/arc-app.js?v=3.21"></script>
+  <script src="js/app.js?v=3.21"></script>
 </body>
 </html>

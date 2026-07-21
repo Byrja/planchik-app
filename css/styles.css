@@ -1156,3 +1156,69 @@ h3 { font-size: var(--fs-h2);      line-height: 1.3; }
 
 /* Fine kerning for headings */
 .app-title, .hero-card-name, .panel-title { text-rendering: optimizeLegibility; }
+
+/* ── Onboarding overlay (B1) ──────────────────────────── */
+.onboarding {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column;
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-3) 100%);
+  padding: 24px;
+  animation: panel-in 360ms cubic-bezier(.2,.7,.2,1) both;
+}
+.onboarding[hidden] { display: none !important; }
+.onb-skip {
+  align-self: flex-end;
+  background: none; border: none;
+  color: var(--ink-mute); font-size: 14px;
+  padding: 8px 12px; cursor: pointer;
+}
+.onb-step {
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+  padding: 0 8px;
+  animation: panel-in 360ms cubic-bezier(.2,.7,.2,1) both;
+}
+.onb-step[hidden] { display: none !important; }
+.onb-illust {
+  font-size: 96px; line-height: 1;
+  color: var(--gold-2);
+  margin-bottom: 24px;
+  filter: drop-shadow(0 0 30px rgba(212,175,55,0.55));
+  animation: hero-pulse 5s ease-in-out infinite;
+}
+.onb-title {
+  font-family: var(--serif);
+  font-size: var(--fs-display);
+  color: var(--ink);
+  margin-bottom: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.onb-text {
+  font-size: var(--fs-body);
+  color: var(--ink-dim);
+  line-height: 1.55;
+  max-width: 36ch;
+}
+.onb-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
+  gap: 12px;
+}
+.onb-dots { display: flex; gap: 6px; }
+.onb-dots .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ink-mute); opacity: 0.5;
+  transition: all 240ms cubic-bezier(.4,.0,.2,1);
+}
+.onb-dots .dot.is-active {
+  width: 22px; border-radius: 4px;
+  background: var(--gold);
+  opacity: 1;
+}
+.onb-next.btn { min-width: 120px; }
+@media (prefers-reduced-motion: reduce) {
+  .onboarding, .onb-step, .onb-illust { animation: none !important; }
+  .onb-dots .dot { transition: none; }
+}

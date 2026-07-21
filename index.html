@@ -39,8 +39,8 @@
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.36">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.36">
+  <link rel="stylesheet" href="css/styles.css?v=3.37">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.37">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -49,6 +49,32 @@
   <!-- ─── Atmosphere (Batch A): starfield + grain overlay ── -->
   <div class="starfield" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
+
+  <!-- ─── Onboarding (B1): shown once, skipped via localStorage ─ -->
+  <div id="onboarding" class="onboarding" hidden aria-modal="true" role="dialog" aria-labelledby="onbTitle">
+    <button class="onb-skip" type="button" aria-label="Пропустить">Пропустить</button>
+    <div class="onb-step" data-step="1">
+      <div class="onb-illust" aria-hidden="true">✦</div>
+      <h2 class="onb-title" id="onbTitle">Добро пожаловать в Гадалку</h2>
+      <p class="onb-text">Карта дня, натальные карты, расклады на 78 таро, 36 Ленорман, рунах и цыганских картах — всё в одном месте.</p>
+    </div>
+    <div class="onb-step" data-step="2" hidden>
+      <div class="onb-illust" aria-hidden="true">⚝</div>
+      <h2 class="onb-title">Карта дня</h2>
+      <p class="onb-text">Каждое утро — личная карта с глубокой трактовкой и советом на день. Возвращайтесь, чтобы не пропустить.</p>
+    </div>
+    <div class="onb-step" data-step="3" hidden>
+      <div class="onb-illust" aria-hidden="true">☾</div>
+      <h2 class="onb-title">Спросите у бота</h2>
+      <p class="onb-text">Любой вопрос можно задать прямо в чате — напишите /start, выберите расклад, сфокусируйтесь на намерении.</p>
+    </div>
+    <div class="onb-nav">
+      <div class="onb-dots" aria-hidden="true">
+        <span class="dot is-active"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+      <button class="onb-next btn" type="button">Далее →</button>
+    </div>
+  </div>
 
   <!-- ─── LANDING: показывается, если открыли не из Telegram ─ -->
   <div id="landingGate" class="landing-gate" hidden aria-modal="true" role="dialog" aria-labelledby="landingGateTitle">
@@ -479,18 +505,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.36"></script>
-  <script src="js/tarot.js?v=3.36"></script>
-  <script src="js/biorhythm.js?v=3.36"></script>
-  <script src="js/arc-runes.js?v=3.36"></script>
-  <script src="js/arc-lenormand.js?v=3.36"></script>
-  <script src="js/arc-gypsy.js?v=3.36"></script>
-  <script src="js/arc-playing.js?v=3.36"></script>
-  <script src="js/arc-tarot.js?v=3.36"></script>
-  <script src="js/arc-tarot-minor.js?v=3.36"></script>
-  <script src="js/chart.js?v=3.36"></script>
-  <script src="js/arc-app.js?v=3.36"></script>
-  <script src="js/app.js?v=3.36"></script>
+  <script src="js/data.js?v=3.37"></script>
+  <script src="js/tarot.js?v=3.37"></script>
+  <script src="js/biorhythm.js?v=3.37"></script>
+  <script src="js/arc-runes.js?v=3.37"></script>
+  <script src="js/arc-lenormand.js?v=3.37"></script>
+  <script src="js/arc-gypsy.js?v=3.37"></script>
+  <script src="js/arc-playing.js?v=3.37"></script>
+  <script src="js/arc-tarot.js?v=3.37"></script>
+  <script src="js/arc-tarot-minor.js?v=3.37"></script>
+  <script src="js/chart.js?v=3.37"></script>
+  <script src="js/arc-app.js?v=3.37"></script>
+  <script src="js/app.js?v=3.37"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

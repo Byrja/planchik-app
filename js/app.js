@@ -950,6 +950,39 @@
       };
     }
     const $bind = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
+
+    // ── Onboarding (B1): first-run tour, dismissed once ───
+    (function initOnboarding() {
+      const overlay = $('#onboarding');
+      if (!overlay) return;
+      if (localStorage.getItem('onb_seen') !== '1') overlay.hidden = false;
+      let step = 1;
+      const total = overlay.querySelectorAll('.onb-step').length;
+      function show(n) {
+        overlay.querySelectorAll('.onb-step').forEach(s => { s.hidden = +s.dataset.step !== n; });
+        overlay.querySelectorAll('.onb-dots .dot').forEach((d, i) => d.classList.toggle('is-active', i === n - 1));
+        const next = overlay.querySelector('.onb-next');
+        if (next) next.textContent = n === total ? 'Поехали! ✦' : 'Далее →';
+        step = n;
+      }
+      $bind('.onb-skip', () => { localStorage.setItem('onb_seen', '1'); overlay.hidden = true; });
+      $bind('.onb-next', () => {
+        if (step < total) show(step + 1);
+        else { localStorage.setItem('onb_seen', '1'); overlay.hidden = true; }
+      });
+    })();
+
+    // ── Theme toggle (B2): light/dark, persisted + system pref ──
+    (function initTheme() {
+      const stored = localStorage.getItem('theme');
+      const initial = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', initial);
+      $bind('#themeToggle', () => {
+        const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+      });
+    })();
     // saveCheckin удалён — no-op safety
     $bind('#btnProfileEdit',  toggleProfileEdit);
     $bind('#btnProfileSave',  saveProfileToBot);

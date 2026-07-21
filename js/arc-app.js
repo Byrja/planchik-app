@@ -527,14 +527,14 @@
             <div class="arc-love-label">Ты</div>
             ${visA}
             <div class="arc-love-name">${escapeHtml(a.name)}</div>
-            <p class="arc-love-text">${escapeHtml(a.reversed ? a.reversed : a.upright)}</p>
+            <p class="arc-love-text">${escapeHtml(a.reversed === true ? 'Перевёрнутая карта — внутренние противоречия.' : (typeof a.reversed === 'string' ? a.reversed : a.upright))}</p>
           </div>
           <div class="arc-love-connector">⇌</div>
           <div class="arc-love-side">
             <div class="arc-love-label">Он(а)</div>
             ${visB}
             <div class="arc-love-name">${escapeHtml(b.name)}</div>
-            <p class="arc-love-text">${escapeHtml(b.reversed ? b.reversed : b.upright)}</p>
+            <p class="arc-love-text">${escapeHtml(b.reversed === true ? 'Перевёрнутая карта — скрытые мотивы.' : (typeof b.reversed === 'string' ? b.reversed : b.upright))}</p>
           </div>
         </div>
         <div class="arc-reading-pair">
@@ -562,7 +562,7 @@
             <p class="arc-inter-card">${escapeHtml(c.name)} · ${headline}</p>
           </div>
         </div>
-        <p class="arc-inter-main">${escapeHtml(c.reversed ? c.reversed : c.upright)}</p>
+        <p class="arc-inter-main">${escapeHtml(c.reversed === true ? 'Перевёрнутая карта — обратите внимание на скрытые или ослабленные качества.' : (typeof c.reversed === 'string' ? c.reversed : c.upright))}</p>
         ${c.shadow ? `<p class="arc-inter-shadow"><span class="arc-shadow-label">Тень:</span> ${escapeHtml(c.shadow)}</p>` : ''}
       </div>`;
     }).join('');
@@ -719,12 +719,29 @@
   // ── Роутер по раскладам ─────────────────────────────────
   function setSpread(id) {
     if (!SPREADS[id]) return;
+    const changing = state.spread !== id;
     state.spread = id;
     state.cards = [];
     // Подсветка в сайдбаре и mobile-nav
     $$('.arc-nav-link').forEach(a => a.classList.toggle('is-active', a.dataset.spread === id));
     syncMobileNavLabel();
-    mountSpread();
+    // Если меняем расклад — полный reset (новая колода, новая сцена)
+    if (changing) {
+      mountSpread();
+      // сбрасываем stage и re-enable кнопку, чтобы не застряла в «✓ Готово»
+      const stage = r$('#arcStage');
+      if (stage) stage.classList.add('is-lit');
+      const btnD = r$('#ctaDraw');
+      if (btnD) { btnD.disabled = false; btnD.textContent = '🂠  Тянуть'; }
+      const btnR = r$('#ctaReset');
+      if (btnR) btnR.disabled = true;
+      const btnS = r$('#ctaShare');
+      if (btnS) btnS.style.display = 'none';
+      const res = r$('#arcResult');
+      if (res) res.classList.remove('is-revealed');
+    } else {
+      mountSpread();
+    }
     tryVibrate(10);
     // прокрутить к началу main
     const main = root();

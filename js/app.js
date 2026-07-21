@@ -77,7 +77,7 @@
     renderUser();
     renderTarot();
     renderBiorhythmTile();
-    renderEveningTile();
+    // renderEveningTile(); // removed: чек-ин выпилен
     renderProfile();
     wireEvents();
     if (state.user.startParam === 'mychart') {
@@ -654,7 +654,7 @@
     $('#eveningStatus').textContent = 'Сохранено в ' + new Date(entry.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     $('#eveningStatus').classList.add('is-ok');
     state.checkins = Evening.last30();
-    renderEveningTile();
+    // renderEveningTile(); // removed: чек-ин выпилен
     haptic('success');
   }
 

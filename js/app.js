@@ -177,16 +177,15 @@
     const date = DATA.todayKey();
     const c = TarotDaily.calc(tgId, date);
     // Заполняем лицо flip-карты (новая разметка: #heroTarotCard > .tarot-card-inner)
-    const glyph = $('#heroGlyph');
+    const imgEl  = $('#heroImg');
     const nameEl = $('#heroName');
     const moodEl = $('#heroMood');
     const textEl = $('#heroText');
     const revEl  = $('#heroRev');
-    if (glyph) {
-      // Элементный глиф по масти/типу карты
-      const key = elementForCard(c);
-      const elemGlyph = ({fire:'🜂', water:'🜄', air:'🜁', earth:'🜃', major:'✦'})[key] || (c.glyph || '✦');
-      glyph.textContent = elemGlyph;
+    if (imgEl) {
+      // Реальная JPG Rider-Waite-Smith вместо unicode-глифа
+      imgEl.src = DATA.imageFor(c);
+      imgEl.alt = c.name || 'Карта таро';
     }
     if (nameEl) nameEl.textContent = c.name || '';
     if (moodEl) moodEl.textContent = c.mood || '';

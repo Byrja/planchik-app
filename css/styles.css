@@ -841,3 +841,25 @@ body.landing-mode .app { display: none !important; }
   padding: 5px 10px; border-radius: 6px;
   z-index: 2;
 }
+
+/* Реальная JPG-картинка RWS на лицевой стороне */
+.tarot-img {
+  position: absolute; inset: 8px;
+  width: calc(100% - 16px); height: calc(100% - 16px);
+  object-fit: contain;
+  border-radius: 12px;
+  background: #0b0a1a;
+  z-index: 0;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+.tarot-card-front .tarot-front-content {
+  position: absolute;
+  left: 0; right: 0; bottom: 12px;
+  padding: 8px 14px 10px;
+  background: linear-gradient(to top, rgba(11,10,26,0.92) 0%, rgba(11,10,26,0.7) 60%, rgba(11,10,26,0) 100%);
+  z-index: 1;
+}
+.tarot-card-front .tarot-name { color: #f5e9c8; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.tarot-card-front .tarot-mood { color: rgba(245,233,200,0.72); }

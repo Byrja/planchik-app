@@ -2,6 +2,16 @@
 // + вспомогательные данные
 
 window.DATA = (function () {
+  // Английские имена для маппинга в img/cards/Tarot_NN_Name.jpg
+  const MAJOR_EN = [
+    'Fool','Magician','High_Priestess','Empress','Emperor','Hierophant',
+    'Lovers','Chariot','Strength','Hermit','Wheel_of_Fortune','Justice',
+    'Hanged_Man','Death','Temperance','Devil','Tower','Star','Moon','Sun',
+    'Judgement','World'
+  ];
+  // Нижний регистр для img/cards/<suit>_<rank>.jpg
+  const RANKS_EN = ['ace','2','3','4','5','6','7','8','9','10','page','knight','queen','king'];
+
   const MAJOR = [
     ['Шут',                'Новый путь, чистые возможности, свобода от страха.',                 'Отпусти осторожность. Сделай шаг в неизвестность — сегодня удача на стороне смелых.',  '🌟 свежий старт, приключение',  '🃏'],
     ['Маг',                'Сила воли, ресурсы, умение создавать реальность.',                  'У тебя есть всё необходимое. Просто начни действовать — энергия пойдёт.',                '⚡️ уверенность, мастерство',   '🪄'],
@@ -61,7 +71,8 @@ window.DATA = (function () {
       advice: r[2],
       mood: r[3],
       glyph: s.glyph,
-      suit: s.key
+      suit: s.key,
+      rank: rIdx
     });
   }));
 
@@ -101,6 +112,18 @@ window.DATA = (function () {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
+  // Путь к реальной JPG-картинке Rider-Waite-Smith в img/cards/
+  // major: Tarot_NN_Name.jpg (idx 0..21, NN = padStart 2)
+  // minor: <suit>_<rank>.jpg (idx 22..77)
+  function imageFor(c) {
+    if (!c) return '';
+    if (c.kind === 'major' || c.idx < 22) {
+      return `img/cards/Tarot_${String(c.idx).padStart(2, '0')}_${MAJOR_EN[c.idx]}.jpg`;
+    }
+    const rankIdx = (typeof c.rank === 'number') ? c.rank : ((c.idx - 22) % 14);
+    return `img/cards/${c.suit}_${RANKS_EN[rankIdx]}.jpg`;
+  }
+
   return {
     CARDS,
     cardsCount: CARDS.length,
@@ -116,6 +139,7 @@ window.DATA = (function () {
       if (isNaN(x.getTime())) return 'сегодня';
       return x.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' });
     },
-    ZODIAC, zodiacOf
+    ZODIAC, zodiacOf,
+    imageFor
   };
 })();

@@ -494,8 +494,11 @@
   // ── Tarot refresh + share ────────────────────────────────
   function refreshTarot() {
     haptic('medium');
+    const tgId = state.user.id || 1;
+    const date = DATA.todayKey();
+    TarotDaily.bumpSalt(tgId, date);
     renderTarot();
-    flashToast('Карта обновлена');
+    flashToast('Новая карта вытянута');
   }
   function shareTarot() {
     const c = TarotDaily.calc(state.user.id || 1, DATA.todayKey());

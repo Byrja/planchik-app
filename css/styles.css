@@ -165,6 +165,65 @@ input, textarea, select { font: inherit; color: inherit; }
   margin: 12px 0 8px;
   max-width: 380px; margin-left: auto; margin-right: auto;
 }
+/* Кнопка раскрытия полной расшифровки */
+.hero-reading-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 4px auto 14px;
+  padding: 8px 16px;
+  background: linear-gradient(180deg, rgba(212,175,55,0.10), rgba(212,175,55,0.04));
+  border: 1px solid var(--line-gold, rgba(212,175,55,0.35));
+  border-radius: 999px;
+  color: var(--gold-2, #d4af37);
+  font-family: var(--serif, 'Cormorant Garamond', Georgia, serif);
+  font-size: 14px; font-weight: 500;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.hero-reading-toggle:hover {
+  background: linear-gradient(180deg, rgba(212,175,55,0.18), rgba(212,175,55,0.08));
+  box-shadow: 0 0 0 4px rgba(212,175,55,0.06);
+}
+.hero-reading-toggle:active { transform: scale(0.98); }
+.hero-reading-toggle-icon { font-size: 15px; line-height: 1; }
+.hero-reading-chevron {
+  transition: transform 280ms cubic-bezier(.2,.7,.2,1);
+  opacity: 0.8;
+}
+.hero-reading-toggle[aria-expanded="true"] .hero-reading-chevron { transform: rotate(180deg); }
+/* Полная расшифровка — раскрывающийся блок под кнопкой */
+.hero-card-reading {
+  max-width: 520px;
+  margin: 0 auto 18px;
+  padding: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(212,175,55,0.04), rgba(212,175,55,0.01));
+  border: 1px solid var(--line, rgba(255,255,255,0.06));
+  overflow: hidden;
+  animation: tile-in 320ms cubic-bezier(.2,.7,.2,1) both;
+}
+.hero-card-reading[hidden] { display: none; }
+.hero-reading-inner {
+  padding: 14px 18px 16px;
+  text-align: left;
+  font-family: var(--serif, 'Cormorant Garamond', Georgia, serif);
+  font-size: 15px; line-height: 1.65;
+  color: var(--ink-dim, #c8c8d4);
+}
+.hero-reading-inner p {
+  margin: 0 0 10px;
+}
+.hero-reading-inner p:last-child { margin-bottom: 0; }
+.hero-reading-inner p + p { margin-top: 12px; }
+.hero-reading-inner em {
+  color: var(--gold-2, #d4af37);
+  font-style: normal;
+  font-weight: 500;
+}
+@media (min-width: 720px) {
+  .hero-reading-inner { font-size: 16px; padding: 16px 22px 18px; }
+}
 /* Стихия-чип в front-content (только минорные арканы) */
 .tarot-element-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 .tarot-element-chip {

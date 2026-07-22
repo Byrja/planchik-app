@@ -240,6 +240,24 @@
     }
     const hd = $('#heroDate');
     if (hd) hd.textContent = DATA.dateLabel();
+    // Полная расшифровка (длинный текст по карте; в TarotDaily на data.js)
+    const readEl = $('#heroReading');
+    const readBlock = $('#heroReadingBlock');
+    if (readEl) {
+      const longText = c.reading || c.advice || c.upright || '';
+      // Конвертим абзацы (\n\n) в <p>; одиночные \n в <br> внутри абзаца
+      const html = String(longText)
+        .split(/\n\s*\n/)
+        .map(p => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
+        .join('');
+      readEl.innerHTML = html;
+    }
+    if (readBlock) {
+      // Каждый раз сбрасываем в закрытое при ре-рендере новой карты
+      readBlock.hidden = true;
+      const tg = $('#btnReadingToggle');
+      if (tg) tg.setAttribute('aria-expanded', 'false');
+    }
     // Авто-флип на 400мс (даём глазам поймать рубашку)
     const card = $('#heroTarotCard');
     if (card) {
@@ -957,6 +975,26 @@
   function wireEvents() {
     $('#btnRefreshTarot').onclick = refreshTarot;
     $('#btnShareTarot').onclick   = shareTarot;
+    // Toggle «Полная расшифровка» — плавно разворачивает/скрывает блок под кнопкой
+    const tg = $('#btnReadingToggle');
+    if (tg) {
+      tg.onclick = () => {
+        const block = $('#heroReadingBlock');
+        if (!block) return;
+        const willOpen = block.hidden;
+        if (willOpen) {
+          // Чтобы tile-in анимация отыграла — снимаем hidden, форс-reflow, потом перезапуск анимации
+          block.hidden = false;
+          block.style.animation = 'none';
+          // eslint-disable-next-line no-unused-expressions
+          block.offsetHeight; // reflow
+          block.style.animation = '';
+        } else {
+          block.hidden = true;
+        }
+        tg.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      };
+    }
     // Hero-card кликабельна — открывает гадание
     const hero = $('#heroCard');
     if (hero) {

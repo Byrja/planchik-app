@@ -653,6 +653,8 @@
     target.innerHTML = sections +
       (summary ? `<div class="arc-reading-summary"><p class="arc-tips-title">Итог расклада</p><p>${summary}</p></div>` : '') +
       (q ? `<p class="arc-inter-context">В контексте вопроса <em>«${escapeHtml(q)}»</em> — карты указывают, что ответ уже формируется. Доверьтесь первому импульсу.</p>` : '');
+    // AI-кнопка рисуется в слот #arcAiSlot под основной расшифровкой
+    if (typeof renderAiButton === 'function') renderAiButton();
   }
 
   // ── Шаблон конкретного расклада ─────────────────────────
@@ -705,6 +707,7 @@
       <div id="arcResult" class="arc-result" aria-live="polite">
         <article class="arc-interpretation">
           <div id="arcInter"></div>
+          <div id="arcAiSlot"></div>
           <div id="arcNoteSlot"></div>
         </article>
       </div>
@@ -920,6 +923,191 @@
     document.addEventListener('keydown', function escHandler(e) {
       if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
     });
+  }
+
+  // ── AI-расшифровка (глубинный разбор от гадалки) ────────────
+  function aiKey(spread, cards) {
+    // ключ кэша: расклад + позиции (без имени карты — она уже видна)
+    return 'arhAi_' + spread + '_' + cards.map(c => (c.position || '?') + ':' + (c.reversed ? 'r' : 'u')).join('|');
+  }
+  function aiDailyCount() {
+    try {
+      const raw = localStorage.getItem('arhAiDaily');
+      const obj = raw ? JSON.parse(raw) : { date: '', count: 0 };
+      const today = new Date().toISOString().slice(0, 10);
+      if (obj.date !== today) return { date: today, count: 0, obj: { date: today, count: 0 } };
+      return { date: today, count: obj.count || 0, obj };
+    } catch (e) { return { date: '', count: 0, obj: { date: '', count: 0 } }; }
+  }
+  function aiDailyInc(obj) {
+    try { localStorage.setItem('arhAiDaily', JSON.stringify(obj)); } catch (e) {}
+  }
+  // публичный лимит — 5/день (сервер тоже лимитирует; тут — UX-гейт + кэш)
+  const AI_DAILY_LIMIT = 5;
+
+  function renderAiButton() {
+    const slot = r$('#arcAiSlot');
+    if (!slot) return;
+    if (state.cards.length === 0) { slot.innerHTML = ''; return; }
+    // yesno/love/celtic — допустимо, лимит тот же
+    const key = aiKey(state.spread, state.cards);
+    let cached = null;
+    try { cached = localStorage.getItem(key); } catch (e) {}
+
+    const daily = aiDailyCount();
+    const remaining = Math.max(0, AI_DAILY_LIMIT - daily.count);
+
+    if (cached) {
+      // уже разобрано — показываем
+      slot.innerHTML = `
+        <div class="arc-ai-card is-loaded" id="arcAiCard">
+          <div class="arc-ai-head">
+            <span class="arc-ai-orb">🔮</span>
+            <div>
+              <div class="arc-ai-title">Глубинный разбор от гадалки</div>
+              <div class="arc-ai-sub">сохранено · осталось сегодня: ${remaining}/${AI_DAILY_LIMIT}</div>
+            </div>
+          </div>
+          <div class="arc-ai-body markdown">${escapeHtml(cached)}</div>
+          <div class="arc-ai-foot">
+            <button type="button" class="arc-ai-toggle" data-action="toggle">свернуть</button>
+            <button type="button" class="arc-ai-redo" data-action="redo">↻ пересоздать</button>
+          </div>
+        </div>`;
+      wireAiCard(slot, key, /*alreadyCached*/ true);
+      return;
+    }
+
+    if (remaining === 0) {
+      slot.innerHTML = `
+        <div class="arc-ai-card is-locked">
+          <div class="arc-ai-head">
+            <span class="arc-ai-orb">🔮</span>
+            <div>
+              <div class="arc-ai-title">Глубинный разбор от гадалки</div>
+              <div class="arc-ai-sub">лимит ${AI_DAILY_LIMIT}/день исчерпан · сброс в полночь UTC</div>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    slot.innerHTML = `
+      <div class="arc-ai-card is-cta">
+        <div class="arc-ai-head">
+          <span class="arc-ai-orb">🔮</span>
+          <div>
+            <div class="arc-ai-title">Глубинный разбор от гадалки</div>
+            <div class="arc-ai-sub">ИИ-прорицатель · осталось сегодня: ${remaining}/${AI_DAILY_LIMIT}</div>
+          </div>
+        </div>
+        <p class="arc-ai-pitch">Психологическая и символическая интерпретация вашего расклада. Не общая астрология, а личный разбор — что лежит в основе, где узел, и что делать.</p>
+        <div class="arc-ai-actions">
+          <button type="button" class="arc-ai-go" data-action="go">🔮  Получить разбор</button>
+        </div>
+      </div>`;
+    wireAiCard(slot, key, /*alreadyCached*/ false);
+  }
+
+  function wireAiCard(slot, key, alreadyCached) {
+    const go = slot.querySelector('[data-action="go"]');
+    const toggle = slot.querySelector('[data-action="toggle"]');
+    const redo = slot.querySelector('[data-action="redo"]');
+    const card = slot.querySelector('#arcAiCard') || slot.querySelector('.arc-ai-card');
+
+    if (go) go.onclick = () => doAiInterpret(key);
+    if (redo) redo.onclick = () => {
+      if (!confirm('Удалить сохранённый разбор и сгенерировать новый? Это сожжёт один из лимитов на сегодня.')) return;
+      try { localStorage.removeItem(key); } catch (e) {}
+      const daily = aiDailyCount();
+      // удаление из кэша не возвращает лимит, но юзер уже знает
+      renderAiButton();
+    };
+    if (toggle) toggle.onclick = () => {
+      if (!card) return;
+      const body = card.querySelector('.arc-ai-body');
+      if (!body) return;
+      const collapsed = body.style.display === 'none';
+      body.style.display = collapsed ? '' : 'none';
+      toggle.textContent = collapsed ? 'свернуть' : 'развернуть';
+    };
+  }
+
+  async function doAiInterpret(key) {
+    const slot = r$('#arcAiSlot');
+    if (!slot) return;
+    const card = slot.querySelector('.arc-ai-card');
+    if (!card) return;
+    // показать loader
+    card.classList.add('is-loading');
+    card.classList.remove('is-cta');
+    const body = card.querySelector('.arc-ai-body');
+    card.querySelector('.arc-ai-actions')?.remove();
+    if (!body) {
+      const b = document.createElement('div');
+      b.className = 'arc-ai-body markdown';
+      b.innerHTML = '<div class="arc-ai-spinner"></div><div class="arc-ai-loading-text">Гадалка смотрит в карты…</div>';
+      card.appendChild(b);
+    } else {
+      body.innerHTML = '<div class="arc-ai-spinner"></div><div class="arc-ai-loading-text">Гадалка смотрит в карты…</div>';
+      body.style.display = '';
+    }
+    // увеличить счётчик сразу (optimistic), откатим при ошибке
+    const daily = aiDailyCount();
+    const obj = daily.obj;
+    obj.count = (obj.count || 0) + 1;
+    aiDailyInc(obj);
+
+    try {
+      const initData = window.Telegram?.WebApp?.initData || '';
+      const cards = state.cards.map(c => ({
+        name: c.name, position: c.position, reversed: !!c.reversed,
+        arcana: c.arcana, suit: c.suit,
+      }));
+      const spreadCfg = SPREADS[state.spread] || { title: state.spread };
+      const res = await fetch('/api/arc/interpret?initData=' + encodeURIComponent(initData), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          spread: state.spread,
+          spreadName: spreadCfg.title,
+          cards,
+          question: state.question || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        // откатить счётчик
+        obj.count = Math.max(0, (obj.count || 1) - 1);
+        aiDailyInc(obj);
+        const msg = data?.error === 'rate_limited' ? 'Лимит на сегодня исчерпан. Сброс в полночь UTC.' :
+                    data?.error === 'llm_failed' ? 'Гадалка временно недоступна. Попробуйте позже.' :
+                    data?.message || ('Ошибка ' + res.status);
+        if (body) body.innerHTML = '<div class="arc-ai-error">' + escapeHtml(msg) + '</div>';
+        card.classList.remove('is-loading');
+        return;
+      }
+      // сохранить в кэш + история
+      try { localStorage.setItem(key, data.interpretation); } catch (e) {}
+      // записать в arhHistory[i].aiInterp если есть lastEntryId
+      try {
+        if (state.lastEntryId) {
+          const hist = JSON.parse(localStorage.getItem('arhHistory') || '[]');
+          const idx = hist.findIndex(h => h.id === state.lastEntryId);
+          if (idx >= 0) {
+            hist[idx].aiInterp = data.interpretation;
+            localStorage.setItem('arhHistory', JSON.stringify(hist));
+          }
+        }
+      } catch (e) {}
+      // перерисовать кнопку (покажет свёрнутую карточку)
+      renderAiButton();
+    } catch (e) {
+      obj.count = Math.max(0, (obj.count || 1) - 1);
+      aiDailyInc(obj);
+      if (body) body.innerHTML = '<div class="arc-ai-error">Нет связи с гадалкой. Попробуйте позже.</div>';
+      card.classList.remove('is-loading');
+    }
   }
 
   function reducedMotion() {

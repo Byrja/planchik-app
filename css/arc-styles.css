@@ -1334,4 +1334,139 @@
 .arc-love-grid { grid-template-columns: 1fr; }
 .arc-love-connector { font-size: 24px; }
 .arc-verdict { font-size: 42px; padding: 18px; }
+
+/* ── AI-карточка «Глубинный разбор от гадалки» ── */
+.arc-ai-card {
+  margin: 20px 0 0;
+  padding: 18px;
+  border-radius: 16px;
+  background: linear-gradient(155deg, rgba(212, 175, 55, 0.10) 0%, rgba(120, 80, 160, 0.12) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.30);
+  box-shadow: 0 6px 20px rgba(120, 80, 160, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+.arc-ai-card::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at top right, rgba(212, 175, 55, 0.18), transparent 60%);
+  pointer-events: none;
+}
+.arc-ai-card.is-locked {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: none;
+}
+.arc-ai-card.is-locked::before { display: none; }
+.arc-ai-card.is-loading { pointer-events: none; }
+.arc-ai-head {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 0 10px;
+  position: relative;
+}
+.arc-ai-orb {
+  font-size: 28px;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
+  animation: arc-ai-pulse 3.6s ease-in-out infinite;
+}
+.arc-ai-card.is-locked .arc-ai-orb { animation: none; filter: grayscale(0.6); opacity: 0.5; }
+@keyframes arc-ai-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.3)); }
+  50%      { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.55)); }
+}
+.arc-ai-title {
+  font-size: 16px; font-weight: 600;
+  color: var(--ink, #f0e6d2);
+  letter-spacing: 0.01em;
+}
+.arc-ai-sub {
+  font-size: 12px; color: var(--ink-mute, #a89986);
+  margin-top: 2px;
+}
+.arc-ai-pitch {
+  font-size: 14px; line-height: 1.55;
+  color: var(--ink-dim, #d4c8b5);
+  margin: 8px 0 14px;
+  font-style: italic;
+  position: relative;
+}
+.arc-ai-actions {
+  display: flex; gap: 10px;
+  position: relative;
+}
+.arc-ai-go {
+  flex: 1;
+  background: linear-gradient(135deg, #d4af37 0%, #b8902a 100%);
+  color: #1a0f2e;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.30);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.arc-ai-go:active { transform: scale(0.98); }
+.arc-ai-go:hover { box-shadow: 0 6px 20px rgba(212, 175, 55, 0.45); }
+.arc-ai-body {
+  position: relative;
+  font-size: 14.5px; line-height: 1.7;
+  color: var(--ink, #f0e6d2);
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 1200px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.arc-ai-body p { margin: 0 0 10px; }
+.arc-ai-body p:last-child { margin-bottom: 0; }
+.arc-ai-foot {
+  display: flex; gap: 12px; align-items: center;
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid rgba(212, 175, 55, 0.15);
+  position: relative;
+}
+.arc-ai-toggle, .arc-ai-redo {
+  background: transparent;
+  border: none;
+  color: var(--ink-mute, #a89986);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(212, 175, 55, 0.30);
+}
+.arc-ai-toggle:hover, .arc-ai-redo:hover { color: var(--ink, #f0e6d2); }
+.arc-ai-redo { margin-left: auto; }
+.arc-ai-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(212, 175, 55, 0.20);
+  border-top-color: #d4af37;
+  border-radius: 50%;
+  margin: 16px auto 8px;
+  animation: arc-ai-spin 0.9s linear infinite;
+}
+@keyframes arc-ai-spin { to { transform: rotate(360deg); } }
+.arc-ai-loading-text {
+  text-align: center;
+  color: var(--ink-mute, #a89986);
+  font-style: italic;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.arc-ai-error {
+  padding: 12px;
+  background: rgba(220, 80, 80, 0.10);
+  border: 1px solid rgba(220, 80, 80, 0.30);
+  border-radius: 10px;
+  color: #f0b8b8;
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arc-ai-orb { animation: none; }
 }

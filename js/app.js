@@ -1181,6 +1181,8 @@
         if (p) {
           p.hidden = false;
           renderHomeHistory();
+          // Скроллим к началу секции истории (на главной она лежит ниже других панелей)
+          try { p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
         }
         break;
       }

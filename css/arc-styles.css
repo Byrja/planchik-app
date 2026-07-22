@@ -291,19 +291,24 @@
 /* ---------- STAGE / CARDS ---------- */
 .arc-stage {
   position: relative;
-  min-height: 340px;
+  min-height: 480px;
   display: flex; align-items: center; justify-content: center;
   margin: 24px 0 8px;
   perspective: 1200px;
 }
 
+/* Одна карта — крупная, на пол-экрана. На 360dp → 320×480dp контент, лицом. */
 #arc-cardStage {
   position: relative;
-  width: 220px; height: 340px;
+  width: 320px;
+  max-width: calc(100vw - 64px);
+  aspect-ratio: 200 / 305; /* classic tarot proportion */
+  height: auto;
   border-radius: var(--r-lg);
   transform-style: preserve-3d;
   transition: transform 0.7s cubic-bezier(.4,.0,.2,1);
   transform: rotateY(0deg);
+  margin: 0 auto;
 }
 #arc-cardStage.is-revealed { transform: rotateY(180deg); }
 #arc-cardStage.is-flipping { animation: arc-float 0.7s ease-in-out; }

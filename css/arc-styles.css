@@ -470,6 +470,48 @@
   margin-bottom: 16px;
 }
 .arc-shadow-label { color: var(--violet); font-weight: 600; margin-right: 4px; }
+
+/* ---------- TAGS (keywords on each card) ---------- */
+.arc-inter-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.arc-tag {
+  font-size: 11px; line-height: 1;
+  padding: 5px 9px; border-radius: 999px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  color: var(--gold-2);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- INLINE EXPAND (✨ раскрыть смысл) ---------- */
+.arc-expand-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 12px; padding: 9px 14px;
+  font: inherit; font-size: 13px; font-weight: 500;
+  color: var(--gold-2);
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.12), rgba(212, 175, 55, 0.06));
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+  min-height: 36px; /* tap-target */
+}
+.arc-expand-btn:hover { background: linear-gradient(180deg, rgba(139, 92, 246, 0.2), rgba(212, 175, 55, 0.12)); border-color: rgba(212, 175, 55, 0.55); }
+.arc-expand-btn:active { transform: scale(0.97); }
+.arc-expand-btn:disabled { opacity: 0.6; cursor: wait; }
+.arc-expand-slot { margin-top: 12px; }
+.arc-expand-card {
+  padding: 14px 16px;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.08), rgba(13, 12, 29, 0.4));
+  border-left: 2px solid var(--violet);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: 14px; line-height: 1.55;
+  color: var(--ink-2);
+  animation: arcExpandIn 0.35s ease;
+}
+@keyframes arcExpandIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.arc-expand-meaning { margin: 0 0 8px; color: var(--ink); }
+.arc-expand-line { margin: 4px 0; font-size: 13px; }
+.arc-expand-label { color: var(--gold-2); font-weight: 600; margin-right: 4px; }
 .arc-inter-context {
   font-size: 15px;
   color: var(--ink-dim);

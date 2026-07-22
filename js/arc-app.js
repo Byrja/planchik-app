@@ -636,6 +636,7 @@
       const visual = img
         ? `<img src="${img}" alt="${escapeHtml(c.name)}" class="arc-inter-img ${c.reversed ? 'is-reversed' : ''}">`
         : `<span class="arc-inter-glyph ${c.reversed ? 'is-reversed' : ''}">${c.symbol || '✦'}</span>`;
+      const tags = (c.keywords && c.keywords.length) ? c.keywords.slice(0, 5).map(k => `<span class="arc-tag">${escapeHtml(k)}</span>`).join('') : '';
       return `<div class="arc-inter-section">
         <div class="arc-inter-section-head">
           ${visual}
@@ -644,8 +645,11 @@
             <p class="arc-inter-card">${escapeHtml(c.name)} · ${headline}</p>
           </div>
         </div>
+        ${tags ? `<div class="arc-inter-tags">${tags}</div>` : ''}
         <p class="arc-inter-main">${escapeHtml(c.reversed || c.upright)}</p>
         ${c.shadow ? `<p class="arc-inter-shadow"><span class="arc-shadow-label">Тень:</span> ${escapeHtml(c.shadow)}</p>` : ''}
+        <button type="button" class="arc-expand-btn" data-card-idx="${i}" aria-expanded="false">✨ раскрыть смысл</button>
+        <div class="arc-expand-slot" data-card-idx="${i}" hidden></div>
       </div>`;
     }).join('');
     // Общий итог — summary всего расклада
@@ -655,6 +659,71 @@
       (q ? `<p class="arc-inter-context">В контексте вопроса <em>«${escapeHtml(q)}»</em> — карты указывают, что ответ уже формируется. Доверьтесь первому импульсу.</p>` : '');
     // AI-кнопка рисуется в слот #arcAiSlot под основной расшифровкой
     if (typeof renderAiButton === 'function') renderAiButton();
+    wireExpandButtons();
+  }
+
+  // Inline-разбор одной карты (кнопка «✨ раскрыть смысл»)
+  function wireExpandButtons() {
+    $$('.arc-expand-btn', r$('#arcInter')).forEach(btn => {
+      if (btn.dataset.wired === '1') return;
+      btn.dataset.wired = '1';
+      btn.onclick = async () => {
+        const idx = parseInt(btn.dataset.cardIdx, 10);
+        const c = state.cards[idx];
+        if (!c) return;
+        const slot = btn.parentElement.querySelector(`.arc-expand-slot[data-card-idx="${idx}"]`);
+        if (!slot) return;
+        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+        if (isOpen) {
+          slot.hidden = true;
+          slot.innerHTML = '';
+          btn.setAttribute('aria-expanded', 'false');
+          btn.textContent = '✨ раскрыть смысл';
+          return;
+        }
+        // cache lookup (по name+reversed)
+        const cacheKey = `arcExpand:${c.name}:${c.reversed ? 'r' : 'u'}`;
+        let cached = null;
+        try { cached = localStorage.getItem(cacheKey); } catch (e) {}
+        if (cached) {
+          slot.innerHTML = renderExpandContent(JSON.parse(cached));
+          slot.hidden = false;
+          btn.setAttribute('aria-expanded', 'true');
+          btn.textContent = 'свернуть';
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = '⏳ гадаю...';
+        try {
+          const initData = window.Telegram && Telegram.WebApp ? Telegram.WebApp.initData : '';
+          const res = await fetch(API + '/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
+          });
+          const data = await res.json();
+          if (!data.ok) throw new Error(data.error || 'fail');
+          try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+          slot.innerHTML = renderExpandContent(data);
+          slot.hidden = false;
+          btn.setAttribute('aria-expanded', 'true');
+          btn.textContent = 'свернуть';
+        } catch (e) {
+          btn.textContent = '⚠️ не получилось';
+          setTimeout(() => { btn.textContent = '✨ раскрыть смысл'; }, 2500);
+        } finally {
+          btn.disabled = false;
+        }
+      };
+    });
+  }
+
+  function renderExpandContent(d) {
+    return `<div class="arc-expand-card">
+      <p class="arc-expand-meaning">${escapeHtml(d.meaning || '')}</p>
+      ${d.advice ? `<p class="arc-expand-line"><span class="arc-expand-label">Совет:</span> ${escapeHtml(d.advice)}</p>` : ''}
+      ${d.warning ? `<p class="arc-expand-line"><span class="arc-expand-label">Осторожно:</span> ${escapeHtml(d.warning)}</p>` : ''}
+    </div>`;
   }
 
   // ── Шаблон конкретного расклада ─────────────────────────
@@ -1040,7 +1109,7 @@
           <span class="arc-ai-orb">🔮</span>
           <div>
             <div class="arc-ai-title">Глубинный разбор от гадалки</div>
-            <div class="arc-ai-sub">ИИ-прорицатель · осталось сегодня: ${remaining}/${AI_DAILY_LIMIT}</div>
+            <div class="arc-ai-sub">Гадалка · осталось сегодня: ${remaining}/${AI_DAILY_LIMIT}</div>
           </div>
         </div>
         <p class="arc-ai-pitch">Психологическая и символическая интерпретация вашего расклада. Не общая астрология, а личный разбор — что лежит в основе, где узел, и что делать.</p>

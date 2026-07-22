@@ -221,14 +221,12 @@
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
-  margin: 0 0 22px;
   padding: 6px 4px 12px;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  border-bottom: 1px solid var(--line);
   min-width: 0;
   max-width: 100%;
 }
@@ -261,15 +259,32 @@
 }
 .arc-spread-tab-ico { font-size: 14px; line-height: 1; }
 .arc-spread-tab-label { letter-spacing: 0.2px; }
+
+/* Fade-маска справа — визуальный hint «можно проскроллить» */
+.arc-spread-tabs-wrap {
+  position: relative;
+  margin: 0 0 22px;
+  border-bottom: 1px solid var(--line);
+}
+.arc-spread-tabs-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 12px; width: 32px;
+  background: linear-gradient(90deg, transparent, var(--bg-2));
+  pointer-events: none;
+  border-radius: 0 var(--r-md) 0 0;
+}
+@media (max-width: 600px) {
+  .arc-spread-tabs-wrap::after {
+    background: linear-gradient(90deg, transparent, var(--bg-1));
+  }
+}
 @media (max-width: 540px) {
-  .arc-spread-tabs {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: linear-gradient(180deg, var(--bg-1) 80%, transparent);
+  .arc-spread-tabs-wrap {
     margin: 0 -16px 16px;
+  }
+  .arc-spread-tabs {
     padding: 10px 16px 12px;
-    border-bottom: 1px solid var(--line);
   }
 }
 

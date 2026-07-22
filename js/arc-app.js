@@ -675,9 +675,11 @@
       </button>`;
     }).join('');
     main.innerHTML = `
-      <nav class="arc-spread-tabs" id="arcSpreadTabs" aria-label="Сменить расклад">
-        ${tabsHtml}
-      </nav>
+      <div class="arc-spread-tabs-wrap">
+        <nav class="arc-spread-tabs" id="arcSpreadTabs" aria-label="Сменить расклад">
+          ${tabsHtml}
+        </nav>
+      </div>
       <div class="arc-panel-title">${escapeHtml(t.title)}</div>
       <p class="arc-panel-sub">${escapeHtml(t.ask)}</p>
       ${t.hint ? `<p class="arc-panel-hint">${escapeHtml(t.hint)}</p>` : ''}

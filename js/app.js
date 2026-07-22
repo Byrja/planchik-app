@@ -129,6 +129,7 @@
     wireBottomTabs();
     wireHeroFlip();
     updateHistoryBadge();
+    initCardOfDay();
     if (state.user.startParam === 'mychart') {
       setTimeout(openChartPanel, 50);
     }
@@ -1153,6 +1154,106 @@
         setActiveTab(which);
       });
     });
+  }
+
+  // ════════════════════════════════════════════════════════
+  // CARD OF DAY — мини-расклад на главной
+  // ════════════════════════════════════════════════════════
+  const COD_CACHE_KEY = 'cod_cache_v1';
+  const COD_TTL_MS = 1000 * 60 * 60 * 12; // 12 часов
+
+  function initCardOfDay() {
+    const section = document.getElementById('cardOfDay');
+    if (!section) return;
+    section.hidden = false;
+
+    // 1) показать кеш сразу (если есть и не старше 12ч)
+    const cached = readCodCache();
+    if (cached) renderCod(cached);
+
+    // 2) подтянуть свежее
+    fetchCardOfDay().then((data) => {
+      if (data) renderCod(data);
+    });
+
+    // 3) кнопки
+    const moreBtn = document.getElementById('codMore');
+    const refreshBtn = document.getElementById('codRefresh');
+    if (moreBtn) {
+      moreBtn.addEventListener('click', () => {
+        // Открываем таб «Карты» — пользователь сделает расклад вручную
+        setActiveTab('arc');
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
+      });
+    }
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        // Принудительно обновить (минуя кеш)
+        fetchCardOfDay(true).then((data) => { if (data) renderCod(data); });
+      });
+    }
+  }
+
+  function readCodCache() {
+    try {
+      const raw = localStorage.getItem(COD_CACHE_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (!obj || !obj.card) return null;
+      if (Date.now() - (obj.ts || 0) > COD_TTL_MS) return null;
+      return obj;
+    } catch { return null; }
+  }
+
+  function writeCodCache(data) {
+    try { localStorage.setItem(COD_CACHE_KEY, JSON.stringify({ ts: Date.now(), ...data })); }
+    catch {}
+  }
+
+  async function fetchCardOfDay(force = false) {
+    const section = document.getElementById('cardOfDay');
+    if (section) section.classList.add('cod-loading');
+    try {
+      const initData = (typeof tg !== 'undefined' && tg.initData) ? tg.initData : '';
+      const url = `/api/arc/daily?initData=${encodeURIComponent(initData)}${force ? '&_t=' + Date.now() : ''}`;
+      const resp = await fetch(url, { method: 'GET' });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok || !data.card) return null;
+      writeCodCache(data);
+      return data;
+    } catch (e) {
+      console.warn('[cod] fetch failed:', e);
+      return null;
+    } finally {
+      if (section) section.classList.remove('cod-loading');
+    }
+  }
+
+  function renderCod(data) {
+    const c = data.card;
+    if (!c) return;
+    const imgEl  = document.getElementById('codCardImg');
+    const glyphEl = document.getElementById('codCardGlyph');
+    const nameEl = document.getElementById('codName');
+    const moodEl = document.getElementById('codMood');
+    const upEl   = document.getElementById('codUpright');
+    const advEl  = document.getElementById('codAdvice');
+    const dateEl = document.getElementById('codDate');
+    if (dateEl) dateEl.textContent = data.date || '';
+
+    if (nameEl) nameEl.textContent = c.name || '—';
+    if (moodEl) moodEl.textContent = c.mood || '';
+    if (upEl)   upEl.textContent   = c.upright || '';
+    if (advEl)  advEl.textContent  = '✦ ' + (c.advice || '');
+
+    // Глиф-эмодзи по элементу (fallback — пока нет assets/cards/ar*.jpg)
+    const ELEMENT_GLYPH = {
+      '✨': '✨', '🔥': '🔥', '💧': '💧', '🌬️': '🌬️', '🌍': '🌍'
+    };
+    if (glyphEl) {
+      glyphEl.textContent = ELEMENT_GLYPH[c.element] || '🎴';
+      glyphEl.style.display = 'flex';
+    }
   }
 
   function setActiveTab(which) {

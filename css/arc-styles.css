@@ -313,6 +313,12 @@
 #arc-cardStage.is-revealed { transform: rotateY(180deg); }
 #arc-cardStage.is-flipping { animation: arc-float 0.7s ease-in-out; }
 
+/* Финальное состояние после флипа: убираем 3D-hack, показываем front напрямую.
+   Это надёжный fallback для iOS WebKit, где backface-visibility иногда глючит. */
+#arc-cardStage.is-final { transform: none !important; }
+#arc-cardStage.is-final .arc-card-back { display: none; }
+#arc-cardStage.is-final .arc-card-front { transform: none; }
+
 @keyframes arc-float {
   0%   { transform: translateY(0) rotate(0); }
   50%  { transform: translateY(-14px) rotate(2deg); }

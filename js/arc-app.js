@@ -793,6 +793,9 @@
       setTimeout(() => {
         cardEl.classList.add('is-revealed');
         cardEl.classList.remove('is-flipping');
+        // Через 750мс переходим в финальное состояние: back скрыт, front напрямую.
+        // Надёжнее чем 3D-флип на iOS WebKit (backface-visibility глючит).
+        setTimeout(() => { cardEl.classList.add('is-final'); }, 750);
         r$('#arcResult').classList.add('is-revealed');
         r$('#ctaDraw').disabled = true;
         r$('#ctaDraw').textContent = '✓  Готово';

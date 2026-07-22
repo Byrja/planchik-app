@@ -707,9 +707,9 @@
       <div id="arcResult" class="arc-result" aria-live="polite">
         <article class="arc-interpretation">
           <div id="arcInter"></div>
-          <div id="arcAiSlot"></div>
-          <div id="arcNoteSlot"></div>
         </article>
+        <div id="arcAiSlot"></div>
+        <div id="arcNoteSlot"></div>
       </div>
     `;
 

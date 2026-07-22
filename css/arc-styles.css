@@ -434,7 +434,11 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  padding: 32px;
+  padding: 28px 24px;
+  overflow: hidden;
+}
+@media (max-width: 480px) {
+  .arc-interpretation { padding: 20px 18px; }
 }
 .arc-inter-title {
   font-family: var(--serif);
@@ -1337,7 +1341,7 @@
 
 /* ── AI-карточка «Глубинный разбор от гадалки» ── */
 .arc-ai-card {
-  margin: 20px 0 0;
+  margin: 16px 0 0;
   padding: 18px;
   border-radius: 16px;
   background: linear-gradient(155deg, rgba(212, 175, 55, 0.10) 0%, rgba(120, 80, 160, 0.12) 100%);
@@ -1345,6 +1349,16 @@
   box-shadow: 0 6px 20px rgba(120, 80, 160, 0.18);
   position: relative;
   overflow: hidden;
+  font-family: var(--sans, -apple-system, BlinkMacSystemFont, sans-serif);
+  letter-spacing: 0;
+  word-spacing: 0;
+  text-align: left;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+@media (max-width: 480px) {
+  .arc-ai-card { margin: 14px 0 0; padding: 16px 14px; border-radius: 14px; }
 }
 .arc-ai-card::before {
   content: "";
@@ -1411,12 +1425,24 @@
 .arc-ai-go:hover { box-shadow: 0 6px 20px rgba(212, 175, 55, 0.45); }
 .arc-ai-body {
   position: relative;
-  font-size: 14.5px; line-height: 1.7;
+  font-family: var(--sans, -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 15px; line-height: 1.65;
   color: var(--ink, #f0e6d2);
   margin: 8px 0 0;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  letter-spacing: 0;
+  word-spacing: 0;
+  text-align: left;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
   transition: max-height 0.3s ease;
+}
+@media (max-width: 480px) {
+  .arc-ai-body { font-size: 14.5px; line-height: 1.6; }
 }
 /* Markdown-rendered AI body */
 .arc-ai-md > p { margin: 0 0 12px; }

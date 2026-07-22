@@ -1328,7 +1328,7 @@
 .arc-panel { padding: 20px; }
 .arc-cta-row { flex-direction: column; }
 .arc-cta { width: 100%; }
-#arc-cardStage { width: 180px; height: 280px; }
+#arc-cardStage { width: 280px; max-width: calc(100vw - 48px); aspect-ratio: 200 / 305; height: auto; }
 .arc-card-glyph-symbol { font-size: 72px; }
 .arc-inter-main { font-size: 20px; }
 .arc-aside-panel { position: static; }

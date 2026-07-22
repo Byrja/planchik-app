@@ -158,7 +158,8 @@
     reversed: false,
     cards: [],         // массив вытянутых карт для текущего расклада
     question: '',
-    history: []
+    history: [],
+    lastEntryId: null  // id только что вытянутой записи (для заметок)
   };
 
   // ── Утилиты ──────────────────────────────────────────────
@@ -702,6 +703,7 @@
       <div id="arcResult" class="arc-result" aria-live="polite">
         <article class="arc-interpretation">
           <div id="arcInter"></div>
+          <div id="arcNoteSlot"></div>
         </article>
       </div>
     `;
@@ -745,13 +747,17 @@
     if (state.cards.length > 0) return;
     const t = templateSpread();
     state.cards = drawN(t.count);
+    const entryId = 'h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    state.lastEntryId = entryId;
     // history entry
     state.history.unshift({
+      id: entryId,
       ts: Date.now(),
       spread: state.spread,
       deck: state.deck,
       cards: state.cards.map(c => ({ id: c.id, name: c.name, reversed: c.reversed })),
-      question: state.question
+      question: state.question,
+      note: ''
     });
     saveHistory();
 
@@ -788,6 +794,7 @@
         r$('#ctaReset').disabled = false;
         r$('#ctaShare').style.display = 'inline-flex';
         renderInterpretation();
+        renderNotePanel();
         tryVibrate(20);
       }, 700);
     } else {
@@ -816,9 +823,53 @@
         r$('#ctaReset').disabled = false;
         r$('#ctaShare').style.display = 'inline-flex';
         renderInterpretation();
+        renderNotePanel();
         tryVibrate(20);
       }, totalDelay);
     }
+  }
+
+  // ── Панель заметки к только что вытянутому раскладу ──
+  function renderNotePanel() {
+    const slot = r$('#arcNoteSlot');
+    if (!slot) return;
+    const id = state.lastEntryId;
+    if (!id) { slot.innerHTML = ''; return; }
+    const entry = state.history.find(h => h.id === id);
+    if (!entry) { slot.innerHTML = ''; return; }
+    const note = entry.note || '';
+    const has = note.trim().length > 0;
+    slot.innerHTML = `
+      <div class="arc-note-panel${has ? ' has-note' : ''}">
+        <div class="arc-note-head">
+          <span class="arc-note-label">✎ Заметка «Почему я тянул эту карту?»</span>
+        </div>
+        <textarea class="arc-note-text" id="arcNoteText" maxlength="600" placeholder="Контекст, что было на душе, чего ждал…">${escapeHtml(note)}</textarea>
+        <div class="arc-note-foot">
+          <span class="arc-note-count" id="arcNoteCount">${note.length}/600</span>
+          <span class="arc-note-saved" id="arcNoteSaved" hidden>✓ сохранено</span>
+        </div>
+      </div>`;
+    const ta = slot.querySelector('#arcNoteText');
+    const cnt = slot.querySelector('#arcNoteCount');
+    const saved = slot.querySelector('#arcNoteSaved');
+    let saveTimer = null;
+    ta.addEventListener('input', () => {
+      const v = ta.value;
+      cnt.textContent = `${v.length}/600`;
+      saved.hidden = true;
+      slot.firstElementChild.classList.toggle('has-note', v.trim().length > 0);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        const e2 = state.history.find(h => h.id === id);
+        if (e2) {
+          e2.note = v;
+          saveHistory();
+          saved.hidden = false;
+          setTimeout(() => { saved.hidden = true; }, 1500);
+        }
+      }, 600); // debounce 600ms
+    });
   }
 
   // ── Ритуал фокуса перед тягой ──────────────────────────

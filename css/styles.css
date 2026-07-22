@@ -960,6 +960,18 @@ body.landing-mode .app { display: none !important; }
 .arc-history-spread-icon { font-size: 14px; opacity: 0.85; }
 .arc-history-date { color: var(--ink-mute); }
 .arc-history-q { font-size: 12px; color: var(--ink-dim); font-style: italic; margin-top: 2px; }
+.arc-history-note {
+  font-size: 12px;
+  color: var(--gold-2);
+  font-style: italic;
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: rgba(212,175,55,0.08);
+  border-left: 2px solid var(--gold);
+  border-radius: 4px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
 .arc-history-cards { display: flex; flex-wrap: wrap; gap: 4px; }
 .arc-history-card-chip {
   background: var(--gold-soft);

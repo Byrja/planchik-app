@@ -1218,6 +1218,53 @@
   .arc-focus-ring { animation: none; }
 }
 
+/* ---------- NOTE PANEL (заметка к раскладу) ---------- */
+.arc-note-panel {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--bg-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+  transition: border-color .25s ease, background .25s ease;
+}
+.arc-note-panel.has-note {
+  border-style: solid;
+  border-color: rgba(212,175,55,0.4);
+  background: linear-gradient(180deg, var(--bg-3), rgba(212,175,55,0.05));
+}
+.arc-note-head { margin-bottom: 8px; }
+.arc-note-label {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--gold-2);
+  font-weight: 600;
+}
+.arc-note-text {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 12px;
+  background: var(--bg-1, var(--bg-2));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color .2s ease;
+}
+.arc-note-text:focus { outline: none; border-color: var(--gold); }
+.arc-note-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+.arc-note-saved { color: var(--gold-2); font-weight: 600; }
+
 /* ---------- CARD IMAGES (Rider-Waite PNG) ---------- */
 .arc-card-img {
   width: 200px; height: auto;

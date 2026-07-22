@@ -1376,6 +1376,7 @@
       `<span class="arc-history-card-chip${c.reversed ? ' is-rev' : ''}">${escapeHtml(c.name || c.id || '')}${c.reversed ? ' ⇄' : ''}</span>`
     ).join('') + (cards.length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${cards.length - 4}</span>` : '');
     const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
+    const note = (h.note && h.note.trim()) ? `<div class="arc-history-note">✎ ${escapeHtml(h.note)}</div>` : '';
 
     // Детали: позиции + полные имена карт
     const positions = SPREAD_POSITIONS[h.spread] || cards.map((_, i) => `Позиция ${i+1}`);
@@ -1401,6 +1402,7 @@
         <span class="arc-history-date">${dateStr}</span>
       </div>
       ${q}
+      ${note}
       <div class="arc-history-cards">${previewCards}</div>
       ${detailsHtml}
     </li>`;

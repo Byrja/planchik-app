@@ -869,6 +869,75 @@ body.landing-mode .app { display: none !important; }
 
 /* ═══ HISTORY PANEL (главная страница) ═════════════════════ */
 .history-panel { padding-bottom: 24px; }
+
+/* Счётчик в заголовке: «12» */
+.panel-counter {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px; padding: 0 7px;
+  margin-left: 4px;
+  background: var(--gold-soft);
+  color: var(--gold-2);
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  font-family: var(--sans, system-ui, sans-serif);
+}
+
+/* Фильтры-чипы: Все / Сегодня / Неделя */
+.arc-history-filters {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin: 4px 0 14px;
+  padding: 4px;
+  background: var(--bg-2);
+  border-radius: 999px;
+  border: 1px solid rgba(212,175,55,0.12);
+  width: fit-content;
+}
+.arc-history-chip {
+  appearance: none; border: 0; background: transparent;
+  color: var(--ink-mute);
+  font-size: 12px; font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, transform .15s ease;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.arc-history-chip:hover { color: var(--ink); }
+.arc-history-chip.is-active {
+  background: linear-gradient(135deg, var(--gold-2), var(--gold));
+  color: #1a1408;
+  box-shadow: 0 2px 8px rgba(212,175,55,0.25);
+}
+.arc-history-chip:active { transform: scale(0.97); }
+
+/* Группы по дням: «Сегодня», «Вчера», «На этой неделе», «Раньше» */
+.arc-history-groups { display: flex; flex-direction: column; gap: 18px; }
+.arc-history-group-title {
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 8px 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.arc-history-group-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, rgba(212,175,55,0.25), transparent);
+}
+.arc-history-group-count {
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 11px;
+  background: var(--gold-soft);
+  color: var(--gold-2);
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .arc-history-list { list-style: none; padding: 0; margin: 8px 0 16px; display: flex; flex-direction: column; gap: 10px; }
 .arc-history-item {
   padding: 12px 14px;
@@ -876,11 +945,21 @@ body.landing-mode .app { display: none !important; }
   background: var(--bg-2);
   border: 1px solid rgba(212,175,55,0.18);
   display: flex; flex-direction: column; gap: 6px;
+  cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease, background .15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.arc-history-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
-.arc-history-spread { color: var(--gold-2); font-weight: 600; }
+.arc-history-item:hover { border-color: rgba(212,175,55,0.35); background: var(--bg-3, var(--bg-2)); }
+.arc-history-item:active { transform: scale(0.99); }
+.arc-history-item.is-expanded { border-color: var(--gold-2); }
+.arc-history-item-header {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px;
+}
+.arc-history-spread { color: var(--gold-2); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.arc-history-spread-icon { font-size: 14px; opacity: 0.85; }
 .arc-history-date { color: var(--ink-mute); }
-.arc-history-q { font-size: 12px; color: var(--ink-dim); font-style: italic; }
+.arc-history-q { font-size: 12px; color: var(--ink-dim); font-style: italic; margin-top: 2px; }
 .arc-history-cards { display: flex; flex-wrap: wrap; gap: 4px; }
 .arc-history-card-chip {
   background: var(--gold-soft);
@@ -888,10 +967,52 @@ body.landing-mode .app { display: none !important; }
   font-size: 11px;
   padding: 3px 8px;
   border-radius: 6px;
+  white-space: nowrap;
 }
 .arc-history-card-chip.is-rev { background: rgba(220,60,90,0.18); color: #f4a8b6; }
 .arc-history-more { color: var(--ink-mute); }
-.arc-history-empty { text-align: center; color: var(--ink-mute); padding: 24px 8px; font-size: 13px; }
+
+/* Раскрытые детали расклада */
+.arc-history-details {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(212,175,55,0.22);
+  display: none;
+  flex-direction: column; gap: 8px;
+  animation: details-fade .25s ease;
+}
+.arc-history-item.is-expanded .arc-history-details { display: flex; }
+@keyframes details-fade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.arc-history-detail-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 10px;
+  background: rgba(212,175,55,0.06);
+  border-radius: 10px;
+  font-size: 12px;
+}
+.arc-history-detail-pos {
+  font-family: var(--serif);
+  color: var(--gold-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  min-width: 90px;
+  padding-top: 2px;
+}
+.arc-history-detail-name { font-weight: 600; color: var(--ink); }
+.arc-history-detail-name.is-rev { color: #f4a8b6; }
+.arc-history-detail-name .rev-mark { color: #f4a8b6; font-size: 10px; margin-left: 4px; }
+.arc-history-detail-advice { color: var(--ink-dim); margin-top: 3px; line-height: 1.4; }
+
+.arc-history-empty { text-align: center; color: var(--ink-mute); padding: 32px 16px 28px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.arc-history-empty-icon { font-size: 36px; color: var(--gold-2); opacity: 0.55; line-height: 1; }
+.arc-history-empty-title { font-family: var(--serif); font-size: 18px; color: var(--ink); margin: 0; font-weight: 500; }
+.arc-history-empty-text { font-size: 13px; color: var(--ink-mute); margin: 0 0 8px; max-width: 280px; line-height: 1.5; }
+.arc-history-empty .btn { margin-top: 4px; }
 
 /* ═══ FLIP CARD v2 (.tarot-card + .tarot-card-inner + data-state) ═══ */
 /* Внешний контейнер — perspective + размеры */

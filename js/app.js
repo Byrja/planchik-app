@@ -1077,15 +1077,19 @@
       };
     }
 
-    // History (главная) — кнопки "Очистить" / "Открыть гадание"
+    // History (главная) — кнопки "Очистить" / "Открыть гадание" / empty-CTA
     const btnClear = $('#btnHomeHistoryClear');
     if (btnClear) {
       btnClear.onclick = () => {
         if (!loadHistory().length) return;
         if (!confirm('Очистить всю историю раскладов?')) return;
         try { localStorage.removeItem('arhHistory'); } catch (_) {}
+        _historyExpanded.clear();
+        _historyFilter = 'all';
+        syncHistoryFilterChips();
         renderHomeHistory();
         updateHistoryBadge();
+        haptic && haptic('medium');
       };
     }
     const btnOpen = $('#btnHomeHistoryOpen');
@@ -1095,6 +1099,33 @@
         setActiveTab('arc');
       };
     }
+    const emptyCta = $('#homeHistoryEmptyCta');
+    if (emptyCta) {
+      emptyCta.onclick = () => setActiveTab('arc');
+    }
+
+    // Фильтры истории
+    const filters = $('#homeHistoryFilters');
+    if (filters) {
+      filters.querySelectorAll('.arc-history-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const f = chip.dataset.filter || 'all';
+          if (_historyFilter === f) return;
+          _historyFilter = f;
+          syncHistoryFilterChips();
+          renderHomeHistory();
+          haptic && haptic('light');
+        });
+      });
+    }
+
+    // Реакция на изменения истории из других вкладок/arc-portal
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'arhHistory') {
+        renderHomeHistory();
+        updateHistoryBadge();
+      }
+    });
 
     // Mood buttons (используем onclick на каждой кнопке, не addEventListener)
     $$('.mood-btn').forEach(b => {
@@ -1121,10 +1152,6 @@
         if (!which) return;
         setActiveTab(which);
       });
-    });
-    // Синхронизация бейджа истории между вкладками/сессиями
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'arhHistory') updateHistoryBadge();
     });
   }
 
@@ -1180,41 +1207,203 @@
   function loadHistory() {
     try { return JSON.parse(localStorage.getItem('arhHistory') || '[]'); } catch { return []; }
   }
+
+  const SPREAD_LABELS = {
+    one: 'Одна карта', three: 'Три карты', five: 'Пять карт',
+    relation: 'Отношения', day: 'День', celtic: 'Кельтский крест',
+    week: 'Неделя', yesno: 'Да/Нет', horseshoe: 'Подкова',
+    love: 'Любовь', mind: 'Разум', mirror: 'Зеркало'
+  };
+  const SPREAD_ICONS = {
+    one: '✦', three: '✦✦✦', five: '✦✦✦✦✦',
+    relation: '♥', day: '☀', celtic: '✠',
+    week: '☾', yesno: '?', horseshoe: '⊃',
+    love: '♡', mind: '◐', mirror: '◑'
+  };
+  // Позиции карт в раскладе (для деталей). Ключи — spreadId.
+  const SPREAD_POSITIONS = {
+    one: ['Карта'],
+    three: ['Прошлое', 'Настоящее', 'Будущее'],
+    five: ['Ситуация', 'Препятствие', 'Совет', 'Возможность', 'Итог'],
+    relation: ['Вы', 'Партнёр', 'Связь'],
+    day: ['Утро', 'День', 'Вечер', 'Ночь', 'Итог дня'],
+    celtic: ['Ситуация', 'Препятствие', 'Основа', 'Прошлое', 'Возможность', 'Будущее', 'Вы', 'Окружение', 'Надежды/Страхи', 'Итог'],
+    week: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+    yesno: ['Ответ'],
+    horseshoe: ['Прошлое', 'Настоящее', 'Будущее', 'Совет', 'Внешнее', 'Надежды', 'Итог'],
+    love: ['Вы', 'Партнёр', 'Чувства', 'Препятствие', 'Итог'],
+    mind: ['Сознание', 'Подсознание', 'Совет'],
+    mirror: ['Вы', 'Отражение', 'Суть']
+  };
+
+  const monthNames = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  const dayMonth = (d) => `${d.getDate()} ${monthNames[d.getMonth()]}`;
+  const timeStr = (d) => `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+
+  // Группировка: { 'today': [...], 'yesterday': [...], 'week': [...], 'earlier': [...] }
+  function groupHistoryByDate(items) {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - 86400000;
+    const startOfWeek = startOfToday - 6 * 86400000;
+    const groups = { today: [], yesterday: [], week: [], earlier: [] };
+    items.forEach((it, i) => {
+      const ts = it.ts || 0;
+      const entry = Object.assign({}, it, { _origIdx: i });
+      if (ts >= startOfToday) groups.today.push(entry);
+      else if (ts >= startOfYesterday) groups.yesterday.push(entry);
+      else if (ts >= startOfWeek) groups.week.push(entry);
+      else groups.earlier.push(entry);
+    });
+    return groups;
+  }
+
+  function dayGroupTitle(key) {
+    if (key === 'today') return 'Сегодня';
+    if (key === 'yesterday') return 'Вчера';
+    if (key === 'week') return 'На этой неделе';
+    if (key === 'earlier') return 'Раньше';
+    return '';
+  }
+
+  // Текущий активный фильтр (state для пере-рендера)
+  let _historyFilter = 'all';
+  let _historyExpanded = new Set(); // idx раскрытых элементов
+
   function renderHomeHistory() {
     const list = $('#homeHistoryList');
     const empty = $('#homeHistoryEmpty');
+    const filters = $('#homeHistoryFilters');
+    const counter = $('#homeHistoryCounter');
+    const groupsEl = $('#homeHistoryGroups');
+    const actions = $('#homeHistoryActions');
     if (!list) return;
-    const items = loadHistory();
-    if (!items.length) {
+
+    const allItems = loadHistory();
+    const total = allItems.length;
+
+    // Счётчик в заголовке — показываем только когда есть история
+    if (counter) {
+      if (total > 0) {
+        counter.textContent = total > 99 ? '99+' : String(total);
+        counter.hidden = false;
+      } else {
+        counter.hidden = true;
+      }
+    }
+
+    if (!total) {
+      if (filters) filters.hidden = true;
+      if (groupsEl) { groupsEl.hidden = true; groupsEl.innerHTML = ''; }
       list.innerHTML = '';
       if (empty) empty.hidden = false;
+      if (actions) actions.hidden = true;
       return;
     }
+
     if (empty) empty.hidden = true;
-    const SPREAD_LABELS = {
-      one: 'Одна карта', three: 'Три карты', five: 'Пять карт',
-      relation: 'Отношения', day: 'День', celtic: 'Кельтский крест',
-      week: 'Неделя', yesno: 'Да/Нет', horseshoe: 'Подкова',
-      love: 'Любовь', mind: 'Разум', mirror: 'Зеркало'
-    };
-    const monthNames = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
-    list.innerHTML = items.slice(0, 30).map((h, i) => {
-      const d = new Date(h.ts || Date.now());
-      const dateStr = `${d.getDate()} ${monthNames[d.getMonth()]} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-      const cards = (h.cards || []).slice(0, 4).map(c =>
-        `<span class="arc-history-card-chip${c.reversed ? ' is-rev' : ''}">${escapeHtml(c.name || c.id || '')}${c.reversed ? ' ⇄' : ''}</span>`
-      ).join('') + ((h.cards || []).length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${(h.cards || []).length - 4}</span>` : '');
-      const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
-      return `<li class="arc-history-item" data-idx="${i}">
-        <div class="arc-history-meta">
-          <span class="arc-history-spread">${SPREAD_LABELS[h.spread] || h.spread || 'расклад'}</span>
-          <span class="arc-history-date">${dateStr}</span>
-        </div>
-        ${q}
-        <div class="arc-history-cards">${cards}</div>
-      </li>`;
+    if (actions) actions.hidden = false;
+    if (filters) filters.hidden = false;
+
+    // Фильтр
+    const now = Date.now();
+    const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+    const startOfWeek = startOfToday.getTime() - 6 * 86400000;
+    let items = allItems;
+    if (_historyFilter === 'today') {
+      items = allItems.filter(h => (h.ts || 0) >= startOfToday.getTime());
+    } else if (_historyFilter === 'week') {
+      items = allItems.filter(h => (h.ts || 0) >= startOfWeek);
+    }
+
+    // Регруппировка по дате
+    const groups = groupHistoryByDate(items);
+    const groupKeys = ['today','yesterday','week','earlier'].filter(k => groups[k].length);
+
+    if (!groupKeys.length) {
+      // Фильтр отсёк всё
+      groupsEl.innerHTML = `<div class="arc-history-empty" style="padding:18px 8px">
+        <div class="arc-history-empty-text">Нет раскладов в выбранном диапазоне.</div>
+      </div>`;
+      groupsEl.hidden = false;
+      list.innerHTML = '';
+      return;
+    }
+
+    groupsEl.hidden = false;
+    list.innerHTML = '';
+    groupsEl.innerHTML = groupKeys.map(key => {
+      const items = groups[key];
+      const itemsHtml = items.map(h => renderHistoryItem(h, h._origIdx)).join('');
+      return `
+        <section class="arc-history-group" data-group="${key}">
+          <h3 class="arc-history-group-title">
+            <span>${dayGroupTitle(key)}</span>
+            <span class="arc-history-group-count">${items.length}</span>
+          </h3>
+          <ul class="arc-history-list">${itemsHtml}</ul>
+        </section>`;
     }).join('');
+
+    // Вешаем обработчики кликов на расклады (раскрытие)
+    groupsEl.querySelectorAll('.arc-history-item').forEach(el => {
+      el.addEventListener('click', (e) => {
+        // Не раскрываем если клик по кнопке внутри
+        if (e.target.closest('button, a')) return;
+        const idx = el.dataset.idx;
+        if (idx === undefined) return;
+        if (_historyExpanded.has(idx)) {
+          _historyExpanded.delete(idx);
+          el.classList.remove('is-expanded');
+        } else {
+          _historyExpanded.add(idx);
+          el.classList.add('is-expanded');
+        }
+        haptic && haptic('light');
+      });
+    });
   }
+
+  function renderHistoryItem(h, origIdx) {
+    const d = new Date(h.ts || Date.now());
+    const dateStr = d.getFullYear() === new Date().getFullYear() ? `${dayMonth(d)} · ${timeStr(d)}` : `${dayMonth(d)} ${d.getFullYear()} · ${timeStr(d)}`;
+    const label = SPREAD_LABELS[h.spread] || h.spread || 'расклад';
+    const icon = SPREAD_ICONS[h.spread] || '✦';
+    const cards = (h.cards || []);
+    const previewCards = cards.slice(0, 4).map(c =>
+      `<span class="arc-history-card-chip${c.reversed ? ' is-rev' : ''}">${escapeHtml(c.name || c.id || '')}${c.reversed ? ' ⇄' : ''}</span>`
+    ).join('') + (cards.length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${cards.length - 4}</span>` : '');
+    const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
+
+    // Детали: позиции + полные имена карт
+    const positions = SPREAD_POSITIONS[h.spread] || cards.map((_, i) => `Позиция ${i+1}`);
+    const detailsHtml = cards.length > 0 ? `
+      <div class="arc-history-details">
+        ${cards.map((c, i) => `
+          <div class="arc-history-detail-card">
+            <div class="arc-history-detail-pos">${escapeHtml(positions[i] || ('Карта ' + (i+1)))}</div>
+            <div>
+              <div class="arc-history-detail-name${c.reversed ? ' is-rev' : ''}">
+                ${escapeHtml(c.name || c.id || '')}${c.reversed ? ' <span class="rev-mark">перевёрнутая</span>' : ''}
+              </div>
+              ${c.advice ? `<div class="arc-history-detail-advice">${escapeHtml(c.advice)}</div>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : '';
+
+    return `<li class="arc-history-item${_historyExpanded.has(String(origIdx)) ? ' is-expanded' : ''}" data-idx="${origIdx}">
+      <div class="arc-history-item-header">
+        <span class="arc-history-spread"><span class="arc-history-spread-icon">${escapeHtml(icon)}</span>${escapeHtml(label)}</span>
+        <span class="arc-history-date">${dateStr}</span>
+      </div>
+      ${q}
+      <div class="arc-history-cards">${previewCards}</div>
+      ${detailsHtml}
+    </li>`;
+  }
+
   function updateHistoryBadge() {
     const badge = $('#historyCount');
     if (!badge) return;
@@ -1225,6 +1414,13 @@
     } else {
       badge.hidden = true;
     }
+  }
+
+  // Синхронизировать активный класс на чипах фильтра
+  function syncHistoryFilterChips() {
+    $$('.arc-history-chip').forEach(c => {
+      c.classList.toggle('is-active', c.dataset.filter === _historyFilter);
+    });
   }
 
   // ── HERO FLIP CARD ───────────────────────────────────────

@@ -141,12 +141,12 @@
 /* ---------- MAIN GRID ---------- */
 .arc-main {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: minmax(0, 1fr) 280px;
   gap: 32px;
   margin-bottom: 28px;
 }
 @media (max-width: 880px) {
-  .arc-main { grid-template-columns: 1fr; }
+  .arc-main { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ---------- CARD / DECK CHIPS ---------- */
@@ -224,10 +224,13 @@
   margin: 0 0 22px;
   padding: 6px 4px 12px;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   border-bottom: 1px solid var(--line);
+  min-width: 0;
+  max-width: 100%;
 }
 .arc-spread-tabs::-webkit-scrollbar { display: none; }
 .arc-spread-tab {

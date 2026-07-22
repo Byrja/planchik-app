@@ -926,6 +926,43 @@
   }
 
   // ── AI-расшифровка (глубинный разбор от гадалки) ────────────
+  // Минимальный markdown-парсер для AI-вывода. Поддерживает:
+  //   ## / ### заголовки, **bold**, *italic*, - список, абзацы, переносы строк.
+  // Без зависимостей, без XSS (escapeHtml сначала, потом разметка по белому списку).
+  function mdLight(src) {
+    if (!src) return '';
+    const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    // сначала экранируем HTML, потом парсим markdown
+    const lines = esc(src).split(/\n/);
+    const out = [];
+    let listBuf = null;   // буфер строк <ul>
+    const flushList = () => { if (listBuf) { out.push('<ul>' + listBuf.join('') + '</ul>'); listBuf = null; } };
+    const inline = (s) =>
+      s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+       .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+       .replace(/`([^`]+)`/g, '<code>$1</code>');
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      const line = raw.replace(/\s+$/, '');
+      if (!line.trim()) { flushList(); continue; }
+      const h2 = line.match(/^##\s+(.+)/);
+      const h3 = line.match(/^###\s+(.+)/);
+      const li = line.match(/^[-•]\s+(.+)/);
+      if (h2) { flushList(); out.push('<h4 class="arc-ai-h">' + inline(h2[1]) + '</h4>'); continue; }
+      if (h3) { flushList(); out.push('<h5 class="arc-ai-h5">' + inline(h3[1]) + '</h5>'); continue; }
+      if (li) { listBuf = listBuf || []; listBuf.push('<li>' + inline(li[1]) + '</li>'); continue; }
+      // обычный параграф — накапливаем строки пока не пустая
+      let para = line;
+      while (i + 1 < lines.length && lines[i + 1].trim() && !/^([-•]|##|###)\s/.test(lines[i + 1])) {
+        i++; para += ' ' + lines[i].trim();
+      }
+      flushList();
+      out.push('<p>' + inline(para) + '</p>');
+    }
+    flushList();
+    return out.join('\n');
+  }
+
   function aiKey(spread, cards) {
     // ключ кэша: расклад + позиции (без имени карты — она уже видна)
     return 'arhAi_' + spread + '_' + cards.map(c => (c.position || '?') + ':' + (c.reversed ? 'r' : 'u')).join('|');
@@ -968,7 +1005,7 @@
               <div class="arc-ai-sub">сохранено · осталось сегодня: ${remaining}/${AI_DAILY_LIMIT}</div>
             </div>
           </div>
-          <div class="arc-ai-body markdown">${escapeHtml(cached)}</div>
+          <div class="arc-ai-body arc-ai-md">${mdLight(cached)}</div>
           <div class="arc-ai-foot">
             <button type="button" class="arc-ai-toggle" data-action="toggle">свернуть</button>
             <button type="button" class="arc-ai-redo" data-action="redo">↻ пересоздать</button>

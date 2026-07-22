@@ -421,12 +421,13 @@
   opacity: 0;
   max-height: 0;
   overflow: hidden;
-  transition: opacity 0.6s ease, max-height 0.6s ease, margin-top 0.6s ease;
+  transition: opacity 0.4s ease, margin-top 0.4s ease;
 }
 #arc-result.is-revealed {
   opacity: 1;
-  max-height: 1200px;
+  max-height: none;
   margin-top: 28px;
+  overflow: visible;
 }
 .arc-interpretation {
   background: var(--bg-glass);

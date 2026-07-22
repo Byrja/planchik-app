@@ -1473,3 +1473,126 @@ h3 { font-size: var(--fs-h2);      line-height: 1.3; }
   .bottom-tabs, .bottom-tab { transition: none !important; }
 }
 
+/* ── AI-расшифровка натальной карты (F) ────────── */
+.chart-ai-slot { margin-top: 20px; }
+.chart-ai-card {
+  position: relative;
+  background: linear-gradient(135deg, var(--bg-2) 0%, rgba(155,125,255,0.06) 100%);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 16px 14px;
+  overflow: hidden;
+}
+.chart-ai-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 0% 0%, rgba(212,175,55,0.10), transparent 60%);
+  pointer-events: none;
+}
+.chart-ai-card.is-locked { opacity: 0.65; }
+.chart-ai-card.is-locked::before { display: none; }
+.chart-ai-card.is-loading { pointer-events: none; }
+.chart-ai-card.is-error { border-color: rgba(255, 90, 95, 0.35); }
+.chart-ai-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  position: relative;
+}
+.chart-ai-orb {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(212,175,55,0.12);
+  flex-shrink: 0;
+  animation: chart-ai-pulse 3.6s ease-in-out infinite;
+}
+.chart-ai-card.is-locked .chart-ai-orb { animation: none; filter: grayscale(0.6); opacity: 0.5; }
+.chart-ai-card.is-error .chart-ai-orb { animation: none; }
+.chart-ai-orb-spin { animation: chart-ai-spin 1.4s linear infinite; }
+@keyframes chart-ai-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212,175,55,0.25); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(212,175,55,0); }
+}
+@keyframes chart-ai-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.chart-ai-title { font-size: 15px; font-weight: 600; color: var(--ink); }
+.chart-ai-sub { font-size: 12px; color: var(--ink-mute); margin-top: 2px; }
+.chart-ai-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.chart-ai-body p { margin: 8px 0; }
+.chart-ai-body ul { margin: 8px 0; padding-left: 22px; }
+.chart-ai-body li { margin: 4px 0; }
+.chart-ai-body strong { color: var(--gold); font-weight: 600; }
+.chart-ai-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 1px 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+}
+.chart-ai-h {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gold);
+  margin: 18px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.chart-ai-h:first-child { margin-top: 4px; }
+.chart-ai-h5 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  margin: 14px 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.chart-ai-foot { margin-top: 12px; position: relative; }
+.chart-ai-cta {
+  appearance: none;
+  border: none;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-2) 100%);
+  color: #1a1626;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  width: 100%;
+  transition: transform 140ms, box-shadow 200ms;
+  -webkit-tap-highlight-color: transparent;
+}
+.chart-ai-cta:active { transform: scale(0.98); }
+.chart-ai-cta:disabled { opacity: 0.6; cursor: wait; }
+.chart-ai-toggle {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--ink-mute);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 160ms, border-color 160ms;
+}
+.chart-ai-toggle:hover { color: var(--ink); border-color: var(--ink-mute); }
+@media (prefers-reduced-motion: reduce) {
+  .chart-ai-orb, .chart-ai-orb-spin { animation: none !important; }
+  .chart-ai-cta, .chart-ai-toggle { transition: none !important; }
+}
+

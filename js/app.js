@@ -55,7 +55,8 @@
     user: _user,
     profile: enrichProfile(Evening.loadProfile()),
     mood: null,
-    checkins: Evening.last30()
+    checkins: Evening.last30(),
+    chartAi: { loaded: false, interpretation: '', remaining: 3, cached: false, error: '' },
   };
 
   function setProfile(p) {
@@ -813,9 +814,11 @@
       <div class="chart-planets" id="chartPlanets"></div>
       <h3 class="chart-h3">Аспекты</h3>
       <div class="chart-aspects" id="chartAspects"></div>
+      <div class="chart-ai-slot" id="chartAiSlot"></div>
     `;
     renderPlanetTable(chart.planets);
     renderAspects(chart.aspects);
+    renderChartAiButton();
   }
 
   function renderPlanetTable(planets) {
@@ -849,6 +852,181 @@
       </div>
     `).join('');
     root.innerHTML = html;
+  }
+
+  // ── AI-расшифровка натальной карты (глубинный разбор) ───────
+  // Минимальный markdown-парсер для AI-вывода (копия из arc-app.js).
+  // Без зависимостей, без XSS (escapeHtml → белый список).
+  function mdLight(src) {
+    if (!src) return '';
+    const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const lines = esc(src).split(/\n/);
+    const out = [];
+    let listBuf = null;
+    const flushList = () => { if (listBuf) { out.push('<ul>' + listBuf.join('') + '</ul>'); listBuf = null; } };
+    const inline = (s) =>
+      s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+       .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+       .replace(/`([^`]+)`/g, '<code>$1</code>');
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      const line = raw.replace(/\s+$/, '');
+      if (!line.trim()) { flushList(); continue; }
+      const h2 = line.match(/^##\s+(.+)/);
+      const h3 = line.match(/^###\s+(.+)/);
+      const li = line.match(/^[-•]\s+(.+)/);
+      if (h2) { flushList(); out.push('<h4 class="chart-ai-h">' + inline(h2[1]) + '</h4>'); continue; }
+      if (h3) { flushList(); out.push('<h5 class="chart-ai-h5">' + inline(h3[1]) + '</h5>'); continue; }
+      if (li) { listBuf = listBuf || []; listBuf.push('<li>' + inline(li[1]) + '</li>'); continue; }
+      let para = line;
+      while (i + 1 < lines.length && lines[i + 1].trim() && !/^([-•]|##|###)\s/.test(lines[i + 1])) {
+        i++; para += ' ' + lines[i].trim();
+      }
+      flushList();
+      out.push('<p>' + inline(para) + '</p>');
+    }
+    flushList();
+    return out.join('\n');
+  }
+
+  const CHART_AI_LIMIT = 3;
+
+  function renderChartAiButton() {
+    const slot = $('#chartAiSlot');
+    if (!slot) return;
+    const ai = state.chartAi;
+
+    // 1) уже загружено в сессии — показываем сразу
+    if (ai.loaded) {
+      slot.innerHTML = `
+        <div class="chart-ai-card is-loaded" id="chartAiCard">
+          <div class="chart-ai-head">
+            <span class="chart-ai-orb">✨</span>
+            <div>
+              <div class="chart-ai-title">Глубинный разбор карты</div>
+              <div class="chart-ai-sub">${ai.cached ? 'сохранено' : 'новая расшифровка'} · осталось сегодня: ${ai.remaining}/${CHART_AI_LIMIT}</div>
+            </div>
+          </div>
+          <div class="chart-ai-body markdown">${mdLight(ai.interpretation)}</div>
+          <div class="chart-ai-foot">
+            <button type="button" class="chart-ai-toggle" data-action="toggle">свернуть</button>
+          </div>
+        </div>`;
+      wireChartAiCard();
+      return;
+    }
+
+    // 2) лимит исчерпан
+    if (ai.remaining === 0) {
+      slot.innerHTML = `
+        <div class="chart-ai-card is-locked">
+          <div class="chart-ai-head">
+            <span class="chart-ai-orb">🔒</span>
+            <div>
+              <div class="chart-ai-title">Глубинный разбор карты</div>
+              <div class="chart-ai-sub">лимит ${CHART_AI_LIMIT}/день исчерпан · сброс в полночь UTC</div>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // 3) CTA: кнопка
+    slot.innerHTML = `
+      <div class="chart-ai-card is-cta">
+        <div class="chart-ai-head">
+          <span class="chart-ai-orb">✨</span>
+          <div>
+            <div class="chart-ai-title">Глубинный разбор карты</div>
+            <div class="chart-ai-sub">разберёт AI по планетам, домам и аспектам · осталось сегодня: ${ai.remaining}/${CHART_AI_LIMIT}</div>
+          </div>
+        </div>
+        <div class="chart-ai-foot">
+          <button type="button" class="chart-ai-cta" data-action="load">Получить разбор</button>
+        </div>
+      </div>`;
+    const btn = slot.querySelector('[data-action="load"]');
+    if (btn) btn.onclick = loadChartAi;
+  }
+
+  function wireChartAiCard() {
+    const card = $('#chartAiCard');
+    if (!card) return;
+    const btn = card.querySelector('[data-action="toggle"]');
+    if (!btn) return;
+    btn.onclick = () => {
+      const body = card.querySelector('.chart-ai-body');
+      if (!body) return;
+      const collapsed = body.style.display === 'none';
+      body.style.display = collapsed ? '' : 'none';
+      btn.textContent = collapsed ? 'свернуть' : 'развернуть';
+    };
+  }
+
+  async function loadChartAi() {
+    const slot = $('#chartAiSlot');
+    if (!slot) return;
+    // блокируем кнопку — нет двойных кликов
+    const btn = slot.querySelector('[data-action="load"]');
+    if (btn) btn.disabled = true;
+
+    const initData = extractInitData(window.location.href);
+    if (!initData) {
+      state.chartAi.error = 'Не удалось получить initData. Перезайди в Mini App из бота.';
+      renderChartAiError();
+      return;
+    }
+
+    // loader
+    slot.innerHTML = `
+      <div class="chart-ai-card is-loading">
+        <div class="chart-ai-head">
+          <span class="chart-ai-orb chart-ai-orb-spin">✨</span>
+          <div>
+            <div class="chart-ai-title">Глубинный разбор карты</div>
+            <div class="chart-ai-sub">AI разбирает карту · обычно 15–30 сек</div>
+          </div>
+        </div>
+      </div>`;
+
+    try {
+      const res = await fetch('/api/chart/interpret?initData=' + encodeURIComponent(initData), { method: 'POST' });
+      const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
+      if (!res.ok || !data.ok) {
+        state.chartAi.error = data.message || data.error || 'Не удалось получить разбор.';
+        state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : state.chartAi.remaining;
+        renderChartAiError();
+        return;
+      }
+      state.chartAi.loaded = true;
+      state.chartAi.interpretation = data.interpretation;
+      state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : state.chartAi.remaining;
+      state.chartAi.cached = !!data.cached;
+      renderChartAiButton();
+    } catch (e) {
+      state.chartAi.error = 'Ошибка сети: ' + (e && e.message ? e.message : String(e));
+      renderChartAiError();
+    }
+  }
+
+  function renderChartAiError() {
+    const slot = $('#chartAiSlot');
+    if (!slot) return;
+    slot.innerHTML = `
+      <div class="chart-ai-card is-error">
+        <div class="chart-ai-head">
+          <span class="chart-ai-orb">⚠️</span>
+          <div>
+            <div class="chart-ai-title">Глубинный разбор карты</div>
+            <div class="chart-ai-sub">${state.chartAi.error}</div>
+          </div>
+        </div>
+        <div class="chart-ai-foot">
+          <button type="button" class="chart-ai-cta" data-action="load">Попробовать снова</button>
+        </div>
+      </div>`;
+    const btn = slot.querySelector('[data-action="load"]');
+    if (btn) btn.onclick = loadChartAi;
   }
 
   function sendToBot(type, payload) {

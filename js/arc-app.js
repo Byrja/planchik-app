@@ -721,7 +721,7 @@
 
     // wire CTAs
     const ctaD = r$('#ctaDraw');
-    if (ctaD) ctaD.onclick = doDraw;
+    if (ctaD) ctaD.onclick = beginDrawRitual;
     const ctaR = r$('#ctaReset');
     if (ctaR) ctaR.onclick = () => { state.cards = []; resetReading(); renderCards(); renderInterpretation(); };
     const ctaS = r$('#ctaShare');
@@ -819,6 +819,58 @@
         tryVibrate(20);
       }, totalDelay);
     }
+  }
+
+  // ── Ритуал фокуса перед тягой ──────────────────────────
+  // Двухфазный клик: 1-й показывает focus-оверлей, 2-й — реально тянет.
+  // Превращает «нажми кнопку» в маленький ритуал с breathing-анимацией.
+  function beginDrawRitual() {
+    if (state.cards.length > 0) return; // уже вытянуто
+    if (reducedMotion()) { doDraw(); return; } // reduced-motion — без задержек
+
+    // Удалить старый оверлей, если есть
+    const old = document.getElementById('arcFocusOverlay');
+    if (old) old.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'arcFocusOverlay';
+    overlay.className = 'arc-focus-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-label', 'Сосредоточьтесь на вопросе');
+    const cfg = getSpreadConfig(state.spread);
+    overlay.innerHTML = `
+      <div class="arc-focus-inner">
+        <div class="arc-focus-ring" aria-hidden="true"></div>
+        <div class="arc-focus-ring arc-focus-ring-2" aria-hidden="true"></div>
+        <div class="arc-focus-eye">${cfg.icon || '✦'}</div>
+        <h3 class="arc-focus-title">Сосредоточьтесь на вопросе</h3>
+        <p class="arc-focus-sub">Вдохните. Выдохните.<br>Когда будете готовы — нажмите «Тянуть».</p>
+        <div class="arc-focus-actions">
+          <button type="button" class="arc-cta arc-cta-primary arc-focus-draw" id="arcFocusDraw">🂠  Тянуть</button>
+          <button type="button" class="arc-cta arc-cta-ghost arc-focus-cancel" id="arcFocusCancel">Отойти</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => overlay.classList.add('is-open'));
+    tryVibrate(8);
+
+    const draw = overlay.querySelector('#arcFocusDraw');
+    const cancel = overlay.querySelector('#arcFocusCancel');
+    const close = () => {
+      overlay.classList.remove('is-open');
+      setTimeout(() => overlay.remove(), 250);
+    };
+    draw.onclick = () => { close(); doDraw(); tryVibrate(15); };
+    cancel.onclick = close;
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', function escHandler(e) {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
+    });
+  }
+
+  function reducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
   // ── Роутер по раскладам ─────────────────────────────────

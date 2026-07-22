@@ -20,10 +20,17 @@
     try {
       tg.ready();
       tg.expand();
-      document.documentElement.style.setProperty('--bg',       tg.themeParams.bg_color   || '#0b0a1a');
-      document.documentElement.style.setProperty('--ink',      tg.themeParams.text_color || '#f4f0e6');
-      const btn = tg.themeParams.button_color;
-      if (btn) document.documentElement.style.setProperty('--gold', btn);
+      const tp = tg.themeParams || {};
+      const set = (k, v) => { if (v) document.documentElement.style.setProperty(k, v); };
+      set('--bg',       tp.bg_color            || '#0b0a1a');
+      set('--ink',      tp.text_color          || '#f4f0e6');
+      set('--ink-dim',  tp.hint_color          || null);
+      set('--bg-2',     tp.secondary_bg_color  || null);
+      set('--gold',     tp.button_color        || null);
+      set('--gold-2',   tp.link_color          || tp.button_color || null);
+      // Header/background — синхронизация с нативной оболочкой Telegram
+      try { tg.setHeaderColor(tp.secondary_bg_color || tp.bg_color || '#0b0a1a'); } catch (_) {}
+      try { tg.setBackgroundColor(tp.bg_color || '#0b0a1a'); } catch (_) {}
     } catch (e) { /* noop */ }
   }
 
@@ -1176,11 +1183,12 @@
       if (data) renderCod(data);
     });
 
-    // 3) кнопки
+    // 3) кнопки (с haptic-feedback)
     const moreBtn = document.getElementById('codMore');
     const refreshBtn = document.getElementById('codRefresh');
     if (moreBtn) {
       moreBtn.addEventListener('click', () => {
+        haptic('light');
         // Открываем таб «Карты» — пользователь сделает расклад вручную
         setActiveTab('arc');
         try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
@@ -1188,6 +1196,7 @@
     }
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
+        haptic('light');
         // Принудительно обновить (минуя кеш)
         fetchCardOfDay(true).then((data) => { if (data) renderCod(data); });
       });

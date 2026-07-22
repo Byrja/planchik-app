@@ -664,7 +664,19 @@
     const main = root();
     if (!main) return;
     const t = templateSpread();
+    // Горизонтальный таб-бар раскладов (sticky на мобиле, inline на десктопе)
+    const tabsHtml = Object.keys(SPREADS).map(id => {
+      const s = SPREADS[id];
+      const active = id === state.spread ? ' is-active' : '';
+      return `<button type="button" class="arc-spread-tab${active}" data-spread="${id}">
+        <span class="arc-spread-tab-ico">${s.icon}</span>
+        <span class="arc-spread-tab-label">${escapeHtml(s.title)}</span>
+      </button>`;
+    }).join('');
     main.innerHTML = `
+      <nav class="arc-spread-tabs" id="arcSpreadTabs" aria-label="Сменить расклад">
+        ${tabsHtml}
+      </nav>
       <div class="arc-panel-title">${escapeHtml(t.title)}</div>
       <p class="arc-panel-sub">${escapeHtml(t.ask)}</p>
       ${t.hint ? `<p class="arc-panel-hint">${escapeHtml(t.hint)}</p>` : ''}
@@ -714,6 +726,18 @@
     if (ctaR) ctaR.onclick = () => { state.cards = []; resetReading(); renderCards(); renderInterpretation(); };
     const ctaS = r$('#ctaShare');
     if (ctaS) ctaS.onclick = shareResult;
+
+    // wire spread tabs
+    $$('.arc-spread-tab', main).forEach(btn => {
+      btn.onclick = (e) => { e.preventDefault(); setSpread(btn.dataset.spread); };
+    });
+    // прокрутить активный таб в зону видимости (мобила)
+    requestAnimationFrame(() => {
+      const active = main.querySelector('.arc-spread-tab.is-active');
+      if (active && active.scrollIntoView) {
+        try { active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (_) {}
+      }
+    });
   }
 
   // ── Действие «Тянуть» ───────────────────────────────────

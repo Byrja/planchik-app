@@ -1037,17 +1037,9 @@
       });
     })();
 
-    // ── Theme toggle (B2): light/dark, persisted + system pref ──
-    (function initTheme() {
-      const stored = localStorage.getItem('theme');
-      const initial = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-      document.documentElement.setAttribute('data-theme', initial);
-      $bind('#themeToggle', () => {
-        const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-      });
-    })();
+    // Тема фиксирована: dark. Переключатель убран (v3.63).
+    document.documentElement.setAttribute('data-theme', 'dark');
+    try { localStorage.removeItem('theme'); } catch {}
     // saveCheckin удалён — no-op safety
     $bind('#btnProfileEdit',  toggleProfileEdit);
     $bind('#btnProfileSave',  saveProfileToBot);

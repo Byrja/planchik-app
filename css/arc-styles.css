@@ -305,19 +305,13 @@
   aspect-ratio: 200 / 305; /* classic tarot proportion */
   height: auto;
   border-radius: var(--r-lg);
-  transform-style: preserve-3d;
-  transition: transform 0.7s cubic-bezier(.4,.0,.2,1);
-  transform: rotateY(0deg);
   margin: 0 auto;
+  perspective: 1200px;
 }
-#arc-cardStage.is-revealed { transform: rotateY(180deg); }
 #arc-cardStage.is-flipping { animation: arc-float 0.7s ease-in-out; }
 
-/* Финальное состояние после флипа: убираем 3D-hack, показываем front напрямую.
-   Это надёжный fallback для iOS WebKit, где backface-visibility иногда глючит. */
-#arc-cardStage.is-final { transform: none !important; }
-#arc-cardStage.is-final .arc-card-back { display: none; }
-#arc-cardStage.is-final .arc-card-front { transform: none; }
+/* Front изначально скрыт (crossfade с back), появляется через 700мс. */
+.arc-card-front--hidden { opacity: 0; transition: opacity 0.4s ease 0.1s; }
 
 @keyframes arc-float {
   0%   { transform: translateY(0) rotate(0); }
@@ -1326,7 +1320,6 @@
 .arc-:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
 @media (prefers-reduced-motion: reduce) {
 .arc-portal *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-#arc-cardStage.is-revealed { transform: rotateY(180deg); }
 }
 
 /* ---------- MOBILE ---------- */

@@ -783,19 +783,21 @@
              <div class="arc-card-glyph-symbol">${c.symbol}</div>
              <div class="arc-card-glyph-name">${escapeHtml(c.name)}</div>
            </div>`;
+      // 3D-flip не используем (backface-visibility глючит на iOS WebKit).
+      // Вместо этого: back на 700мс → crossfade на front.
       cardEl.innerHTML = `
         <div class="arc-card-face arc-card-back"><span class="arc-card-back-mark">⚜</span></div>
-        <div class="arc-card-face arc-card-front">${frontContent}</div>`;
+        <div class="arc-card-face arc-card-front arc-card-front--hidden">${frontContent}</div>`;
       const st = r$('#arcStage');
       st.innerHTML = '';
       st.appendChild(cardEl);
       cardEl.classList.add('is-flipping');
       setTimeout(() => {
-        cardEl.classList.add('is-revealed');
-        cardEl.classList.remove('is-flipping');
-        // Через 750мс переходим в финальное состояние: back скрыт, front напрямую.
-        // Надёжнее чем 3D-флип на iOS WebKit (backface-visibility глючит).
-        setTimeout(() => { cardEl.classList.add('is-final'); }, 750);
+        // Скрываем back, показываем front — надёжно, без 3D-transform.
+        const back = cardEl.querySelector('.arc-card-back');
+        const front = cardEl.querySelector('.arc-card-front');
+        if (back) back.style.display = 'none';
+        if (front) front.classList.remove('arc-card-front--hidden');
         r$('#arcResult').classList.add('is-revealed');
         r$('#ctaDraw').disabled = true;
         r$('#ctaDraw').textContent = '✓  Готово';

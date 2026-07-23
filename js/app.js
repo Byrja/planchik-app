@@ -1544,6 +1544,26 @@
     });
   }
 
+  // Резолвим мини-визуал карты по (deck, id).
+  // Возвращает { kind: 'image' | 'symbol', src?, symbol?, alt }.
+  // history сохраняет только {id,name,reversed} — image отсутствует.
+  // Поэтому достаём image из глобальных DECK_* массивов (те же данные, что и arc-app.js).
+  function resolveCardVisual(deck, id, fallbackName) {
+    const arr = (
+      deck === 'tarot'     ? window.DECK_TAROT     :
+      deck === 'lenormand' ? window.DECK_LENORMAND :
+      deck === 'gypsy'     ? window.DECK_GYPSY     :
+      deck === 'runes'     ? window.DECK_RUNES     :
+      deck === 'playing'   ? window.DECK_PLAYING   : null
+    );
+    const card = arr && Array.isArray(arr) ? arr.find(c => c.id === id) : null;
+    if (card && card.image) {
+      return { kind: 'image', src: card.image, alt: card.name || fallbackName || id };
+    }
+    const sym = (card && card.symbol) || '✦';
+    return { kind: 'symbol', symbol: sym, alt: fallbackName || id };
+  }
+
   function renderHistoryItem(h, origIdx) {
     const d = new Date(h.ts || Date.now());
     const dateStr = d.getFullYear() === new Date().getFullYear() ? `${dayMonth(d)} · ${timeStr(d)}` : `${dayMonth(d)} ${d.getFullYear()} · ${timeStr(d)}`;
@@ -1556,21 +1576,27 @@
     const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
     const note = (h.note && h.note.trim()) ? `<div class="arc-history-note">✎ ${escapeHtml(h.note)}</div>` : '';
 
-    // Детали: позиции + полные имена карт
+    // Детали: визуал карты (как выпала) + позиция + имя + расшифровка (advice)
     const positions = SPREAD_POSITIONS[h.spread] || cards.map((_, i) => `Позиция ${i+1}`);
     const detailsHtml = cards.length > 0 ? `
       <div class="arc-history-details">
-        ${cards.map((c, i) => `
+        ${cards.map((c, i) => {
+          const v = resolveCardVisual(h.deck, c.id, c.name || c.id);
+          const visual = v.kind === 'image'
+            ? `<img class="arc-history-detail-img${c.reversed ? ' is-rev' : ''}" src="${escapeHtml(v.src)}" alt="${escapeHtml(v.alt)}" loading="lazy">`
+            : `<div class="arc-history-detail-glyph${c.reversed ? ' is-rev' : ''}">${v.symbol}</div>`;
+          return `
           <div class="arc-history-detail-card">
-            <div class="arc-history-detail-pos">${escapeHtml(positions[i] || ('Карта ' + (i+1)))}</div>
-            <div>
+            <div class="arc-history-detail-visual">${visual}</div>
+            <div class="arc-history-detail-body">
+              <div class="arc-history-detail-pos">${escapeHtml(positions[i] || ('Карта ' + (i+1)))}</div>
               <div class="arc-history-detail-name${c.reversed ? ' is-rev' : ''}">
                 ${escapeHtml(c.name || c.id || '')}${c.reversed ? ' <span class="rev-mark">перевёрнутая</span>' : ''}
               </div>
               ${c.advice ? `<div class="arc-history-detail-advice">${escapeHtml(c.advice)}</div>` : ''}
             </div>
           </div>
-        `).join('')}
+        `;}).join('')}
       </div>
     ` : '';
 

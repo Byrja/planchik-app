@@ -39,8 +39,8 @@
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.69">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.69">
+  <link rel="stylesheet" href="css/styles.css?v=3.70">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.70">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -376,6 +376,10 @@
         <button type="button" class="arc-history-chip" data-filter="today" role="tab">Сегодня</button>
         <button type="button" class="arc-history-chip" data-filter="week" role="tab">Неделя</button>
       </div>
+      <div class="arc-history-search" id="homeHistorySearch" hidden>
+        <input type="search" id="homeHistorySearchInput" placeholder="🔍 Поиск по вопросу или картам..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button type="button" class="arc-history-search-clear" id="homeHistorySearchClear" aria-label="Очистить" hidden>✕</button>
+      </div>
       <div class="arc-history-empty" id="homeHistoryEmpty" hidden>
         <div class="arc-history-empty-icon" aria-hidden="true">✦</div>
         <h3 class="arc-history-empty-title">Пока пусто</h3>
@@ -389,6 +393,31 @@
         <button type="button" class="btn btn-primary" id="btnHomeHistoryOpen">Открыть гадание →</button>
       </div>
     </section>
+
+    <!-- ─── HISTORY READING MODAL (full reading view) ────────── -->
+    <div id="historyReadingModal" class="history-modal" hidden aria-modal="true" role="dialog" aria-labelledby="historyReadingTitle">
+      <div class="history-modal-backdrop" data-history-modal-close></div>
+      <div class="history-modal-content">
+        <header class="history-modal-header">
+          <div class="history-modal-meta">
+            <span class="history-modal-spread" id="historyReadingSpread">—</span>
+            <span class="history-modal-date" id="historyReadingDate">—</span>
+          </div>
+          <button type="button" class="history-modal-close" data-history-modal-close aria-label="Закрыть">✕</button>
+        </header>
+        <div class="history-modal-body">
+          <h2 class="history-modal-title" id="historyReadingTitle">Расклад</h2>
+          <div class="history-modal-question" id="historyReadingQuestion" hidden></div>
+          <div class="history-modal-cards" id="historyReadingCards"></div>
+          <div class="history-modal-summary" id="historyReadingSummary" hidden></div>
+        </div>
+        <footer class="history-modal-actions">
+          <button type="button" class="btn btn-ghost" id="historyReadingShare">📤 Поделиться</button>
+          <button type="button" class="btn btn-ghost danger" id="historyReadingDelete">🗑 Удалить</button>
+          <button type="button" class="btn btn-primary" data-history-modal-close>Закрыть</button>
+        </footer>
+      </div>
+    </div>
 
     <!-- ─── ARKHANGEL PORTAL (full clone) ───────────────── -->
     <section class="arc-portal" id="arcPortal" hidden aria-labelledby="arcTitle">
@@ -531,18 +560,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.69"></script>
-  <script src="js/tarot.js?v=3.69"></script>
-  <script src="js/biorhythm.js?v=3.69"></script>
-  <script src="js/arc-runes.js?v=3.69"></script>
-  <script src="js/arc-lenormand.js?v=3.69"></script>
-  <script src="js/arc-gypsy.js?v=3.69"></script>
-  <script src="js/arc-playing.js?v=3.69"></script>
-  <script src="js/arc-tarot.js?v=3.69"></script>
-  <script src="js/arc-tarot-minor.js?v=3.69"></script>
-  <script src="js/chart.js?v=3.69"></script>
-  <script src="js/arc-app.js?v=3.69"></script>
-  <script src="js/app.js?v=3.69"></script>
+  <script src="js/data.js?v=3.70"></script>
+  <script src="js/tarot.js?v=3.70"></script>
+  <script src="js/biorhythm.js?v=3.70"></script>
+  <script src="js/arc-runes.js?v=3.70"></script>
+  <script src="js/arc-lenormand.js?v=3.70"></script>
+  <script src="js/arc-gypsy.js?v=3.70"></script>
+  <script src="js/arc-playing.js?v=3.70"></script>
+  <script src="js/arc-tarot.js?v=3.70"></script>
+  <script src="js/arc-tarot-minor.js?v=3.70"></script>
+  <script src="js/chart.js?v=3.70"></script>
+  <script src="js/arc-app.js?v=3.70"></script>
+  <script src="js/app.js?v=3.70"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

@@ -136,6 +136,8 @@
     wireEvents();
     wireBottomTabs();
     wireHeroFlip();
+    wireHistoryReadingModal();
+    wireHistorySearch();
     updateHistoryBadge();
     if (state.user.startParam === 'mychart') {
       setTimeout(openChartPanel, 50);
@@ -1387,6 +1389,11 @@
   function loadHistory() {
     try { return JSON.parse(localStorage.getItem('arhHistory') || '[]'); } catch { return []; }
   }
+  function saveHistory(items) {
+    try { localStorage.setItem('arhHistory', JSON.stringify(items || [])); } catch (_) {}
+  }
+  // Search query (для фильтрации истории по тексту)
+  let _historyQuery = '';
 
   const SPREAD_LABELS = {
     one: 'Одна карта', three: 'Три карты', five: 'Пять карт',
@@ -1484,6 +1491,9 @@
     if (empty) empty.hidden = true;
     if (actions) actions.hidden = false;
     if (filters) filters.hidden = false;
+    // Search виден только если есть хотя бы 2 расклада (иначе бессмысленно)
+    const searchEl = $('#homeHistorySearch');
+    if (searchEl) searchEl.hidden = total < 2;
 
     // Фильтр
     const now = Date.now();
@@ -1496,17 +1506,38 @@
       items = allItems.filter(h => (h.ts || 0) >= startOfWeek);
     }
 
+    // Поиск по тексту (вопрос / имя карты / нота)
+    const q = (_historyQuery || '').trim().toLowerCase();
+    if (q) {
+      items = items.filter(h => {
+        if ((h.question || '').toLowerCase().includes(q)) return true;
+        if ((h.note || '').toLowerCase().includes(q)) return true;
+        if ((h.spread || '').toLowerCase().includes(q)) return true;
+        if (Array.isArray(h.cards) && h.cards.some(c =>
+          (c.name || '').toLowerCase().includes(q) ||
+          (c.id || '').toLowerCase().includes(q)
+        )) return true;
+        return false;
+      });
+    }
+
     // Регруппировка по дате
     const groups = groupHistoryByDate(items);
     const groupKeys = ['today','yesterday','week','earlier'].filter(k => groups[k].length);
 
     if (!groupKeys.length) {
-      // Фильтр отсёк всё
+      // Фильтр/поиск отсёк всё
+      const reason = _historyQuery
+        ? `Ничего не найдено по запросу «${escapeHtml(_historyQuery)}»`
+        : 'Нет раскладов в выбранном диапазоне.';
       groupsEl.innerHTML = `<div class="arc-history-empty" style="padding:18px 8px">
-        <div class="arc-history-empty-text">Нет раскладов в выбранном диапазоне.</div>
+        <div class="arc-history-empty-text">${reason}</div>
+        ${_historyQuery ? '<button type="button" class="btn btn-ghost" data-history-clear-search>Сбросить поиск</button>' : ''}
       </div>`;
       groupsEl.hidden = false;
       list.innerHTML = '';
+      const clearSearchBtn = groupsEl.querySelector('[data-history-clear-search]');
+      if (clearSearchBtn) clearSearchBtn.onclick = () => clearHistorySearch();
       return;
     }
 
@@ -1542,6 +1573,197 @@
         haptic && haptic('light');
       });
     });
+
+    // Кнопка "Открыть расклад полностью" → модал
+    groupsEl.querySelectorAll('[data-history-open]').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const idx = Number(btn.getAttribute('data-history-open'));
+        if (!Number.isNaN(idx)) openHistoryReading(idx);
+      };
+    });
+  }
+
+  // Сбросить поиск
+  function clearHistorySearch() {
+    _historyQuery = '';
+    const input = $('#homeHistorySearchInput');
+    if (input) input.value = '';
+    const clr = $('#homeHistorySearchClear');
+    if (clr) clr.hidden = true;
+    renderHomeHistory();
+  }
+
+  // ── HISTORY READING MODAL ─────────────────────────────────
+  // idx — индекс в массиве loadHistory() (оригинальный, нефильтрованный)
+  let _historyReadingIdx = -1;
+  function openHistoryReading(idx) {
+    const items = loadHistory();
+    const h = items[idx];
+    if (!h) return;
+    _historyReadingIdx = idx;
+
+    const d = new Date(h.ts || Date.now());
+    const yy = d.getFullYear();
+    const dateStr = yy === new Date().getFullYear()
+      ? `${dayMonth(d)} · ${timeStr(d)}`
+      : `${dayMonth(d)} ${yy} · ${timeStr(d)}`;
+    const label = SPREAD_LABELS[h.spread] || h.spread || 'расклад';
+
+    const titleEl = $('#historyReadingTitle');
+    if (titleEl) titleEl.textContent = label;
+    const spreadEl = $('#historyReadingSpread');
+    if (spreadEl) spreadEl.textContent = label;
+    const dateEl = $('#historyReadingDate');
+    if (dateEl) dateEl.textContent = dateStr;
+
+    const qEl = $('#historyReadingQuestion');
+    if (qEl) {
+      if (h.question) { qEl.textContent = `«${h.question}»`; qEl.hidden = false; }
+      else qEl.hidden = true;
+    }
+
+    const cards = (h.cards || []);
+    const positions = SPREAD_POSITIONS[h.spread] || cards.map((_, i) => `Позиция ${i+1}`);
+    const cardsEl = $('#historyReadingCards');
+    if (cardsEl) {
+      cardsEl.innerHTML = cards.map((c, i) => {
+        const v = resolveCardVisual(h.deck, c.id, c.name || c.id);
+        const visual = v.kind === 'image'
+          ? `<img class="history-modal-card-img${c.reversed ? ' is-rev' : ''}" src="${escapeHtml(v.src)}" alt="${escapeHtml(v.alt)}" loading="lazy">`
+          : `<div class="history-modal-card-glyph${c.reversed ? ' is-rev' : ''}">${v.symbol}</div>`;
+        return `
+          <div class="history-modal-card">
+            <div class="history-modal-card-visual">${visual}</div>
+            <div class="history-modal-card-body">
+              <div class="history-modal-card-pos">${escapeHtml(positions[i] || ('Карта ' + (i+1)))}</div>
+              <div class="history-modal-card-name${c.reversed ? ' is-rev' : ''}">
+                ${escapeHtml(c.name || c.id || '')}${c.reversed ? ' <span class="rev-mark">перевёрнутая</span>' : ''}
+              </div>
+              ${c.advice ? `<div class="history-modal-card-advice">${escapeHtml(c.advice)}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Итог (если есть)
+    const sumEl = $('#historyReadingSummary');
+    if (sumEl) {
+      if (h.summary && h.summary.trim()) { sumEl.textContent = h.summary; sumEl.hidden = false; }
+      else sumEl.hidden = true;
+    }
+
+    const modal = $('#historyReadingModal');
+    if (modal) {
+      modal.hidden = false;
+      document.body.classList.add('history-modal-open');
+      // Скроллим в начало
+      const body = modal.querySelector('.history-modal-body');
+      if (body) try { body.scrollTo(0, 0); } catch (_) {}
+    }
+    haptic && haptic('light');
+  }
+
+  function closeHistoryReading() {
+    const modal = $('#historyReadingModal');
+    if (modal) modal.hidden = true;
+    document.body.classList.remove('history-modal-open');
+    _historyReadingIdx = -1;
+  }
+
+  function deleteCurrentHistoryReading() {
+    if (_historyReadingIdx < 0) return;
+    if (!confirm('Удалить этот расклад из истории? Действие необратимо.')) return;
+    const items = loadHistory();
+    if (_historyReadingIdx >= items.length) { closeHistoryReading(); return; }
+    items.splice(_historyReadingIdx, 1);
+    saveHistory(items);
+    _historyExpanded.delete(String(_historyReadingIdx));
+    closeHistoryReading();
+    renderHomeHistory();
+    updateHistoryBadge();
+    haptic && haptic('medium');
+  }
+
+  async function shareCurrentHistoryReading() {
+    if (_historyReadingIdx < 0) return;
+    const items = loadHistory();
+    const h = items[_historyReadingIdx];
+    if (!h) return;
+    const label = SPREAD_LABELS[h.spread] || h.spread || 'расклад';
+    const d = new Date(h.ts || Date.now());
+    const dateStr = `${dayMonth(d)} ${d.getFullYear()}`;
+    const cards = (h.cards || []);
+    const positions = SPREAD_POSITIONS[h.spread] || cards.map((_, i) => `Карта ${i+1}`);
+    const cardsTxt = cards.map((c, i) => {
+      const pos = positions[i] || `Карта ${i+1}`;
+      const rev = c.reversed ? ' (перевёрнутая)' : '';
+      return `  ${i+1}. ${pos}: ${c.name || c.id || '—'}${rev}`;
+    }).join('\n');
+    const qTxt = h.question ? `\nВопрос: «${h.question}»\n` : '';
+    const noteTxt = (h.note && h.note.trim()) ? `\nЗаметка: ${h.note}\n` : '';
+    const text = `✦ ${label} — ${dateStr}${qTxt}\nКарты:\n${cardsTxt}${noteTxt}\n— разложено в Астро-бурлаб`;
+
+    // 1) Прямой шеринг в Telegram (мобильный, открывает chooser)
+    if (tg && tg.openTelegramLink) {
+      try {
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent('https://astro-burlab.duckdns.org')}&text=${encodeURIComponent(text)}`;
+        tg.openTelegramLink(shareUrl);
+        haptic && haptic('light');
+        return;
+      } catch (_) {}
+    }
+    // 2) Web Share API (если доступен)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Расклад: ${label}`, text });
+        haptic && haptic('light');
+        return;
+      } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    // 3) Clipboard fallback
+    try {
+      await navigator.clipboard.writeText(text);
+      toast && toast('Скопировано в буфер обмена');
+    } catch (_) {
+      // last resort: показать текст в модалке через prompt
+      try { window.prompt('Скопируйте текст:', text); } catch (_) {}
+    }
+  }
+
+  // Привязка обработчиков модала (один раз)
+  function wireHistoryReadingModal() {
+    const modal = $('#historyReadingModal');
+    if (!modal) return;
+    modal.querySelectorAll('[data-history-modal-close]').forEach(el => {
+      el.onclick = (e) => { e.preventDefault(); closeHistoryReading(); };
+    });
+    const del = $('#historyReadingDelete');
+    if (del) del.onclick = deleteCurrentHistoryReading;
+    const share = $('#historyReadingShare');
+    if (share) share.onclick = shareCurrentHistoryReading;
+    // Закрытие по Esc
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) closeHistoryReading();
+    });
+  }
+
+  // Привязка поиска (один раз)
+  function wireHistorySearch() {
+    const input = $('#homeHistorySearchInput');
+    const clr = $('#homeHistorySearchClear');
+    if (!input) return;
+    let t = null;
+    input.addEventListener('input', () => {
+      if (clr) clr.hidden = !input.value;
+      clearTimeout(t);
+      t = setTimeout(() => {
+        _historyQuery = input.value;
+        renderHomeHistory();
+      }, 120);
+    });
+    if (clr) clr.onclick = () => { clearHistorySearch(); input.focus(); };
   }
 
   // Резолвим мини-визуал карты по (deck, id).
@@ -1597,6 +1819,7 @@
             </div>
           </div>
         `;}).join('')}
+        <button type="button" class="arc-history-open-full" data-history-open="${origIdx}">✦ Открыть расклад полностью</button>
       </div>
     ` : '';
 

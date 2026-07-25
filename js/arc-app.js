@@ -159,8 +159,51 @@
     cards: [],         // массив вытянутых карт для текущего расклада
     question: '',
     history: [],
-    lastEntryId: null  // id только что вытянутой записи (для заметок)
+    lastEntryId: null, // id только что вытянутой записи (для заметок)
+    aiBalance: {},
   };
+
+  const TAROT_AI_LIMIT_FALLBACK = 5;
+
+  function getInitData() {
+    return window.Telegram?.WebApp?.initData || '';
+  }
+
+  async function loadAiBalance() {
+    const initData = getInitData();
+    if (!initData) return;
+    try {
+      const res = await fetch('/api/ai-balance?initData=' + encodeURIComponent(initData));
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.balance)) {
+        state.aiBalance = Object.fromEntries(data.balance.map(b => [b.feature, b]));
+      }
+    } catch (e) {
+      // ignore: UX не ломается, fallback-limit покажем
+    }
+  }
+
+  function getTarotRemaining() {
+    const bal = state.aiBalance.tarot_spread;
+    if (bal && typeof bal.remaining === 'number') return bal.remaining;
+    return TAROT_AI_LIMIT_FALLBACK;
+  }
+
+  function consumeTarotBalance() {
+    const bal = state.aiBalance.tarot_spread;
+    if (bal && typeof bal.remaining === 'number' && typeof bal.used === 'number') {
+      bal.remaining = Math.max(0, bal.remaining - 1);
+      bal.used += 1;
+    }
+  }
+
+  function rollbackTarotBalance() {
+    const bal = state.aiBalance.tarot_spread;
+    if (bal && typeof bal.remaining === 'number' && typeof bal.used === 'number') {
+      bal.remaining += 1;
+      bal.used = Math.max(0, bal.used - 1);
+    }
+  }
 
   // ── Утилиты ──────────────────────────────────────────────
   function $  (s) { return document.querySelector(s); }
@@ -1023,20 +1066,6 @@
     // ключ кэша: расклад + позиции (без имени карты — она уже видна)
     return 'arhAi_' + spread + '_' + cards.map(c => (c.position || '?') + ':' + (c.reversed ? 'r' : 'u')).join('|');
   }
-  function aiDailyCount() {
-    try {
-      const raw = localStorage.getItem('arhAiDaily');
-      const obj = raw ? JSON.parse(raw) : { date: '', count: 0 };
-      const today = new Date().toISOString().slice(0, 10);
-      if (obj.date !== today) return { date: today, count: 0, obj: { date: today, count: 0 } };
-      return { date: today, count: obj.count || 0, obj };
-    } catch (e) { return { date: '', count: 0, obj: { date: '', count: 0 } }; }
-  }
-  function aiDailyInc(obj) {
-    try { localStorage.setItem('arhAiDaily', JSON.stringify(obj)); } catch (e) {}
-  }
-  // публичный лимит — 5/день (сервер тоже лимитирует; тут — UX-гейт + кэш)
-  const AI_DAILY_LIMIT = 5;
 
   function renderAiButton() {
     const slot = r$('#arcAiSlot');
@@ -1047,8 +1076,7 @@
     let cached = null;
     try { cached = localStorage.getItem(key); } catch (e) {}
 
-    const daily = aiDailyCount();
-    const remaining = Math.max(0, AI_DAILY_LIMIT - daily.count);
+    const remaining = getTarotRemaining();
 
     if (cached) {
       // уже разобрано — показываем
@@ -1058,7 +1086,7 @@
             <span class="arc-ai-orb">🔮</span>
             <div>
               <div class="arc-ai-title">Глубинный разбор от гадалки</div>
-              <div class="arc-ai-sub">сохранено · осталось сегодня: ${remaining}/${AI_DAILY_LIMIT}</div>
+              <div class="arc-ai-sub">сохранено · осталось сегодня: ${remaining}/${TAROT_AI_LIMIT_FALLBACK}</div>
             </div>
           </div>
           <div class="arc-ai-body arc-ai-md">${mdLight(cached)}</div>
@@ -1078,9 +1106,13 @@
             <span class="arc-ai-orb">🔮</span>
             <div>
               <div class="arc-ai-title">Глубинный разбор от гадалки</div>
-              <div class="arc-ai-sub">лимит ${AI_DAILY_LIMIT}/день исчерпан · сброс в полночь UTC</div>
+              <div class="arc-ai-sub">лимит ${TAROT_AI_LIMIT_FALLBACK}/день исчерпан · сброс в полночь UTC</div>
             </div>
           </div>
+        </div>
+        <div class="ai-limit-box arc-ai-limit-box">
+          <p>Лимит ${TAROT_AI_LIMIT_FALLBACK}/день исчерпан. Сброс в полночь UTC.</p>
+          <button type="button" class="btn btn-gold" disabled title="Покупка звёзд — позже">Пополнить (скоро)</button>
         </div>`;
       return;
     }
@@ -1091,7 +1123,7 @@
           <span class="arc-ai-orb">🔮</span>
           <div>
             <div class="arc-ai-title">Глубинный разбор от гадалки</div>
-            <div class="arc-ai-sub">Гадалка · осталось сегодня: ${remaining}/${AI_DAILY_LIMIT}</div>
+            <div class="arc-ai-sub">Гадалка · осталось сегодня: ${remaining}/${TAROT_AI_LIMIT_FALLBACK}</div>
           </div>
         </div>
         <p class="arc-ai-pitch">Психологическая и символическая интерпретация вашего расклада. Не общая астрология, а личный разбор — что лежит в основе, где узел, и что делать.</p>
@@ -1110,10 +1142,8 @@
 
     if (go) go.onclick = () => doAiInterpret(key);
     if (redo) redo.onclick = () => {
-      if (!confirm('Удалить сохранённый разбор и сгенерировать новый? Это сожжёт один из лимитов на сегодня.')) return;
+      // WebView глотает window.confirm; просто удаляем кэш и обновляем UI
       try { localStorage.removeItem(key); } catch (e) {}
-      const daily = aiDailyCount();
-      // удаление из кэша не возвращает лимит, но юзер уже знает
       renderAiButton();
     };
     if (toggle) toggle.onclick = () => {
@@ -1146,13 +1176,10 @@
       body.style.display = '';
     }
     // увеличить счётчик сразу (optimistic), откатим при ошибке
-    const daily = aiDailyCount();
-    const obj = daily.obj;
-    obj.count = (obj.count || 0) + 1;
-    aiDailyInc(obj);
+    consumeTarotBalance();
 
     try {
-      const initData = window.Telegram?.WebApp?.initData || '';
+      const initData = getInitData();
       const cards = state.cards.map(c => ({
         name: c.name, position: c.position, reversed: !!c.reversed,
         arcana: c.arcana, suit: c.suit,
@@ -1171,8 +1198,7 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
         // откатить счётчик
-        obj.count = Math.max(0, (obj.count || 1) - 1);
-        aiDailyInc(obj);
+        rollbackTarotBalance();
         const msg = data?.error === 'rate_limited' ? 'Лимит на сегодня исчерпан. Сброс в полночь UTC.' :
                     data?.error === 'llm_failed' ? 'Гадалка временно недоступна. Попробуйте позже.' :
                     data?.message || ('Ошибка ' + res.status);
@@ -1196,8 +1222,7 @@
       // перерисовать кнопку (покажет свёрнутую карточку)
       renderAiButton();
     } catch (e) {
-      obj.count = Math.max(0, (obj.count || 1) - 1);
-      aiDailyInc(obj);
+      rollbackTarotBalance();
       if (body) body.innerHTML = '<div class="arc-ai-error">Нет связи с гадалкой. Попробуйте позже.</div>';
       card.classList.remove('is-loading');
     }
@@ -1284,9 +1309,10 @@
     }
   }
 
-  function mount() {
+  async function mount() {
     try {
       state.history = loadHistory();
+      await loadAiBalance();
       // wire nav
       const navLinks = $$('.arc-nav-link');
       navLinks.forEach(a => {
@@ -1314,7 +1340,7 @@
     if (close) close.onclick = (e) => { e.preventDefault(); hideHistory(); };
     if (clear) clear.onclick = (e) => {
       e.preventDefault();
-      if (!confirm('Очистить всю историю раскладов?')) return;
+      // WebView глотает window.confirm; без подтверждения
       state.history = [];
       try { localStorage.removeItem('arhHistory'); } catch (err) {}
       renderHistory();

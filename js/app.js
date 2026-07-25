@@ -57,7 +57,56 @@
     mood: null,
     checkins: Evening.last30(),
     chartAi: { loaded: false, interpretation: '', remaining: 3, cached: false, error: '' },
+    aiBalance: {},
   };
+
+  const AI_LIMITS_DISPLAY = {
+    tarot_spread: 5,
+    chart_interpret: 3,
+  };
+
+  function getInitData() {
+    if (tg && tg.initData) return tg.initData;
+    return "";
+  }
+
+  async function loadAiBalance() {
+    const initData = getInitData();
+    if (!initData) return;
+    try {
+      const res = await fetch(`/api/ai-balance?initData=${encodeURIComponent(initData)}`);
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.balance)) {
+        state.aiBalance = Object.fromEntries(data.balance.map(b => [b.feature, b]));
+      }
+    } catch (e) {
+      // ignore: UX не ломается, fallback-limit покажем
+    }
+  }
+
+  function renderAiBadge(feature, selector) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    const bal = state.aiBalance[feature];
+    const remaining = bal?.remaining ?? AI_LIMITS_DISPLAY[feature] ?? "—";
+    const isLow = typeof remaining === "number" && remaining <= 1;
+    el.innerHTML = `<span class="ai-badge ${isLow ? 'is-low' : ''}">Осталось сегодня: ${remaining}</span>`;
+    el.hidden = false;
+  }
+
+  function renderAiTopup(feature, selector) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    const bal = state.aiBalance[feature];
+    if (!bal || bal.remaining > 0) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML = `<div class="ai-limit-box">
+      <p>Лимит ${bal.limit}/день исчерпан. Сброс в полночь UTC.</p>
+      <button class="btn btn-gold" disabled title="Покупка звёзд — позже">Пополнить (скоро)</button>
+    </div>`;
+  }
 
   function setProfile(p) {
     state.profile = enrichProfile(p);
@@ -98,7 +147,7 @@
   const $$ = (s) => Array.from(document.querySelectorAll(s));
 
   // ── Init ─────────────────────────────────────────────────
-  function init() {
+  async function init() {
     // Landing gate: показываем, если открыли не из Telegram.
     // В Telegram всегда есть initDataUnsafe.user; в чистом браузере — нет.
     const inTelegram = !!(tg && tg.initDataUnsafe && tg.initDataUnsafe.user);
@@ -133,6 +182,7 @@
     renderBiorhythmTile();
     // renderEveningTile(); // removed: чек-ин выпилен
     renderProfile();
+    await loadAiBalance();
     wireEvents();
     wireBottomTabs();
     wireHeroFlip();
@@ -151,7 +201,7 @@
   }
 
   // ── Gadanie (arc portal) ─────────────────────────────────
-  function openGadaniePortal() {
+  async function openGadaniePortal() {
     closeAllPanels();
     const portal = $('#arcPortal');
     if (!portal) return;
@@ -160,7 +210,7 @@
     // Синхронизировать bottom-tabs (если юзер пришёл через quick-tile)
     $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'arc'));
     if (window.ArcApp && window.ArcApp.mount) {
-      window.ArcApp.mount();
+      await window.ArcApp.mount();
     }
     haptic('medium');
     // scroll to top
@@ -816,10 +866,15 @@
       <div class="chart-planets" id="chartPlanets"></div>
       <h3 class="chart-h3">Аспекты</h3>
       <div class="chart-aspects" id="chartAspects"></div>
-      <div class="chart-ai-slot" id="chartAiSlot"></div>
+      <div class="chart-ai-wrap">
+        <div class="chart-ai-meta" id="chartAiMeta"></div>
+        <div class="chart-ai-slot" id="chartAiSlot"></div>
+        <div class="chart-ai-topup" id="chartAiTopup"></div>
+      </div>
     `;
     renderPlanetTable(chart.planets);
     renderAspects(chart.aspects);
+    renderAiBadge('chart_interpret', '#chartAiMeta');
     renderChartAiButton();
   }
 
@@ -891,7 +946,7 @@
     return out.join('\n');
   }
 
-  const CHART_AI_LIMIT = 3;
+  const CHART_AI_LIMIT = AI_LIMITS_DISPLAY.chart_interpret;
 
   function renderChartAiButton() {
     const slot = $('#chartAiSlot');
@@ -930,6 +985,7 @@
             </div>
           </div>
         </div>`;
+      renderAiTopup('chart_interpret', '#chartAiTopup');
       return;
     }
 
@@ -996,13 +1052,13 @@
       const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
       if (!res.ok || !data.ok) {
         state.chartAi.error = data.message || data.error || 'Не удалось получить разбор.';
-        state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : state.chartAi.remaining;
+        state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : (state.aiBalance.chart_interpret?.remaining ?? CHART_AI_LIMIT);
         renderChartAiError();
         return;
       }
       state.chartAi.loaded = true;
       state.chartAi.interpretation = data.interpretation;
-      state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : state.chartAi.remaining;
+      state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : (state.aiBalance.chart_interpret?.remaining ?? CHART_AI_LIMIT);
       state.chartAi.cached = !!data.cached;
       renderChartAiButton();
     } catch (e) {
@@ -1029,10 +1085,6 @@
       </div>`;
     const btn = slot.querySelector('[data-action="load"]');
     if (btn) btn.onclick = loadChartAi;
-  }
-
-  function getInitData() {
-    return (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || '';
   }
 
   async function saveProfileToBot() {

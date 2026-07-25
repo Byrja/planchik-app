@@ -509,6 +509,13 @@ input, textarea, select { font: inherit; color: inherit; }
   box-shadow: 0 6px 16px -4px var(--gold-soft);
 }
 .btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-2), var(--gold));
+  color: var(--bg);
+  border: 1px solid rgba(212,175,55,0.5);
+  box-shadow: 0 6px 16px -4px var(--gold-soft);
+}
+.btn-gold:hover:not(:disabled) { transform: translateY(-1px); }
 .btn-ghost {
   background: var(--bg-3);
   color: var(--ink);
@@ -1774,7 +1781,31 @@ h3 { font-size: var(--fs-h2);      line-height: 1.3; }
 }
 
 /* ── AI-расшифровка натальной карты (F) ────────── */
-.chart-ai-slot { margin-top: 20px; }
+.chart-ai-wrap { margin-top: 20px; }
+.chart-ai-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+  color: var(--gold-2);
+  padding: 4px 10px;
+  border: 1px solid var(--line-gold);
+  border-radius: 999px;
+  background: var(--gold-soft);
+}
+.ai-badge.is-low { color: var(--danger); border-color: rgba(209, 59, 59, 0.5); background: rgba(209, 59, 59, 0.12); }
+.ai-limit-box {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px dashed var(--line-gold);
+  border-radius: var(--r-md);
+  background: rgba(27, 23, 56, 0.45);
+  text-align: center;
+}
+.ai-limit-box p { font-size: 13px; color: var(--ink-dim); margin: 0 0 10px; }
+.ai-limit-box .btn-gold { width: 100%; }
+.ai-limit-box .btn-gold:disabled { opacity: 0.55; cursor: not-allowed; }
+.chart-ai-slot { }
 .chart-ai-card {
   position: relative;
   background: linear-gradient(135deg, var(--bg-2) 0%, rgba(155,125,255,0.06) 100%);

@@ -972,7 +972,7 @@
     const btn = slot.querySelector('[data-action="load"]');
     if (btn) btn.disabled = true;
 
-    const initData = extractInitData(window.location.href);
+    const initData = getInitData();
     if (!initData) {
       state.chartAi.error = 'Не удалось получить initData. Перезайди в Mini App из бота.';
       renderChartAiError();
@@ -1031,42 +1031,54 @@
     if (btn) btn.onclick = loadChartAi;
   }
 
-  function sendToBot(type, payload) {
-    const tg = window.TelegramApp && window.TelegramApp.tg;
-    if (tg && tg.sendData) {
-      try {
-        tg.sendData(JSON.stringify({ type, payload }));
-        return true;
-      } catch (e) { /* noop */ }
-    }
-    return false;
+  function getInitData() {
+    return (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || '';
   }
 
-  function saveProfileToBot() {
+  async function saveProfileToBot() {
     if (!state.profile || !state.profile.birthYear) {
       flashToast('Заполни дату рождения');
       return;
     }
     const p = state.profile;
-    const payload = {
+    const initData = getInitData();
+    if (!initData) {
+      flashToast('Не удалось получить initData. Перезайди в Mini App из бота.');
+      return;
+    }
+    const body = {
       name: p.name || undefined,
       lastName: p.lastName || undefined,
-      birthYear:  p.birthYear,
-      birthMonth: p.birthMonth,
-      birthDay:   p.birthDay,
-      birthTime:  p.birthTime || undefined,
+      firstName: p.firstName || undefined,
+      patronymic: p.patronymic || undefined,
+      birthDate: `${p.birthYear}-${String(p.birthMonth).padStart(2, '0')}-${String(p.birthDay).padStart(2, '0')}`,
+      birthTime: p.birthTime || undefined,
       birthPlace: p.birthPlace || undefined,
       timezone: (p.timezone !== undefined ? p.timezone : (Intl.DateTimeFormat().resolvedOptions().timeZone || undefined)),
+      gender: p.gender || undefined,
     };
-    const ok = sendToBot('profile_update', payload);
-    if (ok) {
+    try {
+      const res = await fetch('/api/profile?initData=' + encodeURIComponent(initData), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
+      if (!res.ok || !data.ok) {
+        flashToast(data.error === 'user_not_started_bot'
+          ? 'Сначала запусти бота (/start)'
+          : (data.error || 'Не удалось сохранить профиль'));
+        return;
+      }
+      setProfile(p);
       Evening.saveProfile(p);
-      flashToast('Профиль отправлен в бот');
+      flashToast('Профиль сохранён');
       haptic('success');
       profileEditing = false;
       renderProfile();
-    } else {
-      flashToast('Не удалось — открой через кнопку «Открыть в боте»');
+      renderBiorhythmTile();
+    } catch (e) {
+      flashToast('Ошибка сети. Попробуй ещё раз.');
     }
   }
 
@@ -1100,16 +1112,6 @@
     const c = TarotDaily.calc(state.user.id || 1, DATA.todayKey());
     const text = TarotDaily.formatShare(c);
     const tg = window.TelegramApp && window.TelegramApp.tg;
-    // 1) Пробуем отправить в бот через sendData
-    if (tg && tg.sendData) {
-      try {
-        tg.sendData(JSON.stringify({ type: 'tarot', payload: { id: c.id, name: c.name, upright: c.upright, mood: c.mood, glyph: c.glyph } }));
-        flashToast('Отправлено в бот');
-        haptic('light');
-        return;
-      } catch (e) { /* fallback */ }
-    }
-    // 2) Fallback: Telegram share dialog / native share
     if (tg && tg.openTelegramLink) {
       flashToast('Выбери чат для отправки');
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/astro_byrbot') + '&text=' + encodeURIComponent(text);

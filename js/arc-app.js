@@ -330,7 +330,7 @@
     });
   }
 
-  // ── Шаринг: текст для navigator.share / tg.sendData ────
+  // ── Шаринг: текст для navigator.share / tg.openTelegramLink ────
   function buildShareText() {
     const deckName = DECKS[state.deck].label;
     if (state.cards.length === 0) return '';
@@ -357,24 +357,6 @@
     const text = buildShareText();
     if (!text) return;
     const tg = window.TelegramApp && window.TelegramApp.tg;
-    // 1) Пробуем отправить структурированные данные в бот
-    if (tg && tg.sendData) {
-      try {
-        const payload = {
-          type: 'arc_share',
-          payload: {
-            spread: state.spread,
-            deck: state.deck,
-            question: state.question,
-            cards: state.cards.map(c => ({ id: c.id, name: c.name, reversed: c.reversed }))
-          }
-        };
-        tg.sendData(JSON.stringify(payload));
-        flashToast('Сохранено в боте');
-        return;
-      } catch (e) { /* fallback */ }
-    }
-    // 2) Fallback: Telegram share dialog
     if (tg && tg.openTelegramLink) {
       flashToast('Выбери чат для отправки');
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/astro_byrbot') + '&text=' + encodeURIComponent(text);
@@ -1304,12 +1286,9 @@
 
   function mount() {
     try {
-      console.log('[ArcApp] mount() start');
       state.history = loadHistory();
-      console.log('[ArcApp] history loaded:', state.history.length);
       // wire nav
       const navLinks = $$('.arc-nav-link');
-      console.log('[ArcApp] nav links found:', navLinks.length);
       navLinks.forEach(a => {
         a.onclick = (e) => { e.preventDefault(); setSpread(a.dataset.spread); };
       });
@@ -1318,13 +1297,10 @@
       if (home) home.onclick = (e) => { e.preventDefault(); setSpread('one'); };
       // init
       setSpread('one');
-      console.log('[ArcApp] setSpread done');
       bindInfoCards();
       bindMobileNav();
       bindHistory();
-      console.log('[ArcApp] mount() OK');
     } catch (e) {
-      console.error('[ArcApp] mount FAILED', e);
       _showErr({ message: 'mount() failed: ' + e.message, stack: e.stack });
     }
   }

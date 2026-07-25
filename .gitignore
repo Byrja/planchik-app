@@ -1,3 +1,4 @@
 smoke/
 node_modules/
 *.log
+.hermes/

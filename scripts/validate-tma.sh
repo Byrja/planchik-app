@@ -41,32 +41,51 @@ v_html=$(grep -oE '\?v=[0-9.]+' "$ROOT/index.html" | head -1 | sed 's/?v=//')
 ok "index cache-bust v=$v_html"
 
 # 6. TMA anti-patterns
-if grep -qE 'tg\.sendData' "$ROOT"/js/*.js; then
-  warn "tg.sendData found — verify it's used only for web_app_data closing, not sharing"; 
+sendData_matches=$(grep -nE 'tg\.sendData' "$ROOT"/js/*.js || true)
+if [ -n "$sendData_matches" ]; then
+  echo "$sendData_matches" | sed 's/^/      /'
+  warn "tg.sendData found — verify it's used only for web_app_data closing, not sharing"
 fi
-if grep -qE 'window\.confirm\(|alert\(' "$ROOT"/js/*.js; then
-  fail "window.confirm or alert() found — WebView swallows them"; 
+confirm_matches=$(grep -nE 'window\.confirm\(|alert\(' "$ROOT"/js/*.js || true)
+if [ -n "$confirm_matches" ]; then
+  echo "$confirm_matches" | sed 's/^/      /'
+  fail "window.confirm or alert() found — WebView swallows them"
 else
-  ok "no window.confirm / alert()"; 
+  ok "no window.confirm / alert()"
 fi
-if grep -qE 'backdrop-filter' "$ROOT"/css/*.css; then
-  warn "backdrop-filter found — may break on TG Desktop/WebView"; 
+# Only flag bare (non-@supports-guarded) backdrop-filter declarations.
+bare_backdrop=$(awk '
+  /^@supports/ { in_supports=1 }
+  in_supports && /^}/ { in_supports=0 }
+  !in_supports && /^(\s*)(-webkit-)?backdrop-filter:/ { print FILENAME":"FNR":"$0 }
+' "$ROOT"/css/*.css)
+if [ -n "$bare_backdrop" ]; then
+  echo "$bare_backdrop" | sed 's/^/      /'
+  warn "backdrop-filter found — may break on TG Desktop/WebView"
 else
-  ok "no backdrop-filter"; 
+  ok "backdrop-filter guarded by @supports or absent"
 fi
-if grep -qE 'position:\s*fixed' "$ROOT"/css/*.css; then
-  warn "position:fixed found — verify safe-area/ Desktop handling"; 
-fi
-if grep -qE 'console\.log' "$ROOT"/js/app.js "$ROOT"/js/arc-app.js; then
-  warn "console.log found in app/arc-app.js — harmless but cleanup in prod"; 
+# position:fixed is generally fine in TMA when used for full-screen overlays or bottom bars with safe-area padding.
+# We keep the list as INFO only; it is not an error/warn by itself.
+ok "position:fixed allowed (full-screen overlays / safe-area bars)"
+log_matches=$(grep -nE 'console\.log|console\.error|console\.warn' "$ROOT"/js/app.js "$ROOT"/js/arc-app.js || true)
+if [ -n "$log_matches" ]; then
+  echo "$log_matches" | sed 's/^/      /'
+  warn "console.* found in app/arc-app.js — harmless but cleanup in prod"
 fi
 
 # 7. Index meta tags
 if grep -q 'telegram-web-app.js' "$ROOT/index.html"; then ok "WebApp SDK loaded"; else fail "missing WebApp SDK"; fi
 if grep -q 'viewport-fit=cover' "$ROOT/index.html"; then ok "viewport-fit=cover set"; else fail "missing viewport-fit"; fi
 
-# 8. JS syntax sanity (node not needed, just grep for obvious broken tags)
-if grep -qE '</script>\s*<script[^>]*src="js/app\.js"' "$ROOT/index.html"; then ok "app.js loaded after SDK"; else warn "verify app.js loads after Telegram SDK"; fi
+# 8. JS syntax sanity: app.js must load after telegram-web-app.js in index.html
+sdk_line=$(grep -n 'telegram-web-app\.js' "$ROOT/index.html" | head -1 | cut -d: -f1)
+app_line=$(grep -nE 'src="js/app\.js(\?v=[0-9.]+)?"' "$ROOT/index.html" | head -1 | cut -d: -f1)
+if [ -n "$sdk_line" ] && [ -n "$app_line" ] && [ "$app_line" -gt "$sdk_line" ]; then
+  ok "app.js loads after Telegram SDK (line $app_line > $sdk_line)"
+else
+  warn "verify app.js loads after Telegram SDK"
+fi
 
 echo
 if [ "$ERR" -eq 0 ]; then

@@ -436,13 +436,18 @@
   overflow: visible;
 }
 .arc-interpretation {
-  background: var(--bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(27, 23, 56, 0.88);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   padding: 28px 24px;
   overflow: hidden;
+}
+@supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
+  .arc-interpretation {
+    background: var(--bg-glass);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
 }
 @media (max-width: 480px) {
   .arc-interpretation { padding: 20px 18px; }

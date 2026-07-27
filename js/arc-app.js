@@ -222,12 +222,28 @@
     if (navigator.vibrate) navigator.vibrate(ms);
   }
 
-  // ── История (общая для всех раскладов) ──────────────────
-  function loadHistory() {
-    try { return JSON.parse(localStorage.getItem('arhHistory') || '[]'); } catch { return []; }
-  }
-  function saveHistory() {
-    try { localStorage.setItem('arhHistory', JSON.stringify(state.history.slice(0, 30))); } catch (e) {}
+  // ── История (общая для всех раскладов), теперь из backend ──────────────────
+  async function loadHistory() {
+    try {
+      const initData = getInitData();
+      const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
+      const data = await res.json().catch(() => ({ ok: false, items: [] }));
+      if (!data.ok) return [];
+      return (data.items || []).map((it) => ({
+        id: it.id,
+        ts: new Date(it.created_at).getTime(),
+        spread: it.payload?.spread || 'one',
+        question: it.subtitle || it.payload?.question || '',
+        cards: (it.payload?.cards || []).map((c) => ({
+          name: c.name || '?',
+          reversed: !!c.reversed,
+          position: c.position || '',
+        })),
+        interpretation: it.interpretation || '',
+      }));
+    } catch {
+      return [];
+    }
   }
 
   // ── Рендер истории раскладов ──────────────────────────────
@@ -255,7 +271,7 @@
         return `<span class="arc-history-card-chip">${escapeHtml(c.name)}${rev}</span>`;
       }).join('') + ((h.cards || []).length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${(h.cards || []).length - 4}</span>` : '');
       const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
-      return `<li class="arc-history-item" data-idx="${i}">
+      return `<li class="arc-history-item" data-idx="${i}" data-history-id="${h.id}">
         <div class="arc-history-meta">
           <span class="arc-history-spread">${SPREAD_LABELS[h.spread] || h.spread}</span>
           <span class="arc-history-date">${dateStr}</span>
@@ -264,6 +280,22 @@
         <div class="arc-history-cards">${cardsNames}</div>
       </li>`;
     }).join('');
+
+    // открытие расшифровки
+    list.querySelectorAll('.arc-history-item').forEach((li) => {
+      li.addEventListener('click', async () => {
+        const id = Number(li.dataset.historyId);
+        const initData = getInitData();
+        try {
+          const res = await fetch(`/api/history/${id}?initData=${encodeURIComponent(initData)}`);
+          const data = await res.json().catch(() => ({ ok: false }));
+          if (!data.ok || !data.interpretation) return flashToast('Расшифровка не найдена');
+          openInterpretation(data.payload?.cards || [], data.payload?.question || '', data.payload?.spread || 'one', data.payload?.spreadName || SPREAD_LABELS[data.payload?.spread] || 'Расклад', data.interpretation);
+        } catch {
+          flashToast('Не удалось загрузить расшифровку');
+        }
+      });
+    });
   }
 
   function showHistory() {
@@ -842,26 +874,43 @@
   }
 
   // ── Действие «Тянуть» ───────────────────────────────────
-  function doDraw() {
+  async function doDraw() {
     if (state.cards.length > 0) return;
     const t = templateSpread();
     state.cards = drawN(t.count);
-    const entryId = 'h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-    state.lastEntryId = entryId;
-    // history entry
-    state.history.unshift({
-      id: entryId,
-      ts: Date.now(),
-      spread: state.spread,
-      deck: state.deck,
-      cards: state.cards.map(c => ({ id: c.id, name: c.name, reversed: c.reversed })),
-      question: state.question,
-      note: ''
-    });
-    saveHistory();
+    state.lastEntryId = null;
 
     const stage = r$('#arcStage');
     if (stage) stage.classList.add('is-lit');
+
+    // Сохраняем в backend-историю сразу (без AI-расшифровки)
+    try {
+      const initData = getInitData();
+      const spreadCfg = SPREADS[state.spread] || { title: state.spread };
+      const cards = state.cards.map(c => ({
+        name: c.name,
+        position: c.position,
+        reversed: !!c.reversed,
+        arcana: c.arcana,
+        suit: c.suit,
+      }));
+      const res = await fetch('/api/history?initData=' + encodeURIComponent(initData), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          type: 'tarot',
+          title: spreadCfg.title,
+          subtitle: state.question || `${cards.length} карт`,
+          payload: { spread: state.spread, spreadName: spreadCfg.title, cards, question: state.question },
+        }),
+      });
+      const data = await res.json().catch(() => ({ ok: false }));
+      if (data.ok && data.id) {
+        state.lastEntryId = data.id;
+      }
+    } catch {
+      // не блокируем UX если история не сохранилась
+    }
 
     // Анимация: для одной карты flip; для мульти — поочерёдная раздача
     if (t.count === 1) {
@@ -1208,17 +1257,17 @@
       }
       // сохранить в кэш + история
       try { localStorage.setItem(key, data.interpretation); } catch (e) {}
-      // записать в arhHistory[i].aiInterp если есть lastEntryId
-      try {
-        if (state.lastEntryId) {
-          const hist = JSON.parse(localStorage.getItem('arhHistory') || '[]');
-          const idx = hist.findIndex(h => h.id === state.lastEntryId);
-          if (idx >= 0) {
-            hist[idx].aiInterp = data.interpretation;
-            localStorage.setItem('arhHistory', JSON.stringify(hist));
-          }
-        }
-      } catch (e) {}
+      // записать interpretation в backend history если есть lastEntryId
+      if (state.lastEntryId) {
+        try {
+          const initData = getInitData();
+          await fetch(`/api/history/${state.lastEntryId}?initData=${encodeURIComponent(initData)}`, {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ interpretation: data.interpretation }),
+          });
+        } catch {}
+      }
       // перерисовать кнопку (покажет свёрнутую карточку)
       renderAiButton();
     } catch (e) {
@@ -1311,7 +1360,7 @@
 
   async function mount() {
     try {
-      state.history = loadHistory();
+      state.history = await loadHistory();
       await loadAiBalance();
       // wire nav
       const navLinks = $$('.arc-nav-link');
@@ -1338,11 +1387,21 @@
     const clear = r$('#arcHistoryClear');
     if (btn) btn.onclick = (e) => { e.preventDefault(); showHistory(); };
     if (close) close.onclick = (e) => { e.preventDefault(); hideHistory(); };
-    if (clear) clear.onclick = (e) => {
+    if (clear) clear.onclick = async (e) => {
       e.preventDefault();
-      // WebView глотает window.confirm; без подтверждения
+      const ok = await arcConfirm('Очистить всю историю раскладов?');
+      if (!ok) return;
+      // удаляем все tarot-записи на backend
+      try {
+        const initData = getInitData();
+        const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
+        const data = await res.json().catch(() => ({ ok: false, items: [] }));
+        const ids = (data.items || []).map(it => it.id);
+        await Promise.all(ids.map(id =>
+          fetch(`/api/history/${id}?initData=${encodeURIComponent(initData)}`, { method: 'DELETE' })
+        ));
+      } catch {}
       state.history = [];
-      try { localStorage.removeItem('arhHistory'); } catch (err) {}
       renderHistory();
     };
   }

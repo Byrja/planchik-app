@@ -39,8 +39,8 @@
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.76">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.76">
+  <link rel="stylesheet" href="css/styles.css?v=3.78">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.78">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -166,7 +166,12 @@
       <div class="hero-card-reading" id="heroReadingBlock" hidden>
         <div class="hero-reading-inner" id="heroReading">—</div>
       </div>
+      <div class="hero-ai-reading" id="heroAiReading" hidden></div>
       <div class="hero-card-actions">
+        <button type="button" class="btn btn-ghost hero-ai-btn" id="btnHeroAi">
+          <span class="hero-ai-btn-icon" aria-hidden="true">✨</span>
+          Расшифровка LLM
+        </button>
         <button type="button" class="btn btn-ghost" id="btnRefreshTarot">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
@@ -560,18 +565,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.76"></script>
-  <script src="js/tarot.js?v=3.76"></script>
-  <script src="js/biorhythm.js?v=3.76"></script>
-  <script src="js/arc-runes.js?v=3.76"></script>
-  <script src="js/arc-lenormand.js?v=3.76"></script>
-  <script src="js/arc-gypsy.js?v=3.76"></script>
-  <script src="js/arc-playing.js?v=3.76"></script>
-  <script src="js/arc-tarot.js?v=3.76"></script>
-  <script src="js/arc-tarot-minor.js?v=3.76"></script>
-  <script src="js/chart.js?v=3.76"></script>
-  <script src="js/arc-app.js?v=3.76"></script>
-  <script src="js/app.js?v=3.76"></script>
+  <script src="js/data.js?v=3.78"></script>
+  <script src="js/tarot.js?v=3.78"></script>
+  <script src="js/biorhythm.js?v=3.78"></script>
+  <script src="js/arc-runes.js?v=3.78"></script>
+  <script src="js/arc-lenormand.js?v=3.78"></script>
+  <script src="js/arc-gypsy.js?v=3.78"></script>
+  <script src="js/arc-playing.js?v=3.78"></script>
+  <script src="js/arc-tarot.js?v=3.78"></script>
+  <script src="js/arc-tarot-minor.js?v=3.78"></script>
+  <script src="js/chart.js?v=3.78"></script>
+  <script src="js/arc-app.js?v=3.78"></script>
+  <script src="js/app.js?v=3.78"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

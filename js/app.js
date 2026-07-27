@@ -262,6 +262,7 @@
     const date = DATA.todayKey();
     const c = TarotDaily.calc(tgId, date);
     // Заполняем лицо flip-карты (новая разметка: #heroTarotCard > .tarot-card-inner)
+    state.dailyCard = c; // для AI-расшифровки
     const imgEl    = $('#heroImg');
     const nameEl   = $('#heroName');
     const moodEl   = $('#heroMood');
@@ -1212,10 +1213,81 @@
     return (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
+  // ── AI-расшифровка карты дня ───────────────────────────────
+  async function handleHeroAiInterpret() {
+    const btn = $('#btnHeroAi');
+    const slot = $('#heroAiReading');
+    if (!btn || !slot) return;
+    const c = state.dailyCard;
+    if (!c || !c.name) return;
+
+    // toggle: если уже открыт — закрыть
+    if (!slot.hidden) {
+      slot.hidden = true;
+      slot.innerHTML = '';
+      btn.classList.remove('is-active');
+      return;
+    }
+
+    // localStorage cache (по name + orientation, валиден 1 день)
+    const today = DATA.todayKey();
+    const cacheKey = `heroAi:${c.name}:${c.reversed ? 'r' : 'u'}:${today}`;
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (e) {}
+    if (cached && cached.meaning) {
+      renderHeroAi(slot, cached);
+      btn.classList.add('is-active');
+      return;
+    }
+
+    // fetch
+    btn.disabled = true;
+    btn.classList.add('is-loading');
+    const orig = btn.querySelector('.hero-ai-btn-icon');
+    if (orig) orig.textContent = '⏳';
+    try {
+      const initData = getInitData();
+      const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'fail');
+      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+      renderHeroAi(slot, data);
+      btn.classList.add('is-active');
+    } catch (e) {
+      if (orig) orig.textContent = '⚠️';
+      setTimeout(() => { if (orig) orig.textContent = '✨'; }, 2500);
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('is-loading');
+      if (orig && orig.textContent === '⏳') orig.textContent = '✨';
+    }
+  }
+
+  function renderHeroAi(slot, d) {
+    slot.innerHTML = `
+      <div class="hero-ai-card">
+        <div class="hero-ai-header"><span aria-hidden="true">🔮</span> Глубинный разбор</div>
+        <p class="hero-ai-meaning">${escapeHtml(d.meaning || '')}</p>
+        ${d.advice ? `<p class="hero-ai-line"><span class="hero-ai-label">Совет дня:</span> ${escapeHtml(d.advice)}</p>` : ''}
+        ${d.warning ? `<p class="hero-ai-line"><span class="hero-ai-label">Осторожно:</span> ${escapeHtml(d.warning)}</p>` : ''}
+      </div>`;
+    slot.hidden = false;
+  }
+
   // ── Wire events (idempotent через .onclick) ──────────────
   function wireEvents() {
     $('#btnRefreshTarot').onclick = refreshTarot;
     $('#btnShareTarot').onclick   = shareTarot;
+
+    // ── AI-расшифровка карты дня ────────────────────────────
+    const aiBtn = $('#btnHeroAi');
+    if (aiBtn) {
+      aiBtn.onclick = handleHeroAiInterpret;
+    }
     // Toggle «Полная расшифровка» — плавно разворачивает/скрывает блок под кнопкой
     const tg = $('#btnReadingToggle');
     if (tg) {

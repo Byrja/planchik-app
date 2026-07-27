@@ -245,6 +245,50 @@ input, textarea, select { font: inherit; color: inherit; }
 .hero-card-actions .btn { flex: 1 1 auto; min-width: 130px; }
 .hero-card-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .hero-card-actions .btn svg { flex-shrink: 0; }
+
+/* ── AI-расшифровка карты дня ─────────────────────────── */
+.hero-ai-btn { position: relative; }
+.hero-ai-btn .hero-ai-btn-icon { font-size: 15px; line-height: 1; }
+.hero-ai-btn.is-active {
+  background: var(--gold-soft);
+  border-color: var(--line-gold);
+  color: var(--gold-2);
+}
+.hero-ai-btn.is-loading { opacity: 0.7; pointer-events: none; }
+
+.hero-ai-reading { margin: 0 0 8px 0; }
+.hero-ai-reading[hidden] { display: none; }
+.hero-ai-card {
+  background: linear-gradient(135deg, rgba(212,175,55,0.06), rgba(160,120,200,0.05));
+  border: 1px solid var(--line-gold);
+  border-radius: 14px;
+  padding: 16px 18px;
+  animation: heroAiSlideIn 0.35s ease;
+}
+.hero-ai-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600;
+  color: var(--gold-2);
+  margin-bottom: 10px;
+}
+.hero-ai-meaning {
+  font-size: 14px; line-height: 1.6;
+  color: var(--text);
+  margin: 0 0 10px 0;
+}
+.hero-ai-line {
+  font-size: 13px; line-height: 1.5;
+  color: var(--text-muted, #a9a3b8);
+  margin: 6px 0 0 0;
+}
+.hero-ai-label {
+  font-weight: 600;
+  color: var(--gold-2);
+}
+@keyframes heroAiSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 /* Hint что hero кликабельна */
 .hero-card { cursor: pointer; }
 .hero-card-hint {

@@ -113,6 +113,34 @@
     Evening.saveProfile(p);
   }
 
+  // Подтягивает профиль из бэкенда (заполненный в боте) и мержит с localStorage.
+  // Бэкенд-профиль приоритетнее: если в боте заполнена дата рождения — она выигрывает.
+  async function loadProfileFromBackend() {
+    const initData = getInitData();
+    if (!initData) return;
+    try {
+      const res = await fetch('/api/profile?initData=' + encodeURIComponent(initData));
+      const data = await res.json().catch(() => ({ ok: false }));
+      if (!data.ok || !data.profile) return;
+      const bp = data.profile; // backend profile
+      const lp = Evening.loadProfile() || {}; // localStorage profile
+      // Мерж: бэкенд-поля приоритетнее, но localStorage может иметь несохранённые правки
+      const merged = { ...lp, ...bp };
+      // Конвертируем birthDate (YYYY-MM-DD) в birthYear/birthMonth/birthDay для совместимости
+      if (bp.birthDate && typeof bp.birthDate === 'string') {
+        const [y, m, d] = bp.birthDate.split('-').map(Number);
+        if (y && m && d) {
+          merged.birthYear = y;
+          merged.birthMonth = m;
+          merged.birthDay = d;
+        }
+      }
+      setProfile(merged);
+    } catch (e) {
+      // молча — нет сети или бэкенд не ответил, работаем с localStorage
+    }
+  }
+
   function parseUser() {
     const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -178,9 +206,9 @@
     $('#dateLabel').textContent  = DATA.dateLabel();
     $('#loadedAt').textContent   = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     renderUser();
+    await loadProfileFromBackend(); // подтянуть профиль из бота
     renderTarot();
     renderBiorhythmTile();
-    // renderEveningTile(); // removed: чек-ин выпилен
     renderProfile();
     await loadAiBalance();
     wireEvents();

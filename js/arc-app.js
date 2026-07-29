@@ -30,6 +30,7 @@
     gypsy:    { label: 'Цыганские',     deck: () => window.DECK_GYPSY,     hint: '36 карт' },
     playing:  { label: 'Игральные',     deck: () => window.DECK_PLAYING,   hint: 'Колода 36' }
   };
+  const DECK_IDS = Object.keys(DECKS);
 
   // ── Все расклады портала ───────────────────────────────
   // Каждый: { count, ask, positions? (для кросс-раскладов), help? }
@@ -366,14 +367,38 @@
     const wrap = r$('#deckChips');
     if (!wrap) return;
     wrap.innerHTML = '';
+    // Кнопка «Все колоды»
+    const allBtn = document.createElement('button');
+    allBtn.className = 'arc-chip' + (state.deck === 'all' ? ' is-active' : '');
+    allBtn.type = 'button';
+    allBtn.innerHTML = `<span class="arc-chip-label">Все колоды</span><span class="arc-chip-hint">5 колод · по одной карте из каждой</span>`;
+    allBtn.onclick = () => { state.deck = 'all'; resetReading(); renderDeckChips(); updateSpreadHeader(); };
+    wrap.appendChild(allBtn);
+    // Остальные колоды
     Object.entries(DECKS).forEach(([id, info]) => {
       const b = document.createElement('button');
       b.className = 'arc-chip' + (state.deck === id ? ' is-active' : '');
       b.type = 'button';
       b.innerHTML = `<span class="arc-chip-label">${info.label}</span><span class="arc-chip-hint">${info.hint}</span>`;
-      b.onclick = () => { state.deck = id; resetReading(); renderDeckChips(); };
+      b.onclick = () => { state.deck = id; resetReading(); renderDeckChips(); updateSpreadHeader(); };
       wrap.appendChild(b);
     });
+  }
+
+  function updateSpreadHeader() {
+    const t = templateSpread();
+    const title = r$('.arc-panel-title');
+    const sub = r$('.arc-panel-sub');
+    const hint = r$('.arc-panel-hint');
+    if (state.deck === 'all') {
+      if (title) title.textContent = 'Все колоды';
+      if (sub) sub.textContent = 'По одной карте из каждой колоды: Таро, Ленорман, Руны, Цыганские, Игральные.';
+      if (hint) hint.textContent = '5 карт — 5 систем. Самый полный расклад.';
+    } else {
+      if (title) title.textContent = t.title;
+      if (sub) sub.textContent = t.ask;
+      if (hint) { hint.textContent = t.hint || ''; hint.style.display = t.hint ? '' : 'none'; }
+    }
   }
 
   // ── Сбросить расклад ────────────────────────────────────
@@ -392,6 +417,25 @@
   const NO_REVERSED = new Set(['runes', 'playing']);
 
   function drawN(n) {
+    // Режим «все колоды»: тянем по одной карте из каждой
+    if (state.deck === 'all') {
+      const result = [];
+      for (const deckId of DECK_IDS) {
+        const deckArr = DECKS[deckId].deck() || [];
+        if (!deckArr.length) continue;
+        const idx = Math.floor(Math.random() * deckArr.length);
+        const c = deckArr[idx];
+        const allowReversed = !NO_REVERSED.has(deckId);
+        const isRev = allowReversed && Math.random() < 0.30;
+        result.push({
+          ...c,
+          deck: deckId,
+          deckLabel: DECKS[deckId].label,
+          reversed: isRev ? (c.reversed || 'Перевёрнутая карта — обратите внимание на скрытые качества.') : false
+        });
+      }
+      return result;
+    }
     const deckArr = DECKS[state.deck].deck() || [];
     if (!deckArr.length) return [];
     const copy = deckArr.slice();
@@ -412,7 +456,8 @@
 
   // ── Шаринг: текст для navigator.share / tg.openTelegramLink ────
   function buildShareText() {
-    const deckName = DECKS[state.deck].label;
+    const isAllDecks = state.deck === 'all';
+    const deckName = isAllDecks ? 'Все колоды' : DECKS[state.deck].label;
     if (state.cards.length === 0) return '';
     const cfg = templateSpread();
     if (state.cards.length === 1) {
@@ -424,7 +469,9 @@
     if (state.question) lines.push(`Вопрос: ${state.question}`);
     state.cards.forEach((c, i) => {
       const pos = c.reversed ? '⤵' : '↗';
-      const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
+      const label = isAllDecks
+        ? (c.deckLabel || `Карта ${i+1}`)
+        : ((cfg.positions && cfg.positions[i]) || `#${i+1}`);
       lines.push(`\n${label} — ${pos} ${c.name}\n${c.reversed ? c.reversed : c.upright}`);
     });
     lines.push('\n— Гадалка');
@@ -578,9 +625,9 @@
     const n = state.cards.length;
     if (n === 0) {
       // Показываем полезное превью колоды — 3 реальные открытые карты из колоды
-      const deckArr = DECKS[state.deck].deck() || [];
+      const isAllDecks = state.deck === 'all';
+      const deckArr = isAllDecks ? (DECKS.tarot.deck() || []) : (DECKS[state.deck].deck() || []);
       const previewCount = Math.min(deckArr.length, 3);
-      // Берём детерминированный срез (первые N) — стабильное превью, не «прыгает» при каждом рендере
       const preview = deckArr.slice(0, previewCount);
       const previewHtml = preview.map((c, i) => {
         const visual = c.image
@@ -591,10 +638,12 @@
           <div class="arc-preview-name">${escapeHtml(c.name)}</div>
         </div>`;
       }).join('');
+      const deckLabel = isAllDecks ? 'Все колоды' : DECKS[state.deck].label;
+      const deckHint = isAllDecks ? 'По одной карте из каждой колоды' : DECKS[state.deck].hint;
       stage.innerHTML = `
-        <div class="arc-deck-ready" role="img" aria-label="Колода ${DECKS[state.deck].label} готова. ${deckArr.length} карт.">
+        <div class="arc-deck-ready" role="img" aria-label="Колода ${deckLabel} готова. ${deckArr.length} карт.">
           <div class="arc-deck-preview-grid" data-count="${previewCount}">${previewHtml}</div>
-          <p class="arc-deck-hint"><strong>${DECKS[state.deck].label}</strong> · ${DECKS[state.deck].hint}. Задайте вопрос и нажмите «Тянуть».</p>
+          <p class="arc-deck-hint"><strong>${deckLabel}</strong> · ${deckHint}. Задайте вопрос и нажмите «Тянуть».</p>
         </div>`;
       return;
     }
@@ -615,9 +664,12 @@
           </div>
         </div>`;
     } else {
+      const isAllDecks = state.deck === 'all';
       const cardsHtml = state.cards.map((c, i) => {
         const cfg = templateSpread();
-        const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
+        const label = isAllDecks
+          ? (c.deckLabel || '')
+          : ((cfg.positions && cfg.positions[i]) || `#${i+1}`);
         const imgSrc = cardImage(c);
         const visual = imgSrc
           ? `<img src="${imgSrc}" alt="${escapeHtml(c.name)}" class="arc-mini-card-img ${c.reversed ? 'is-reversed' : ''}">`
@@ -690,8 +742,11 @@
     }
     // Общий путь: одна / три / кельтский крест / подкова / алхимик / выбор / карьера / здоровье / психея / судьба
     const cfg = templateSpread();
+    const isAllDecks = state.deck === 'all';
     const sections = state.cards.map((c, i) => {
-      const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
+      const label = isAllDecks
+        ? (c.deckLabel || `Карта ${i+1}`)
+        : ((cfg.positions && cfg.positions[i]) || `#${i+1}`);
       const hint  = (cfg.hints && cfg.hints[i]) || '';
       const headline = c.reversed ? 'Перевёрнутое положение' : 'Прямое положение';
       const img = cardImage(c);
@@ -833,9 +888,9 @@
           ${tabsHtml}
         </nav>
       </div>
-      <div class="arc-panel-title">${escapeHtml(t.title)}</div>
-      <p class="arc-panel-sub">${escapeHtml(t.ask)}</p>
-      ${t.hint ? `<p class="arc-panel-hint">${escapeHtml(t.hint)}</p>` : ''}
+      <div class="arc-panel-title">${escapeHtml(state.deck === 'all' ? 'Все колоды' : t.title)}</div>
+      <p class="arc-panel-sub">${escapeHtml(state.deck === 'all' ? 'По одной карте из каждой колоды: Таро, Ленорман, Руны, Цыганские, Игральные.' : t.ask)}</p>
+      ${(state.deck === 'all' ? '5 карт — 5 систем. Самый полный расклад.' : t.hint) ? `<p class="arc-panel-hint">${escapeHtml(state.deck === 'all' ? '5 карт — 5 систем. Самый полный расклад.' : t.hint)}</p>` : ''}
       ${variantsHtml}
 
       <div class="arc-block">
@@ -919,7 +974,8 @@
   async function doDraw() {
     if (state.cards.length > 0) return;
     const t = templateSpread();
-    state.cards = drawN(t.count);
+    const count = state.deck === 'all' ? 5 : t.count;
+    state.cards = drawN(count);
     state.lastEntryId = null;
 
     const stage = r$('#arcStage');
@@ -955,7 +1011,7 @@
     }
 
     // Анимация: для одной карты flip; для мульти — поочерёдная раздача
-    if (t.count === 1) {
+    if (state.cards.length === 1) {
       const cardEl = document.createElement('div');
       cardEl.id = 'cardStage';
       cardEl.setAttribute('role', 'img');
@@ -1389,7 +1445,7 @@
 
   // ── Public mount/unmount ─────────────────────────────────
   function setDeck(deck) {
-    if (DECKS[deck]) {
+    if (DECKS[deck] || deck === 'all') {
       state.deck = deck;
       state.cards = [];
       const wrap = r$('#deckChips');

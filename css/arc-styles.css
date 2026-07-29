@@ -194,6 +194,38 @@
 .arc-chip-hint { font-size: 11px; color: var(--ink-mute); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
 .arc-chip.is-active .chip-hint { color: var(--gold); }
 
+/* Variant chips for three-card spread */
+.arc-variant-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.arc-variant-chip {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-3);
+  color: var(--ink-dim);
+  font-size: 13px;
+  transition: all var(--t);
+  cursor: pointer;
+}
+.arc-variant-chip:hover { border-color: var(--line-gold); color: var(--ink); }
+.arc-variant-chip.is-active {
+  background: linear-gradient(135deg, rgba(212,175,55,0.20), rgba(212,175,55,0.06));
+  border-color: var(--gold);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--gold-soft);
+}
+
+/* Sidebar divider for deep spreads */
+.arc-nav-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 18px 0 10px;
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.arc-nav-divider::before,
+.arc-nav-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+
 /* ---------- QUESTION ---------- */
 .arc-field { display: block; margin-bottom: 20px; }
 .arc-field label {

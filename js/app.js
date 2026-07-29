@@ -469,7 +469,7 @@
     }
     const html = days.map((d, i) => {
       const dayShort = i === 0 ? 'Сегодня' : d.dt.split(',')[0];
-      return `<li class="forecast-item">
+      return `<li class="forecast-item" data-idx="${i}" role="button" tabindex="0" aria-label="${dayShort}: ${escapeHtml(d.card.name)}">
         <span class="forecast-day">${dayShort}</span>
         <span class="forecast-card"><span class="forecast-glyph">${d.card.glyph}</span> ${escapeHtml(d.card.name)}</span>
         <span class="forecast-bio">${d.bioLine !== null ? (d.bioLine > 0 ? '+' : '') + d.bioLine + '%' : '—'}</span>
@@ -477,6 +477,11 @@
     }).join('');
     list.innerHTML = html;
     list.hidden = false;
+    // wire clicks
+    list.querySelectorAll('.forecast-item').forEach(item => {
+      item.addEventListener('click', () => openForecastDayDetail(days[Number(item.dataset.idx)]));
+      item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openForecastDayDetail(days[Number(item.dataset.idx)]); } });
+    });
     // очистим placeholder
     const ph = content.querySelector('#forecastEmpty');
     if (ph) ph.remove();
@@ -1276,6 +1281,66 @@
         ${d.warning ? `<p class="hero-ai-line"><span class="hero-ai-label">Осторожно:</span> ${escapeHtml(d.warning)}</p>` : ''}
       </div>`;
     slot.hidden = false;
+  }
+
+  // ── Развёртка дня недели (forecast) ───────────────────────
+  async function openForecastDayDetail(d) {
+    haptic('light');
+    let panel = $('#forecastDayPanel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'forecastDayPanel';
+      panel.className = 'forecast-day-panel overlay-panel';
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-modal', 'true');
+      document.body.appendChild(panel);
+    }
+    const reversed = Math.random() < 0.18;
+    const text = d.card[reversed ? 'reversed' : 'upright'] || '';
+    panel.innerHTML = `
+      <div class="overlay-backdrop" data-close></div>
+      <div class="overlay-card tile-in">
+        <button class="overlay-close" data-close aria-label="Закрыть">×</button>
+        <div class="forecast-day-header">
+          <span class="forecast-day-glyph">${d.card.glyph}</span>
+          <div>
+            <div class="forecast-day-title">${escapeHtml(d.card.name)}</div>
+            <div class="forecast-day-date">${escapeHtml(d.dt)} · ${reversed ? 'перевёрнутая' : 'прямая'}</div>
+          </div>
+        </div>
+        <div class="forecast-day-body">
+          <p class="forecast-day-text">${escapeHtml(text)}</p>
+          <button class="btn btn-secondary btn-sm" id="forecastAiBtn">✨ AI-расшифровка</button>
+          <div class="hero-ai-reading" id="forecastAiSlot" hidden></div>
+        </div>
+      </div>`;
+    panel.hidden = false;
+    const close = () => { panel.hidden = true; panel.innerHTML = ''; };
+    panel.querySelectorAll('[data-close]').forEach(el => el.onclick = close);
+    const aiBtn = panel.querySelector('#forecastAiBtn');
+    const aiSlot = panel.querySelector('#forecastAiSlot');
+    if (aiBtn && aiSlot) {
+      aiBtn.onclick = async () => {
+        if (!aiSlot.hidden) { aiSlot.hidden = true; aiSlot.innerHTML = ''; aiBtn.classList.remove('is-active'); return; }
+        aiBtn.disabled = true; aiBtn.classList.add('is-loading');
+        try {
+          const initData = getInitData();
+          const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: d.card.name, reversed })
+          });
+          const data = await res.json();
+          if (!data.ok) throw new Error(data.error || 'fail');
+          renderHeroAi(aiSlot, data);
+          aiBtn.classList.add('is-active');
+        } catch (e) {
+          aiBtn.textContent = '⚠️ не удалось';
+          setTimeout(() => aiBtn.textContent = '✨ AI-расшифровка', 2500);
+        } finally {
+          aiBtn.disabled = false; aiBtn.classList.remove('is-loading');
+        }
+      };
+    }
   }
 
   // ── Wire events (idempotent через .onclick) ──────────────

@@ -1,4 +1,4 @@
-// arc-app.js — Архангел клон: 5 раскладов, роутер, общая история.
+// arc-app.js — портал гаданий: 5 колод, 12 раскладов, общая история.
 // TMA-safe: idempotent .onclick, no backdrop-filter на overlay.
 
 (function () {
@@ -31,7 +31,7 @@
     playing:  { label: 'Игральные',     deck: () => window.DECK_PLAYING,   hint: 'Колода 36' }
   };
 
-  // ── Все расклады Архангела ──────────────────────────────
+  // ── Все расклады портала ───────────────────────────────
   // Каждый: { count, ask, positions? (для кросс-раскладов), help? }
   // positions — массив меток для каждой карты
   const SPREADS = {
@@ -44,11 +44,16 @@
     },
     three: {
       count: 3,
-      ask: 'Задайте вопрос о развитии ситуации. Три карты — прошлое, настоящее и будущее.',
+      ask: 'Задайте вопрос о ситуации. Три карты покажут суть, движение к ней и итог.',
       title: 'Три карты',
       icon: '⫶',
-      positions: ['Прошлое', 'Настоящее', 'Будущее'],
-      hint: 'Не гадайте чаще, чем раз в день.'
+      positions: ['Суть', 'Что ведёт к этому', 'Итог'],
+      variants: [
+        { label: 'Ситуация', positions: ['Суть', 'Что ведёт к этому', 'Итог'] },
+        { label: 'Время', positions: ['Прошлое', 'Настоящее', 'Будущее'] },
+        { label: 'Отношения', positions: ['Вы', 'Партнёр', 'Динамика'] }
+      ],
+      hint: 'Выберите подходящую схему перед раскладом.'
     },
     yesno: {
       count: 1,
@@ -80,7 +85,7 @@
       positions: ['Ты', 'Он(а)'],
       hint: 'Карта покажет, что соединяет, а что разъединяет.'
     },
-    // ── Новые расклады (из каталога Архангела) ──
+    // ── Новые расклады ──
     horseshoe: {
       count: 7,
       ask: 'Подкова — универсальный расклад на 7 карт. Подходит для любого важного вопроса.',
@@ -409,11 +414,11 @@
   function buildShareText() {
     const deckName = DECKS[state.deck].label;
     if (state.cards.length === 0) return '';
-    const cfg = getSpreadConfig(state.spread);
+    const cfg = templateSpread();
     if (state.cards.length === 1) {
       const c = state.cards[0];
       const pos = c.reversed ? 'перевёрнутая' : 'прямая';
-      return `🂠 ${c.name} (${pos}, ${deckName})\n\n${c.reversed ? c.reversed : c.upright}\n\n— Гадалка · Архангел`;
+      return `🂠 ${c.name} (${pos}, ${deckName})\n\n${c.reversed ? c.reversed : c.upright}\n\n— Гадалка`;
     }
     const lines = [`🂠 Расклад «${cfg.title}» (${deckName})`];
     if (state.question) lines.push(`Вопрос: ${state.question}`);
@@ -422,7 +427,7 @@
       const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
       lines.push(`\n${label} — ${pos} ${c.name}\n${c.reversed ? c.reversed : c.upright}`);
     });
-    lines.push('\n— Гадалка · Архангел');
+    lines.push('\n— Гадалка');
     return lines.join('\n');
   }
 
@@ -527,7 +532,7 @@
     } else if (cfg.title === 'Подкова') {
       closing = ' Подкова — рабочая лошадка среди раскладов. Итог в последней карте, а первые три — фундамент.';
     } else if (cfg.title === 'Три карты') {
-      closing = ' Прошлое-Настоящее-Будущее — динамика. Смотрите, как энергия движется, а не на отдельные карты.';
+      closing = ' Три карты — суть, путь и итог. Смотрите, как энергия движется, а не на отдельные карты.';
     } else if (cfg.title === 'Судьба') {
       closing = ' Судьба — расклад на длинный горизонт. Не пытайтесь примерить его на завтра.';
     } else if (cfg.title === 'Выбор') {
@@ -611,7 +616,7 @@
         </div>`;
     } else {
       const cardsHtml = state.cards.map((c, i) => {
-        const cfg = getSpreadConfig(state.spread);
+        const cfg = templateSpread();
         const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
         const imgSrc = cardImage(c);
         const visual = imgSrc
@@ -684,7 +689,7 @@
       return;
     }
     // Общий путь: одна / три / кельтский крест / подкова / алхимик / выбор / карьера / здоровье / психея / судьба
-    const cfg = getSpreadConfig(state.spread);
+    const cfg = templateSpread();
     const sections = state.cards.map((c, i) => {
       const label = (cfg.positions && cfg.positions[i]) || `#${i+1}`;
       const hint  = (cfg.hints && cfg.hints[i]) || '';
@@ -753,7 +758,7 @@
         btn.textContent = '⏳ гадаю...';
         try {
           const initData = window.Telegram && Telegram.WebApp ? Telegram.WebApp.initData : '';
-          const res = await fetch(API + '/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+          const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
@@ -785,7 +790,14 @@
 
   // ── Шаблон конкретного расклада ─────────────────────────
   function templateSpread() {
-    return getSpreadConfig(state.spread);
+    const cfg = getSpreadConfig(state.spread);
+    const v = cfg.variants && cfg.activeVariant != null ? cfg.variants[cfg.activeVariant] : null;
+    if (v) return { ...cfg, ...v };
+    return cfg;
+  }
+
+  function currentPositions() {
+    return templateSpread().positions || [];
   }
 
   // ── Mount конкретного расклада ─────────────────────────
@@ -793,6 +805,19 @@
     const main = root();
     if (!main) return;
     const t = templateSpread();
+    const cfg = getSpreadConfig(state.spread);
+    const hasVariants = Array.isArray(cfg.variants) && cfg.variants.length > 1;
+    const variantsHtml = hasVariants ? `
+      <div class="arc-block" id="spreadVariantsBlock">
+        <div class="arc-label">Схема расклада</div>
+        <div class="arc-variant-chips" role="radiogroup" aria-label="Схема расклада">
+          ${cfg.variants.map((v, i) => `
+            <button type="button" class="arc-variant-chip${i === 0 ? ' is-active' : ''}" data-variant="${i}" role="radio" aria-checked="${i === 0}">
+              ${escapeHtml(v.label)}
+            </button>
+          `).join('')}
+        </div>
+      </div>` : '';
     // Горизонтальный таб-бар раскладов (sticky на мобиле, inline на десктопе)
     const tabsHtml = Object.keys(SPREADS).map(id => {
       const s = SPREADS[id];
@@ -811,6 +836,7 @@
       <div class="arc-panel-title">${escapeHtml(t.title)}</div>
       <p class="arc-panel-sub">${escapeHtml(t.ask)}</p>
       ${t.hint ? `<p class="arc-panel-hint">${escapeHtml(t.hint)}</p>` : ''}
+      ${variantsHtml}
 
       <div class="arc-block">
         <label class="arc-label" for="arcQuestion">Ваш вопрос (по желанию)</label>
@@ -838,6 +864,22 @@
         <div id="arcNoteSlot"></div>
       </div>
     `;
+
+    // wire variants
+    if (hasVariants) {
+      let activeVariant = 0;
+      $$('.arc-variant-chip', main).forEach((btn, i) => {
+        btn.onclick = () => {
+          activeVariant = i;
+          $$('.arc-variant-chip', main).forEach((b, idx) => {
+            b.classList.toggle('is-active', idx === i);
+            b.setAttribute('aria-checked', idx === i ? 'true' : 'false');
+          });
+          cfg.activeVariant = i;
+        };
+      });
+      cfg.activeVariant = 0;
+    }
 
     // question persisted
     state.question = localStorage.getItem('arhQuestion') || '';

@@ -461,61 +461,56 @@
       </div>`;
   }
 
-  // ── Forecast panel (7-day cards) ──────────────────────
+  // ── Forecast panel (7-day astro forecast from backend) ──
   function openForecastPanel() {
     closeAllPanels();
     $('#panelForecast').hidden = false;
     tileActive('forecast', true);
     haptic('light');
-    // CTA в empty-state
     const cta = $('#forecastCtaOpenProfile');
     if (cta) cta.onclick = openProfilePanel;
-    renderWeekForecast();
+    loadWeekForecast();
   }
 
-  function renderWeekForecast() {
+  async function loadWeekForecast() {
     const list = $('#forecastList');
     const content = $('#forecastContent');
+    const empty = content ? content.querySelector('#forecastEmpty') : null;
     if (!list || !content) return;
-    const tgId = state.user.id || 1;
-    const days = [];
-    const today = new Date();
-    // 7 дней: сегодня + 6 вперёд
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-      const key = DATA.dateKey(d);
-      const c = TarotDaily.calc(tgId, key);
-      const dt = DATA.dateLabel(d);
-      // подсчёт биоритма на этот день, если есть профиль
-      let bioLine = null;
-      if (state.profile && state.profile.birthYear) {
-        const r = Biorhythm.calc(state.profile.birthYear, state.profile.birthMonth, state.profile.birthDay, d);
-        const pct = Math.round(((r.physical.value + r.emotional.value + r.intellectual.value) / 3) * 100);
-        bioLine = pct;
-      }
-      days.push({ key, dt, card: c, bioLine });
-    }
-    const html = days.map((d, i) => {
-      const dayShort = i === 0 ? 'Сегодня' : d.dt.split(',')[0];
-      return `<li class="forecast-item" data-idx="${i}" role="button" tabindex="0" aria-label="${dayShort}: ${escapeHtml(d.card.name)}">
-        <span class="forecast-day">${dayShort}</span>
-        <span class="forecast-card"><span class="forecast-glyph">${d.card.glyph}</span> ${escapeHtml(d.card.name)}</span>
-        <span class="forecast-bio">${d.bioLine !== null ? (d.bioLine > 0 ? '+' : '') + d.bioLine + '%' : '—'}</span>
-      </li>`;
-    }).join('');
-    list.innerHTML = html;
+
+    // Показываем лоадер
+    list.innerHTML = '<li class="forecast-item" style="justify-content:center;color:var(--ink-mute)">⏳ Загружаем прогноз...</li>';
     list.hidden = false;
-    // wire clicks
-    list.querySelectorAll('.forecast-item').forEach(item => {
-      item.addEventListener('click', () => openForecastDayDetail(days[Number(item.dataset.idx)]));
-      item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openForecastDayDetail(days[Number(item.dataset.idx)]); } });
-    });
-    // очистим placeholder
-    const ph = content.querySelector('#forecastEmpty');
-    if (ph) ph.remove();
-    // подсветим «сегодня»
-    const items = list.querySelectorAll('.forecast-item');
-    if (items[0]) items[0].classList.add('is-today');
+    if (empty) empty.hidden = true;
+
+    const initData = getInitData();
+    if (!initData) {
+      list.innerHTML = '<li class="forecast-item" style="justify-content:center;color:var(--ink-mute)">Открой Mini App из бота</li>';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/forecast/weekly?initData=' + encodeURIComponent(initData));
+      const data = await res.json().catch(() => ({ ok: false }));
+      if (!data.ok) {
+        if (data.error === 'profile_incomplete') {
+          list.innerHTML = '';
+          if (empty) { empty.hidden = false; }
+          return;
+        }
+        list.innerHTML = `<li class="forecast-item" style="justify-content:center;color:var(--ink-mute)">${data.error === 'user_not_started_bot' ? 'Сначала запусти бота (/start)' : 'Не удалось загрузить прогноз'}</li>`;
+        return;
+      }
+      // Конвертируем Telegram-HTML (buildWeeklyForecastText) в обычный HTML
+      const html = data.text
+        .replace(/<b>/g, '<strong>').replace(/<\/b>/g, '</strong>')
+        .replace(/<i>/g, '<em>').replace(/<\/i>/g, '</em>')
+        .replace(/\n/g, '<br>');
+      list.innerHTML = `<li class="forecast-item forecast-text" style="display:block;padding:16px;line-height:1.6">${html}</li>`;
+      if (empty) empty.remove();
+    } catch (e) {
+      list.innerHTML = '<li class="forecast-item" style="justify-content:center;color:var(--ink-mute)">Ошибка сети</li>';
+    }
   }
 
   // ── Profile panel ───────────────────────────────────────

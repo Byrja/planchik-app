@@ -1496,6 +1496,12 @@ body.history-modal-open { overflow: hidden; }
 
 /* ── Compat panel ────────────────────────────────────── */
 .compat-content { padding: 16px 16px 32px; }
+.compat-form { padding: 0 0 16px; }
+.compat-form-hint { font-size: 13px; color: var(--ink-mute); margin: 0 0 12px; line-height: 1.5; }
+.compat-form-row { display: flex; gap: 8px; }
+.compat-input { flex: 1; background: var(--panel-bg, rgba(20,18,40,0.4)); border: 1px solid var(--panel-border, rgba(212,175,55,0.2)); border-radius: 10px; padding: 10px 14px; color: var(--ink); font-size: 15px; outline: none; }
+.compat-input:focus { border-color: var(--gold); }
+.compat-form-note { font-size: 11px; color: var(--ink-mute); margin: 8px 0 0; opacity: 0.7; }
 .compat-loader, .compat-empty {
   text-align: center;
   padding: 36px 12px;

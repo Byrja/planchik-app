@@ -649,12 +649,11 @@
     renderChart();
   }
 
-  // ── Compat panel (deep-link compat_<tgId>) ──────────────
+  // ── Compat panel (deep-link compat_<tgId> или ручной ввод) ──
   let _compatPartnerTgId = null; // хранится для share
 
   function openCompatPanel(partnerTgId) {
     if (!tg || !tg.initData) {
-      // Не открываем без initData — иначе API отдаст 401
       flashToast('Открой через Telegram');
       return;
     }
@@ -662,14 +661,58 @@
       flashToast('Сначала нажми /start в боте');
       return;
     }
-    _compatPartnerTgId = partnerTgId;
     closeAllPanels();
     const panel = $('#panelCompat');
     panel.hidden = false;
     tileActive('compat', true);
     haptic('light');
     setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    loadCompat(partnerTgId);
+
+    if (partnerTgId) {
+      // Deep-link: сразу считаем
+      _compatPartnerTgId = partnerTgId;
+      loadCompat(partnerTgId);
+    } else {
+      // Ручной ввод: показываем форму
+      showCompatForm();
+    }
+  }
+
+  function showCompatForm() {
+    const root = $('#compatContent');
+    if (!root) return;
+    const form = root.querySelector('#compatForm');
+    const loader = root.querySelector('#compatLoader');
+    if (form) form.hidden = false;
+    if (loader) loader.hidden = true;
+    // Убираем старый результат если был
+    const oldResult = root.querySelector('.compat-hero');
+    if (oldResult) oldResult.parentElement?.remove();
+
+    const input = root.querySelector('#compatInput');
+    const goBtn = root.querySelector('#compatGo');
+    if (!input || !goBtn) return;
+
+    const doCompat = () => {
+      const val = input.value.trim();
+      if (!val) { flashToast('Введите ID или @username'); return; }
+      let tgId;
+      if (val.startsWith('@')) {
+        // username — пока не поддерживается API, нужен числовой ID
+        flashToast('Пока только числовой Telegram ID. Попроси партнёра написать /id в боте.');
+        return;
+      } else {
+        tgId = Number(val);
+        if (!tgId || tgId <= 0) { flashToast('Некорректный ID'); return; }
+      }
+      _compatPartnerTgId = tgId;
+      if (form) form.hidden = true;
+      if (loader) loader.hidden = false;
+      loadCompat(tgId);
+    };
+
+    goBtn.onclick = doCompat;
+    input.onkeydown = (e) => { if (e.key === 'Enter') doCompat(); };
   }
 
   async function loadCompat(partnerTgId) {
@@ -1446,6 +1489,7 @@
     $bind('#tileForecast',    openForecastPanel);
     $bind('#tileProfile',     openProfilePanel);
     $bind('#tileChart',       openChartPanel);
+    $bind('#tileCompat',      () => openCompatPanel(null));
 
     // User chip — открывает профиль
     const chip = $('#userChip');

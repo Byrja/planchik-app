@@ -1,5 +1,20 @@
 // app.js — UI-контроллер Mini App. TMA-safe.
 
+// ── Emergency cache-bust for landing-gate regression ──────────
+// Если браузер/Telegram WebView закешировал старую версию с landing-gate
+// (до того как мы её убрали), этот код принудительно перезагрузит страницу
+// с уникальным параметром. Безопасно — срабатывает только если DOM содержит
+// маркер старой версии.
+(function forceCacheBust() {
+  try {
+    if (document.querySelector('#landingGate, .landing-gate, [data-legacy-landing]')) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('v', Date.now().toString());
+      window.location.replace(url.toString());
+    }
+  } catch (_) { /* noop */ }
+})();
+
 (function () {
   'use strict';
 
@@ -176,33 +191,8 @@
 
   // ── Init ─────────────────────────────────────────────────
   async function init() {
-    // Landing gate: показываем, если открыли не из Telegram.
-    // В Telegram всегда есть initDataUnsafe.user; в чистом браузере — нет.
-    const inTelegram = !!(tg && tg.initDataUnsafe && tg.initDataUnsafe.user);
-    const gate = document.getElementById('landingGate');
-    if (gate) {
-      if (inTelegram) {
-        gate.hidden = true;
-        document.body.classList.remove('landing-mode');
-      } else {
-        gate.hidden = false;
-        document.body.classList.add('landing-mode');
-        // Если доступен tg.openTelegramLink — подменим href на нативный вызов
-        const cta = document.getElementById('landingCtaOpen');
-        if (cta && tg && tg.openTelegramLink) {
-          cta.addEventListener('click', (e) => {
-            e.preventDefault();
-            try { tg.openTelegramLink(cta.href); } catch (_) { window.location.href = cta.href; }
-          });
-        }
-        // Не инициализируем основной app, если не из Telegram —
-        // это сэкономит трафик и избежит ложной «Карты дня» на dev-fallback.
-        $('#dateLabel').textContent  = DATA.dateLabel();
-        $('#loadedAt').textContent   = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        return;
-      }
-    }
-
+    // Mini App всегда открывается внутри Telegram — landing gate убран.
+    // tg.initData и tg.initDataUnsafe всегда доступны в WebView.
     $('#dateLabel').textContent  = DATA.dateLabel();
     $('#loadedAt').textContent   = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     renderUser();

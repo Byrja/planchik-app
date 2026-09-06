@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json?v=3.89">
+  <link rel="manifest" href="manifest.json?v=3.100">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,15 +35,12 @@
   <title>Гадалка</title>
 
   <!-- Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="js/vendor/telegram-web-app.js?v=3.100"></script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.100">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.89">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.89">
+  <link rel="stylesheet" href="css/styles.css?v=3.100">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.100">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -59,12 +56,12 @@
     <div class="onb-step" data-step="1">
       <div class="onb-illust" aria-hidden="true">✦</div>
       <h2 class="onb-title" id="onbTitle">Добро пожаловать в Гадалку</h2>
-      <p class="onb-text">Карта дня, натальные карты, расклады на 78 таро, 36 Ленорман, рунах и цыганских картах — всё в одном месте.</p>
+      <p class="onb-text">Таро, Ленорман, руны, карта дня и натальная карта — в одном месте.</p>
     </div>
     <div class="onb-step" data-step="2" hidden>
       <div class="onb-illust" aria-hidden="true">⚝</div>
       <h2 class="onb-title">Карта дня</h2>
-      <p class="onb-text">Каждое утро — личная карта с глубокой трактовкой и советом на день. Возвращайтесь, чтобы не пропустить.</p>
+      <p class="onb-text">Каждое утро — личная карта и короткий совет на день. Без лишней мистической воды.</p>
     </div>
     <div class="onb-step" data-step="3" hidden>
       <div class="onb-illust" aria-hidden="true">☾</div>
@@ -93,6 +90,69 @@
         </div>
       </div>
     </header>
+
+    <!-- ─── QUICK ACTIONS ──────────────────────────────── -->
+    <section class="quick-grid" aria-label="Быстрые действия">
+      <button type="button" class="quick-tile" data-screen="biorhythm" id="tileBiorhythm">
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18l4-6 4 4 4-7 4 5 2-2"/><circle cx="3" cy="18" r="1.2" fill="currentColor"/><circle cx="7" cy="12" r="1.2" fill="currentColor"/><circle cx="11" cy="16" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="19" cy="14" r="1.2" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="quick-tile-label">Биоритмы</span>
+        <span class="quick-tile-meta" id="bioToday">—</span>
+      </button>
+      <button type="button" class="quick-tile" data-screen="gadanie" id="tileGadanie">
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke-opacity="0.5"/>
+            <circle cx="12" cy="12" r="6" fill="currentColor" fill-opacity="0.2"/>
+            <path d="M9 11a3 3 0 0 1 6 0c0 1.5-1.5 2-2 3v.5"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="quick-tile-label">Гадание</span>
+        <span class="quick-tile-meta" id="gadanieMeta">12 раскладов</span>
+      </button>
+      <button type="button" class="quick-tile" data-screen="chart" id="tileChart">
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" fill="currentColor" fill-opacity="0.1"/>
+            <circle cx="12" cy="12" r="2" fill="currentColor" fill-opacity="0.6"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke-opacity="0.5"/>
+          </svg>
+        </span>
+        <span class="quick-tile-label">Карта</span>
+        <span class="quick-tile-meta" id="chartMeta">натальная</span>
+      </button>
+      <button type="button" class="quick-tile" data-screen="forecast" id="tileForecast">
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="16" rx="2" fill="currentColor" fill-opacity="0.1"/>
+            <path d="M3 9h18M8 3v4M16 3v4"/><circle cx="8" cy="15" r="1" fill="currentColor"/><circle cx="12" cy="15" r="1" fill="currentColor"/><circle cx="16" cy="15" r="1" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="quick-tile-label">Неделя</span>
+        <span class="quick-tile-meta">прогноз</span>
+      </button>
+      <button type="button" class="quick-tile" data-screen="profile" id="tileProfile">
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4" fill="currentColor" fill-opacity="0.15"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
+          </svg>
+        </span>
+        <span class="quick-tile-label">Профиль</span>
+        <span class="quick-tile-meta" id="profileMeta">заполнить</span>
+      </button>
+      <button type="button" class="quick-tile" data-screen="compat" id="tileCompat">
+        <span class="quick-tile-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="9" r="4" fill="currentColor" fill-opacity="0.1"/><circle cx="15" cy="15" r="4" fill="currentColor" fill-opacity="0.1"/><path d="M12 12l1.5 1.5"/>
+          </svg>
+        </span>
+        <span class="quick-tile-label">Совместимость</span>
+        <span class="quick-tile-meta">синастрия</span>
+      </button>
+    </section>
 
     <!-- ─── HERO CARD: сегодняшний расклад ─────────────── -->
     <section class="hero-card" id="heroCard" aria-labelledby="heroTitle">
@@ -173,69 +233,6 @@
     </section>
 
     <!-- ─── КАРТА ДНЯ (мини-расклад) — убрано (был дубль с hero-card) ─── -->
-
-    <!-- ─── QUICK ACTIONS ──────────────────────────────── -->
-    <section class="quick-grid" aria-label="Быстрые действия">
-      <button type="button" class="quick-tile" data-screen="biorhythm" id="tileBiorhythm">
-        <span class="quick-tile-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 18l4-6 4 4 4-7 4 5 2-2"/><circle cx="3" cy="18" r="1.2" fill="currentColor"/><circle cx="7" cy="12" r="1.2" fill="currentColor"/><circle cx="11" cy="16" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="19" cy="14" r="1.2" fill="currentColor"/>
-          </svg>
-        </span>
-        <span class="quick-tile-label">Биоритмы</span>
-        <span class="quick-tile-meta" id="bioToday">—</span>
-      </button>
-      <button type="button" class="quick-tile" data-screen="gadanie" id="tileGadanie">
-        <span class="quick-tile-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke-opacity="0.5"/>
-            <circle cx="12" cy="12" r="6" fill="currentColor" fill-opacity="0.2"/>
-            <path d="M9 11a3 3 0 0 1 6 0c0 1.5-1.5 2-2 3v.5"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/>
-          </svg>
-        </span>
-        <span class="quick-tile-label">Гадание</span>
-        <span class="quick-tile-meta" id="gadanieMeta">12 раскладов</span>
-      </button>
-      <button type="button" class="quick-tile" data-screen="chart" id="tileChart">
-        <span class="quick-tile-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10" fill="currentColor" fill-opacity="0.1"/>
-            <circle cx="12" cy="12" r="2" fill="currentColor" fill-opacity="0.6"/>
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke-opacity="0.5"/>
-          </svg>
-        </span>
-        <span class="quick-tile-label">Карта</span>
-        <span class="quick-tile-meta" id="chartMeta">натальная</span>
-      </button>
-      <button type="button" class="quick-tile" data-screen="forecast" id="tileForecast">
-        <span class="quick-tile-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="5" width="18" height="16" rx="2" fill="currentColor" fill-opacity="0.1"/>
-            <path d="M3 9h18M8 3v4M16 3v4"/><circle cx="8" cy="15" r="1" fill="currentColor"/><circle cx="12" cy="15" r="1" fill="currentColor"/><circle cx="16" cy="15" r="1" fill="currentColor"/>
-          </svg>
-        </span>
-        <span class="quick-tile-label">Неделя</span>
-        <span class="quick-tile-meta">прогноз</span>
-      </button>
-      <button type="button" class="quick-tile" data-screen="profile" id="tileProfile">
-        <span class="quick-tile-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="8" r="4" fill="currentColor" fill-opacity="0.15"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
-          </svg>
-        </span>
-        <span class="quick-tile-label">Профиль</span>
-        <span class="quick-tile-meta" id="profileMeta">заполнить</span>
-      </button>
-      <button type="button" class="quick-tile" data-screen="compat" id="tileCompat">
-        <span class="quick-tile-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="9" r="4" fill="currentColor" fill-opacity="0.1"/><circle cx="15" cy="15" r="4" fill="currentColor" fill-opacity="0.1"/><path d="M12 12l1.5 1.5"/>
-          </svg>
-        </span>
-        <span class="quick-tile-label">Совместимость</span>
-        <span class="quick-tile-meta">синастрия</span>
-      </button>
-    </section>
 
     <!-- ─── PANELS: открываются по клику на тайл ───────── -->
     <section class="panel" id="panelBiorhythm" hidden>
@@ -453,6 +450,22 @@
           <p>Сосредоточьтесь на вопросе, выберите колоду — и тяните карту. Без регистрации и оплаты.</p>
         </section>
 
+        <!-- MOBILE STICKY SPREAD PICKER (visible только на mobile) -->
+        <nav class="arc-mobile-nav" id="arcMobileNav" aria-label="Сменить расклад">
+          <button type="button" class="arc-mobile-nav-btn" id="arcMobileNavBtn" aria-haspopup="true" aria-expanded="false">
+            <span class="arc-mobile-nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </span>
+            <span class="arc-mobile-nav-label" id="arcMobileNavLabel">Одна карта</span>
+            <span class="arc-mobile-nav-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="arc-mobile-nav-popup" id="arcMobileNavPopup" hidden>
+            <ul id="arcMobileNavList" class="arc-mobile-nav-list"></ul>
+          </div>
+        </nav>
+
         <!-- MAIN GRID: sidebar + content -->
         <div class="arc-main">
           <main id="arcMain" class="arc-panel">
@@ -496,22 +509,6 @@
           </div>
         </section>
 
-        <!-- MOBILE STICKY SPREAD PICKER (visible только на mobile) -->
-        <nav class="arc-mobile-nav" id="arcMobileNav" aria-label="Сменить расклад">
-          <button type="button" class="arc-mobile-nav-btn" id="arcMobileNavBtn" aria-haspopup="true" aria-expanded="false">
-            <span class="arc-mobile-nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            </span>
-            <span class="arc-mobile-nav-label" id="arcMobileNavLabel">Одна карта</span>
-            <span class="arc-mobile-nav-arrow" aria-hidden="true">▾</span>
-          </button>
-          <div class="arc-mobile-nav-popup" id="arcMobileNavPopup" hidden>
-            <ul id="arcMobileNavList" class="arc-mobile-nav-list"></ul>
-          </div>
-        </nav>
-
         <!-- INFO CARDS -->
         <section class="arc-info">
           <article class="arc-info-card">
@@ -551,7 +548,7 @@
         <!-- FOOTER -->
         <footer class="arc-site-footer">
           <p>Гадалка · Гадания на картах · Telegram Mini App</p>
-          <p style="margin-top:6px;font-size:11px;">v3.80 · карты не принимают решений за вас</p>
+          <p style="margin-top:6px;font-size:11px;">v3.100 · карты не принимают решений за вас</p>
         </footer>
 
       </div>
@@ -560,7 +557,7 @@
     <!-- ─── FOOTER ─────────────────────────────────────── -->
     <footer class="app-footer">
       <p>Гадалка · Telegram Mini App</p>
-      <p class="app-footer-meta">v3.30 · запущено <span id="loadedAt">—</span></p>
+      <p class="app-footer-meta">v3.100 · запущено <span id="loadedAt">—</span></p>
     </footer>
 
   </div>
@@ -568,18 +565,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.89"></script>
-  <script src="js/tarot.js?v=3.89"></script>
-  <script src="js/biorhythm.js?v=3.89"></script>
-  <script src="js/arc-runes.js?v=3.89"></script>
-  <script src="js/arc-lenormand.js?v=3.89"></script>
-  <script src="js/arc-gypsy.js?v=3.89"></script>
-  <script src="js/arc-playing.js?v=3.89"></script>
-  <script src="js/arc-tarot.js?v=3.89"></script>
-  <script src="js/arc-tarot-minor.js?v=3.89"></script>
-  <script src="js/chart.js?v=3.89"></script>
-  <script src="js/arc-app.js?v=3.89"></script>
-  <script src="js/app.js?v=3.89"></script>
+  <script src="js/data.js?v=3.100"></script>
+  <script src="js/tarot.js?v=3.100"></script>
+  <script src="js/biorhythm.js?v=3.100"></script>
+  <script src="js/arc-runes.js?v=3.100"></script>
+  <script src="js/arc-lenormand.js?v=3.100"></script>
+  <script src="js/arc-gypsy.js?v=3.100"></script>
+  <script src="js/arc-playing.js?v=3.100"></script>
+  <script src="js/arc-tarot.js?v=3.100"></script>
+  <script src="js/arc-tarot-minor.js?v=3.100"></script>
+  <script src="js/chart.js?v=3.100"></script>
+  <script src="js/arc-app.js?v=3.100"></script>
+  <script src="js/app.js?v=3.100"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

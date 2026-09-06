@@ -4,8 +4,8 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-URL="https://astro-burlab.duckdns.org"
-API="http://127.0.0.1:8787"
+URL="https://astro.burlab-api.site"
+API="https://astro.burlab-api.site"
 ERR=0
 WARN=0
 
@@ -28,13 +28,14 @@ for asset in css/styles.css css/arc-styles.css js/app.js js/arc-app.js js/data.j
   if [ "$c" = "200" ]; then ok "$asset reachable"; else fail "$asset returns $c"; fi
 done
 
-# 3. Health endpoint
-h=$(curl -sS "$API/health" 2>/dev/null | head -c 200)
-if echo "$h" | grep -q '"ok":true'; then ok "API /health ok"; else fail "API /health bad: $h"; fi
+# 3. API same-origin proxy: fake initData should return JSON auth error, not HTML/5xx
+h=$(curl -sS "$API/api/ai-balance?initData=x" 2>/dev/null | head -c 200)
+if echo "$h" | grep -q '"invalid initData"'; then ok "API proxy alive ($h)"; else fail "API proxy bad: $h"; fi
 
-# 4. API /api/version
-v=$(curl -sS "$API/api/version" 2>/dev/null | head -c 200)
-if echo "$v" | grep -q '"ok":true'; then ok "API /api/version ok ($v)"; else fail "API /api/version bad: $v"; fi
+# 4. Asset MIME through cache-busted URL
+v_asset=$(grep -oE '\?v=[0-9.]+' "$ROOT/index.html" | head -1)
+ct=$(curl -sSI "$URL/css/styles.css$v_asset" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print $2; exit}')
+if echo "$ct" | grep -qi 'text/css'; then ok "cache-busted css content-type ok ($ct)"; else fail "css content-type bad: $ct"; fi
 
 # 5. Cache-bust version consistency
 v_html=$(grep -oE '\?v=[0-9.]+' "$ROOT/index.html" | head -1 | sed 's/?v=//')

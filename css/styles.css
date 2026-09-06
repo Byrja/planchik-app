@@ -510,7 +510,6 @@ input, textarea, select { font: inherit; color: inherit; }
 .forecast-day-panel .overlay-backdrop {
   position: absolute; inset: 0;
   background: rgba(10, 8, 16, 0.78);
-  backdrop-filter: blur(2px);
 }
 .forecast-day-panel .overlay-card {
   position: relative; z-index: 1;
@@ -711,6 +710,8 @@ body.tg-desktop .app { padding-bottom: calc(100px + env(safe-area-inset-bottom, 
 
 /* ─── Chart panel additions ───────────────────────────────── */
 .chart-content { padding: 16px; }
+/* panelChart открывается под fold (клик тайла не скроллит) — скролл к панели при открытии */
+.chart-content { scroll-margin-top: 80px; }
 .chart-empty { text-align:center; color: var(--ink-mute); padding: 24px 12px; }
 .chart-empty svg { margin: 0 auto 12px; display: block; color: var(--gold); opacity: .8; }
 .chart-empty p { font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
@@ -786,7 +787,8 @@ body.tg-desktop .app { padding-bottom: calc(100px + env(safe-area-inset-bottom, 
   box-sizing: border-box;
 }
 /* Когда bottom-tabs показан — добавляем отступ у .app, чтобы контент не уходил под бар */
-.app.has-bottom-tabs { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+/* 110px = бар 64px + comfortable запас; 70px давало 6px clearance и CTA «заполнить профиль →» под баром при max scroll */
+.app.has-bottom-tabs { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
 
 /* ═══ FLIP CARD (карта дня — настоящая карта таро) ════════ */
 .tarot-card-wrap {
@@ -1709,6 +1711,9 @@ h3 { font-size: var(--fs-h2);      line-height: 1.3; }
   display: flex; flex-direction: column;
   background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-3) 100%);
   padding: 24px;
+  /* safe-area: на iOS home-indicator (~34px) перекрывал кнопку «Далее» (аудит 360px) */
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   animation: panel-in 360ms cubic-bezier(.2,.7,.2,1) both;
 }
 .onboarding[hidden] { display: none !important; }
@@ -1952,3 +1957,37 @@ h3 { font-size: var(--fs-h2);      line-height: 1.3; }
   .chart-ai-cta, .chart-ai-toggle { transition: none !important; }
 }
 
+
+
+/* UX polish v3.96 — compact home, touch targets, sane toast */
+@media (max-width: 600px) {
+  .app { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); }
+  .app-header { margin-bottom: 12px; padding-top: calc(env(safe-area-inset-top, 0px) * 0.25 + 4px); }
+  .quick-grid { gap: 8px; margin-bottom: 14px; }
+  .quick-tile { min-height: 76px; padding: 12px; border-radius: 16px; }
+  .quick-tile-ico { width: 24px; height: 24px; margin-bottom: 6px; }
+  .quick-tile-label { font-size: 14px; margin-bottom: 2px; }
+  .quick-tile-meta { font-size: 11px; }
+  .hero-card { padding: 16px 14px 14px; margin-bottom: 14px; }
+  .hero-card-eyebrow { margin-bottom: 10px; }
+  .hero-card-date { margin-top: 6px; }
+  .hero-card-meaning { font-size: 15.5px; line-height: 1.45; margin: 8px 0 6px; }
+  .hero-card-text { font-size: 14px; line-height: 1.45; margin-bottom: 12px; }
+  .hero-reading-toggle { min-height: 44px; padding: 10px 16px; margin-bottom: 10px; }
+  .hero-card-actions .btn { min-height: 44px; min-width: 0; flex: 1 1 100%; }
+}
+button, .btn, .quick-tile, .bottom-tab, .panel-close { touch-action: manipulation; }
+.btn, .panel-close, .bottom-tab, .quick-tile { min-height: 44px; }
+.toast {
+  bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  z-index: 1200;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: normal;
+}
+.profile-actions .btn { min-height: 46px; }
+
+/* UX polish v3.96: close buttons are circular 44px targets */
+.panel-close, .history-modal-close { width: 48px !important; height: 48px !important; min-width: 48px !important; min-height: 48px !important; }

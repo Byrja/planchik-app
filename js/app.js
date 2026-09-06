@@ -232,7 +232,7 @@
     }
     haptic('medium');
     // scroll to top
-    setTimeout(() => portal.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    setTimeout(() => portal.scrollIntoView({ behavior: 'auto', block: 'start' }), 50);
   }
 
   function closeGadaniePortal() {
@@ -403,6 +403,7 @@
       $('#bioContent').innerHTML = '<div class="bio-empty"><p>Нужен день рождения для расчёта.</p><button type="button" class="btn btn-primary bio-cta" id="bioCtaOpenProfile">Заполнить профиль →</button></div>';
       const cta = $('#bioCtaOpenProfile');
       if (cta) cta.onclick = openProfilePanel;
+      try { panel.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
       return;
     }
     const r = Biorhythm.calc(state.profile.birthYear, state.profile.birthMonth, state.profile.birthDay);
@@ -460,6 +461,7 @@
     const cta = $('#forecastCtaOpenProfile');
     if (cta) cta.onclick = openProfilePanel;
     loadWeekForecast();
+    try { $('#panelForecast').scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
   }
 
   async function loadWeekForecast() {
@@ -503,13 +505,14 @@
     }
   }
 
-  // ── Profile panel ───────────────────────────────────────
+  // ── Profile panel ──────────────────────────────────────
   function openProfilePanel() {
     closeAllPanels();
     $('#panelProfile').hidden = false;
     tileActive('profile', true);
     haptic('light');
     renderProfile();
+    try { $('#panelProfile').scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
   }
 
   function renderProfile() {
@@ -630,13 +633,15 @@
     }
   }
 
-  // ── Chart panel ─────────────────────────────────────────
+  // ── Chart panel ────────────────────────────────────────
   function openChartPanel() {
     closeAllPanels();
     $('#panelChart').hidden = false;
     tileActive('chart', true);
     haptic('light');
     renderChart();
+    // панель открывается под fold — скролл к её заголовку (scroll-margin-top на .chart-content)
+    try { $('#panelChart').scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
   }
 
   // ── Compat panel (deep-link compat_<tgId> или ручной ввод) ──
@@ -656,7 +661,7 @@
     panel.hidden = false;
     tileActive('compat', true);
     haptic('light');
-    setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    setTimeout(() => panel.scrollIntoView({ behavior: 'auto', block: 'start' }), 50);
 
     if (partnerTgId) {
       // Deep-link: сразу считаем

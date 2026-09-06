@@ -232,6 +232,7 @@
   async function loadHistory() {
     try {
       const initData = getInitData();
+      if (!initData) return [];
       const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false, items: [] }));
       if (!data.ok) return [];

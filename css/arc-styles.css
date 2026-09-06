@@ -331,7 +331,8 @@
 }
 
 /* Одна карта — крупная, на пол-экрана. На 360dp → 320×480dp контент, лицом. */
-#arc-cardStage {
+/* JS создаёт #cardStage (arc-app.js) — селектор должен совпадать. */
+#arc-cardStage, #cardStage {
   position: relative;
   width: 320px;
   max-width: calc(100vw - 64px);
@@ -341,7 +342,7 @@
   margin: 0 auto;
   perspective: 1200px;
 }
-#arc-cardStage.is-flipping { animation: arc-float 0.7s ease-in-out; }
+#arc-cardStage.is-flipping, #cardStage.is-flipping { animation: arc-float 0.7s ease-in-out; }
 
 /* Front изначально скрыт (crossfade с back), появляется через 700мс. */
 .arc-card-front--hidden { opacity: 0; transition: opacity 0.4s ease 0.1s; }
@@ -412,7 +413,7 @@
 /* Decorative glow ring */
 .arc-stage::before {
   content: '';
-  position: absolute; inset: -40px;
+  position: absolute; inset: -40px 0; /* гориз. bleed = 0 — иначе 1px overflow на 360px */
   background: radial-gradient(circle, rgba(212,175,55,0.10), transparent 60%);
   pointer-events: none;
   z-index: -1;
@@ -483,6 +484,156 @@
 }
 @media (max-width: 480px) {
   .arc-interpretation { padding: 20px 18px; }
+}
+
+/* ── Mobile layout fixes (360px screens) ── */
+@media (max-width: 600px) {
+  /* Panel: добавим padding-bottom чтобы контент не перекрывался mobile nav */
+  .arc-panel { padding-bottom: 80px; }
+  #arcMain { padding-bottom: 80px; }
+
+  /* Shell: добавим padding-bottom для контента */
+  .arc-shell { padding-bottom: 0; }
+  /* Shell: меньше padding на мобилке */
+  .arc-shell { padding: 0 12px; }
+
+  /* Site header: компактный */
+  .arc-site-header {
+    padding: 16px 0 8px;
+    margin-bottom: 16px;
+  }
+  .arc-brand { font-size: 20px; }
+  .arc-brand-mark { width: 30px; height: 30px; font-size: 16px; }
+
+  /* Hero: компактный */
+  .arc-hero { padding: 8px 0 20px; }
+  .arc-hero h1 { font-size: clamp(28px, 7vw, 40px); }
+  .arc-hero p { font-size: 14px; }
+
+  /* Main grid: sidebar вниз */
+  .arc-main {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Panel: меньше padding */
+  .arc-panel {
+    padding: 16px;
+    border-radius: var(--r-md);
+  }
+
+  /* Stage: НЕ 480px — карточка должна влезать в экран */
+  .arc-stage {
+    min-height: 240px;
+    margin: 16px 0 8px;
+  }
+
+  /* Cards grid: компактный */
+  .cards-grid {
+    gap: 12px !important;
+  }
+
+  /* Card slot: меньше padding */
+  .card-slot {
+    padding: 16px 10px !important;
+    min-height: auto !important;
+  }
+  .card-slot-icon { font-size: 28px !important; }
+  .card-slot-name { font-size: 14px !important; }
+  .card-slot-sub { font-size: 12px !important; }
+
+  /* Interpretation: компактный */
+  .arc-interpretation { padding: 16px 14px; }
+  .arc-inter-title { font-size: 12px; margin-bottom: 10px; }
+  .arc-inter-main { font-size: 18px; }
+  .arc-inter-sub { font-size: 14px; }
+
+  /* CTA row: компактный */
+  .arc-cta-row { gap: 8px; margin-top: 4px; }
+  .arc-cta {
+    padding: 12px 18px;
+    font-size: 14px;
+    min-width: 130px;
+  }
+
+  /* Mobile nav: visible */
+  .arc-mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(11, 10, 26, 0.95);
+    border-top: 1px solid var(--line);
+  }
+
+  /* Aside: на мобилке — сверху, не sidebar */
+  .arc-aside-panel {
+    order: -1;
+  }
+  .arc-aside-h { font-size: 15px; margin-bottom: 8px; }
+  .arc-deck-chips { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .arc-aside-list { display: none; } /* используем mobile nav вместо */
+
+  /* Info cards: 1 колонка */
+  .arc-info {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  .arc-info-card { padding: 16px; }
+
+  /* Prose: меньше шрифт */
+  .arc-prose h2 { font-size: 20px; margin-top: 24px; }
+  .arc-prose p { font-size: 14px; }
+
+  /* Footer: компактный */
+  .arc-site-footer { padding: 20px 0; }
+
+  /* Spread tabs: компактные */
+  .arc-spread-tabs {
+    padding: 4px 8px 8px;
+    gap: 6px;
+  }
+  .arc-spread-tab {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  /* Question field: компактный */
+  .arc-field textarea {
+    min-height: 60px;
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+
+  /* Deck chips: компактные */
+  .arc-chip { padding: 10px 6px; }
+  .arc-chip-label { font-size: 13px; }
+  .arc-chip-hint { font-size: 10px; }
+
+  /* History panel: compact */
+  .arc-history-panel { padding: 12px; }
+  .arc-history-list { gap: 8px; }
+  .arc-history-item { padding: 12px; }
+
+  /* Variant chips: компактные */
+  .arc-variant-chips { gap: 6px; }
+  .arc-variant-chip { padding: 6px 12px; font-size: 12px; }
+}
+
+/* Extra small screens (320px) */
+@media (max-width: 480px) {
+  .arc-panel { padding: 12px; }
+  .arc-shell { padding: 0 8px; }
+  .arc-stage { min-height: 200px; }
+  .arc-card-glyph-symbol { font-size: 72px; }
+  .arc-card-glyph-name { font-size: 18px; }
+  .arc-inter-main { font-size: 16px; }
+  .arc-cta { padding: 10px 16px; font-size: 13px; min-width: 120px; }
+  .arc-mobile-nav { padding: 0 8px; }
+  .arc-mobile-nav-btn { padding: 8px 12px; }
+  .arc-mobile-nav-label { font-size: 13px; }
 }
 .arc-inter-title {
   font-family: var(--serif);
@@ -629,7 +780,8 @@
 .arc-site-footer em { color: var(--gold); font-style: normal; }
 
 /* ---------- TOAST ---------- */
-#arc-toast {
+/* JS (arc-app.js flashToast) создаёт #arcToast с классом .arc-toast — селектор должен совпадать */
+#arc-toast, .arc-toast {
   position: fixed; bottom: 24px; left: 50%;
   transform: translateX(-50%) translateY(20px);
   background: var(--bg-3);
@@ -643,7 +795,7 @@
   transition: all 0.3s ease;
   z-index: 100;
 }
-#arc-toast.is-shown { opacity: 1; transform: translateX(-50%) translateY(0); }
+#arc-toast.is-shown, .arc-toast.is-shown { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ---------- ARC CONFIRM MODAL (TMA-safe, без backdrop-filter) ---------- */
 .arc-confirm {
@@ -1408,7 +1560,7 @@
 .arc-panel { padding: 20px; }
 .arc-cta-row { flex-direction: column; }
 .arc-cta { width: 100%; }
-#arc-cardStage { width: 280px; max-width: calc(100vw - 48px); aspect-ratio: 200 / 305; height: auto; }
+#arc-cardStage, #cardStage { width: 280px; max-width: calc(100vw - 48px); aspect-ratio: 200 / 305; height: auto; }
 .arc-card-glyph-symbol { font-size: 72px; }
 .arc-inter-main { font-size: 20px; }
 .arc-aside-panel { position: static; }
@@ -1423,6 +1575,7 @@
 .arc-love-grid { grid-template-columns: 1fr; }
 .arc-love-connector { font-size: 24px; }
 .arc-verdict { font-size: 42px; padding: 18px; }
+}
 
 /* ── AI-карточка «Глубинный разбор от гадалки» ── */
 .arc-ai-card {
@@ -1619,3 +1772,187 @@
 @media (prefers-reduced-motion: reduce) {
   .arc-ai-orb { animation: none; }
 }
+
+/* ═══════════════════════════════════════════════
+   MOBILE ARC PORTAL LAYOUT (360px screens)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  /* Hide sidebar on mobile — use arc-mobile-nav instead */
+  .arc-aside-panel {
+    display: none !important;
+  }
+
+  /* Shell: минимум padding */
+  .arc-shell {
+    padding: 0 10px !important;
+  }
+
+  /* Site header: компактный */
+  .arc-site-header {
+    padding: 10px 0 8px !important;
+    margin-bottom: 12px !important;
+    border-bottom-width: 0.5px !important;
+  }
+  .arc-brand { font-size: 13px !important; }
+  .arc-crumbs { font-size: 12px !important; }
+
+  /* Hero: компактный */
+  .arc-hero {
+    padding: 8px 0 16px !important;
+  }
+  .arc-hero-eyebrow { font-size: 11px !important; }
+  .arc-hero h1 { font-size: 22px !important; }
+  .arc-hero p { font-size: 13px !important; }
+
+  /* Main grid: single column */
+  .arc-main {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+
+  /* Panel: меньше padding */
+  .arc-panel {
+    padding: 14px 12px 72px !important;
+  }
+
+  /* Футер портала не должен уходить под fixed arc-mobile-nav (picker над таб-баром) */
+  .arc-site-footer {
+    padding: 20px 0 calc(110px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Stage: меньше высоты */
+  .arc-stage {
+    min-height: 200px !important;
+    margin: 12px 0 6px !important;
+  }
+  #arc-cardStage, #cardStage {
+    width: 200px !important;
+    max-width: calc(100vw - 40px) !important;
+  }
+
+  /* Spread tabs: компактные, wrap */
+  .arc-spread-tabs-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .arc-spread-tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    padding: 4px 0 !important;
+  }
+  .arc-spread-tab {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Panel title/sub/hint */
+  .arc-panel-title { font-size: 18px !important; margin-bottom: 4px !important; }
+  .arc-panel-sub  { font-size: 12px !important; margin-bottom: 4px !important; }
+  .arc-panel-hint { font-size: 11px !important; margin-bottom: 8px !important; }
+
+  /* Question textarea */
+  .arc-question { font-size: 14px !important; padding: 10px !important; }
+
+  /* Deck chips: компактные */
+  .arc-deck-chips {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .arc-chip {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  .arc-chip-label { font-size: 12px !important; }
+  .arc-chip-hint  { display: none !important; }
+
+  /* Card grid: 1 column on mobile */
+  .arc-cards-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 280px !important;
+  }
+  .arc-mini-card { padding: 10px 4px !important; }
+
+  /* CTA row: column */
+  .arc-cta-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .arc-cta { width: 100% !important; }
+
+  /* Mobile nav: fixed, НАД bottom-tabs (портал открывается/закрывается таб-баром —
+     он должен оставаться видимым). 64px = реальная высота .bottom-tabs на 360px
+     (56px контент + safe-area); 50px перекрывал бар на 14px (аудит 2026-09-02). */
+  .arc-mobile-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 999 !important;
+    padding: 8px 12px 8px !important;
+    background: rgba(11, 10, 26, 0.97) !important;
+    border-top: 1px solid rgba(212, 175, 55, 0.25) !important;
+  }
+  .arc-mobile-nav-btn {
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+  }
+}
+
+
+
+/* UX polish v3.96 — no second permanent bottom bar on cards */
+@media (max-width: 600px) {
+  .arc-panel { padding-bottom: 24px !important; }
+  .arc-mobile-nav {
+    position: sticky !important;
+    top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: 80 !important;
+    padding: 8px 0 !important;
+    margin: 8px 0 12px !important;
+    background: linear-gradient(180deg, rgba(11,10,26,0.98), rgba(11,10,26,0.88)) !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.18) !important;
+  }
+  .arc-mobile-nav-btn, .arc-chip, .arc-variant-chip, .arc-cta, .arc-ai-go, .arc-history-chip, .arc-history-clear {
+    min-height: 44px !important;
+  }
+  .arc-site-footer { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+#arc-toast, .arc-toast {
+  bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200 !important;
+}
+
+/* UX polish v3.96 touch-target follow-up */
+@media (max-width: 600px) {
+  .arc-brand, .arc-crumbs a, .arc-nav-link, .arc-mobile-nav-list li a, .arc-ai-toggle, .arc-ai-redo { min-height: 44px !important; }
+  .arc-brand, .arc-crumbs a { display: inline-flex !important; align-items: center !important; }
+  .arc-nav-link, .arc-mobile-nav-list li a { align-items: center !important; }
+}
+
+/* UX polish v3.96: generated spread tabs need real tap area */
+@media (max-width: 600px) {
+  .arc-spread-tab { min-height: 44px !important; display: inline-flex !important; align-items: center !important; }
+}
+
+.arc-ai-card .arc-ai-toggle, .arc-ai-card .arc-ai-redo {
+  min-height: 44px !important;
+  padding: 10px 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.arc-history-close { width: 48px !important; height: 48px !important; min-width: 48px !important; min-height: 48px !important; }
+
+.arc-expand-btn { min-height: 44px !important; padding-top: 10px !important; padding-bottom: 10px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; }

@@ -73,12 +73,14 @@
     checkins: Evening.last30(),
     chartAi: { loaded: false, interpretation: '', remaining: 3, cached: false, error: '' },
     aiBalance: {},
+    profileSync: { userNotStartedBot: false },
   };
 
   const AI_LIMITS_DISPLAY = {
     tarot_spread: 5,
     chart_interpret: 3,
   };
+  const BOT_PROFILE_START_URL = 'https://t.me/astro_byrbot?start=webapp_profile';
 
   function getInitData() {
     if (tg && tg.initData) return tg.initData;
@@ -128,6 +130,14 @@
     Evening.saveProfile(p);
   }
 
+  function isUserNotStartedBot(data) {
+    return data && (data.reason === 'user_not_started_bot' || data.error === 'user_not_started_bot');
+  }
+
+  function setProfileSyncWarning(on) {
+    state.profileSync.userNotStartedBot = !!on;
+  }
+
   // Подтягивает профиль из бэкенда (заполненный в боте) и мержит с localStorage.
   // Бэкенд-профиль приоритетнее: если в боте заполнена дата рождения — она выигрывает.
   async function loadProfileFromBackend() {
@@ -136,7 +146,16 @@
     try {
       const res = await fetch('/api/profile?initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false }));
-      if (!data.ok || !data.profile) return;
+      if (isUserNotStartedBot(data)) {
+        setProfileSyncWarning(true);
+        return;
+      }
+      if (!data.ok) return;
+      if (!data.profile) {
+        setProfileSyncWarning(false);
+        return;
+      }
+      setProfileSyncWarning(false);
       const bp = data.profile; // backend profile
       const lp = Evening.loadProfile() || {}; // localStorage profile
       // Мерж: бэкенд-поля приоритетнее, но localStorage может иметь несохранённые правки
@@ -589,6 +608,13 @@
       if (meta) meta.textContent = zod ? `${zod[1]} ${zod[0]} · ${age} ${ruAge(age)}` : 'заполнен';
     } else {
       if (meta) meta.textContent = 'заполнить';
+    }
+
+    const warning = $('#profileSyncWarning');
+    if (warning) {
+      warning.hidden = !state.profileSync.userNotStartedBot;
+      const startBtn = warning.querySelector('[data-action="start-bot"]');
+      if (startBtn) startBtn.onclick = openProfileStartBot;
     }
 
     const editBtn = $('#btnProfileEdit');
@@ -1176,6 +1202,9 @@
       timezone: (p.timezone !== undefined ? p.timezone : (Intl.DateTimeFormat().resolvedOptions().timeZone || undefined)),
       gender: p.gender || undefined,
     };
+    // Сохраняем локально до сетевого запроса: если бот ещё не запущен,
+    // данные не пропадут после перехода в Telegram и возврата в Mini App.
+    Evening.saveProfile(p);
     try {
       const res = await fetch('/api/profile?initData=' + encodeURIComponent(initData), {
         method: 'POST',
@@ -1184,11 +1213,16 @@
       });
       const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
       if (!res.ok || !data.ok) {
-        flashToast(data.error === 'user_not_started_bot'
-          ? 'Сначала запусти бота (/start)'
-          : (data.error || 'Не удалось сохранить профиль'));
+        if (isUserNotStartedBot(data)) {
+          setProfileSyncWarning(true);
+          renderProfile();
+          flashToast('Сначала запусти бота — профиль останется здесь.');
+        } else {
+          flashToast(data.error || 'Не удалось сохранить профиль');
+        }
         return;
       }
+      setProfileSyncWarning(false);
       setProfile(p);
       Evening.saveProfile(p);
       flashToast('Профиль сохранён');
@@ -1201,9 +1235,8 @@
     }
   }
 
-  function openProfileInBot() {
+  function openBotLink(url) {
     const tg = window.TelegramApp && window.TelegramApp.tg;
-    const url = 'https://t.me/astro_byrbot?start=profile';
     if (tg && tg.openTelegramLink) {
       try { tg.openTelegramLink(url); haptic('light'); return; } catch (e) {}
     }
@@ -1212,6 +1245,14 @@
     }
     // fallback (dev / desktop browser)
     window.open(url, '_blank', 'noopener');
+  }
+
+  function openProfileStartBot() {
+    openBotLink(BOT_PROFILE_START_URL);
+  }
+
+  function openProfileInBot() {
+    openBotLink('https://t.me/astro_byrbot?start=profile');
   }
   function closePanel(name) {
     $('#panel' + name[0].toUpperCase() + name.slice(1)).hidden = true;
@@ -1476,6 +1517,17 @@
     $bind('#btnProfileEdit',  toggleProfileEdit);
     $bind('#btnProfileSave',  saveProfileToBot);
     $bind('#btnProfileCopy',  openProfileInBot);
+    $bind('#btnProfileStartBot', openProfileStartBot);
+
+    const resyncProfile = async () => {
+      if (!state.profileSync.userNotStartedBot) return;
+      await loadProfileFromBackend();
+      renderProfile();
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') resyncProfile();
+    });
+    window.addEventListener('focus', resyncProfile);
 
     // Quick tiles
     $bind('#tileBiorhythm',   tileBiorhythmClick);

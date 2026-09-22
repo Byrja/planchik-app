@@ -1,6 +1,6 @@
 // app.js — UI-контроллер Mini App. TMA-safe.
 
-// ── Emergency cache-bust for landing-gate regression ──────────
+// -- Emergency cache-bust for landing-gate regression ----------
 // Если браузер/Telegram WebView закешировал старую версию с landing-gate
 // (до того как мы её убрали), этот код принудительно перезагрузит страницу
 // с уникальным параметром. Безопасно — срабатывает только если DOM содержит
@@ -18,7 +18,7 @@
 (function () {
   'use strict';
 
-  // ── Telegram WebApp detection ────────────────────────────
+  // -- Telegram WebApp detection ----------------------------
   const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   window.TelegramApp = { tg };
 
@@ -49,7 +49,7 @@
     } catch (e) { /* noop */ }
   }
 
-  // ── State ────────────────────────────────────────────────
+  // -- State ------------------------------------------------
   const _user = parseUser();
   function enrichProfile(p) {
     if (!p) return null;
@@ -57,7 +57,7 @@
     return p;
   }
 
-  // ── Evening shim (no-op: чек-ин выпилен, но код app.js ещё зовёт Evening.*) ──
+  // -- Evening shim (no-op: чек-ин выпилен, но код app.js ещё зовёт Evening.*) --
   const Evening = {
     loadProfile() { try { return JSON.parse(localStorage.getItem('arProfile') || 'null'); } catch { return null; } },
     saveProfile(p) { try { localStorage.setItem('arProfile', JSON.stringify(p)); } catch {} },
@@ -72,6 +72,7 @@
     mood: null,
     checkins: Evening.last30(),
     chartAi: { loaded: false, interpretation: '', remaining: 3, cached: false, error: '' },
+    backendChart: { loaded: false, loading: false, chart: null, error: '' },
     aiBalance: {},
     profileSync: { userNotStartedBot: false },
   };
@@ -79,12 +80,36 @@
   const AI_LIMITS_DISPLAY = {
     tarot_spread: 5,
     chart_interpret: 3,
+    daily_card_interpret: 1,
   };
-  const BOT_PROFILE_START_URL = 'https://t.me/astro_byrbot?start=webapp_profile';
+  const BOT_PROFILE_START_URL = window.ASTRO_BOT_PROFILE_START_URL || 'https://t.me/astro_byrbot?start=webapp_profile';
+  const BOT_STARS_URL = window.ASTRO_BOT_STARS_URL || 'https://t.me/astro_byrbot?start=stars';
 
   function getInitData() {
     if (tg && tg.initData) return tg.initData;
     return "";
+  }
+
+  function stableHash32(value) {
+    let hash = 2166136261;
+    const input = String(value || '');
+    for (let i = 0; i < input.length; i += 1) {
+      hash ^= input.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function getForecastDayReversed(d) {
+    const card = d && d.card ? d.card : {};
+    const key = [
+      'weekly-forecast-day',
+      state.user && state.user.id ? state.user.id : 'anon',
+      d && d.dt ? d.dt : '',
+      card.name || '',
+      card.glyph || ''
+    ].join('|');
+    return (stableHash32(key) % 100) < 18;
   }
 
   async function loadAiBalance() {
@@ -95,19 +120,40 @@
       const data = await res.json();
       if (data.ok && Array.isArray(data.balance)) {
         state.aiBalance = Object.fromEntries(data.balance.map(b => [b.feature, b]));
+        const chartBal = state.aiBalance.chart_interpret;
+        if (chartBal && typeof chartBal.remaining === 'number') {
+          state.chartAi.remaining = chartBal.remaining;
+        }
       }
     } catch (e) {
       // ignore: UX не ломается, fallback-limit покажем
     }
   }
 
+  function getFeatureRemaining(feature) {
+    const bal = state.aiBalance[feature];
+    if (bal && typeof bal.remaining === 'number') return bal.remaining;
+    return AI_LIMITS_DISPLAY[feature] ?? null;
+  }
+
+  function getHeroRemaining() {
+    return getFeatureRemaining('daily_card_interpret');
+  }
+
+  function updateFeatureBalance(feature, data) {
+    if (!data || typeof data.remaining !== 'number') return;
+    const bal = state.aiBalance[feature] || { feature, limit: AI_LIMITS_DISPLAY[feature] || 0, used: 0, paid: 0 };
+    bal.remaining = data.remaining;
+    if (typeof data.resetAt === 'number') bal.resetAt = data.resetAt;
+    state.aiBalance[feature] = bal;
+  }
+
   function renderAiBadge(feature, selector) {
     const el = document.querySelector(selector);
     if (!el) return;
-    const bal = state.aiBalance[feature];
-    const remaining = bal?.remaining ?? AI_LIMITS_DISPLAY[feature] ?? "—";
+    const remaining = getFeatureRemaining(feature);
     const isLow = typeof remaining === "number" && remaining <= 1;
-    el.innerHTML = `<span class="ai-badge ${isLow ? 'is-low' : ''}">Осталось сегодня: ${remaining}</span>`;
+    el.innerHTML = `<span class="ai-badge ${isLow ? 'is-low' : ''}">Осталось сегодня: ${remaining ?? '—'}</span>`;
     el.hidden = false;
   }
 
@@ -120,9 +166,11 @@
       return;
     }
     el.innerHTML = `<div class="ai-limit-box">
-      <p>Лимит ${bal.limit}/день исчерпан. Сброс в полночь UTC.</p>
-      <button class="btn btn-gold" disabled title="Покупка звёзд — позже">Пополнить (скоро)</button>
+      <p>Лимит на сегодня исчерпан. Сброс в полночь UTC.</p>
+      <button type="button" class="btn btn-gold" data-stars-topup>Докупить за Stars</button>
     </div>`;
+    const btn = el.querySelector('[data-stars-topup]');
+    if (btn) btn.onclick = openStarsTopup;
   }
 
   function setProfile(p) {
@@ -175,8 +223,23 @@
     }
   }
 
+  function getWebAppStartParam() {
+    const unsafeParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
+    if (unsafeParam) return unsafeParam;
+
+    // Telegram may preserve WebApp button query params in location.href even when
+    // initDataUnsafe.start_param is empty. Also support the official t.me app
+    // deep-link param name used by Mini Apps.
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      return params.get('startapp') || params.get('tgWebAppStartParam') || params.get('start_param') || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   function parseUser() {
-    const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
+    const startParam = getWebAppStartParam();
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       const u = tg.initDataUnsafe.user;
       return { id: u.id, name: u.first_name || 'друг', username: u.username || null, photo: u.photo_url || null, startParam };
@@ -185,7 +248,7 @@
     return { id: 0, name: 'друг', username: null, photo: null, startParam };
   }
 
-  // ── Compat deep-link ─────────────────────────────────────
+  // -- Compat deep-link -------------------------------------
   // /start compat_<tgId> → startParam = "compat_123" → compatTgId = 123
   function parseCompatStartParam() {
     const sp = (state.user.startParam || '').toLowerCase();
@@ -204,11 +267,11 @@
     excellent: '✨', good: '🌟', average: '🌙', challenging: '🌒', difficult: '☁',
   };
 
-  // ── DOM refs ─────────────────────────────────────────────
+  // -- DOM refs ---------------------------------------------
   const $  = (s) => document.querySelector(s);
   const $$ = (s) => Array.from(document.querySelectorAll(s));
 
-  // ── Init ─────────────────────────────────────────────────
+  // -- Init -------------------------------------------------
   async function init() {
     // Mini App всегда открывается внутри Telegram — landing gate убран.
     // tg.initData и tg.initDataUnsafe всегда доступны в WebView.
@@ -216,6 +279,7 @@
     $('#loadedAt').textContent   = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     renderUser();
     await loadProfileFromBackend(); // подтянуть профиль из бота
+    await loadBackendChart(); // подтянуть настоящую сохранённую карту из бэкенда
     renderTarot();
     renderBiorhythmTile();
     renderProfile();
@@ -225,6 +289,7 @@
     wireHeroFlip();
     wireHistoryReadingModal();
     wireHistorySearch();
+    await refreshHistoryFromBackend();
     updateHistoryBadge();
     if (state.user.startParam === 'mychart') {
       setTimeout(openChartPanel, 50);
@@ -237,7 +302,7 @@
     }
   }
 
-  // ── Gadanie (arc portal) ─────────────────────────────────
+  // -- Gadanie (arc portal) ---------------------------------
   async function openGadaniePortal() {
     closeAllPanels();
     const portal = $('#arcPortal');
@@ -265,7 +330,7 @@
     haptic('light');
   }
 
-  // ── User chip ────────────────────────────────────────────
+  // -- User chip --------------------------------------------
   function renderUser() {
     const el = $('#userChip');
     if (state.user.photo) {
@@ -275,7 +340,7 @@
     }
   }
 
-  // ── Tarot Daily ──────────────────────────────────────────
+  // -- Tarot Daily ------------------------------------------
   // Стихийные SVG-иконки для glyph (без эмодзи — кросс-платформенно)
   const ELEMENT_SVG = {
     'fire': '<svg viewBox="0 0 32 32" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 28c5 0 8-3.5 8-8 0-3-1.5-5-3-7-1-1.2-1.5-2.5-1.5-4 0-1.5 0.5-2.8 1-3.5-1 0.5-2.5 1.8-3.5 4-1.2 2.7-1 5-1 5s-1.5-1-2-2.5c-0.5 2 0 4 1 5.5-2-0.5-3.5-2-4-3.5-0.5 2 0 5 2 7-2 0-3.5-1.5-4-3 0 4.5 3 10 7 10z" fill="currentColor" fill-opacity="0.3"/></svg>',
@@ -367,7 +432,7 @@
     }
   }
 
-  // ── Biorhythm tile (summary) ────────────────────────────
+  // -- Biorhythm tile (summary) ----------------------------
   function renderBiorhythmTile() {
     const el = $('#bioToday');
     if (!el) return;
@@ -394,7 +459,7 @@
     openBiorhythmPanel();
   }
 
-  // ── Bio tile (summary) ───────────────────────────────────
+  // -- Bio tile (summary) -----------------------------------
   function renderBioTile() {
     const el = $('#bioToday');
     if (!el) return;
@@ -408,10 +473,10 @@
     } catch { el.textContent = '—'; }
   }
 
-  // ── Evenin g tile removed ────────────────────────────────
+  // -- Evenin g tile removed --------------------------------
   function _renderEveningRemoved() { /* noop */ }
 
-  // ── Biorhythm panel ─────────────────────────────────────
+  // -- Biorhythm panel -------------------------------------
   function openBiorhythmPanel() {
     closeAllPanels();
     const panel = $('#panelBiorhythm');
@@ -471,7 +536,7 @@
       </div>`;
   }
 
-  // ── Forecast panel (7-day astro forecast from backend) ──
+  // -- Forecast panel (7-day astro forecast from backend) --
   function openForecastPanel() {
     closeAllPanels();
     $('#panelForecast').hidden = false;
@@ -481,6 +546,31 @@
     if (cta) cta.onclick = openProfilePanel;
     loadWeekForecast();
     try { $('#panelForecast').scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
+  }
+
+  function renderForecastCta(list, empty, type) {
+    if (empty) empty.hidden = true;
+    const cfg = type === 'user_not_started_bot'
+      ? {
+          title: 'Сначала запусти бота',
+          text: 'Так мы сохраним твой профиль и сможем считать персональные прогнозы.',
+          label: 'Запустить бота',
+          action: openProfileStartBot
+        }
+      : {
+          title: 'Нужен профиль для прогноза',
+          text: 'Заполни дату рождения и место — недельный прогноз станет персональным.',
+          label: 'Заполнить профиль',
+          action: openProfilePanel
+        };
+    list.hidden = false;
+    list.innerHTML = `<li class="forecast-item forecast-text" style="display:block;padding:16px;line-height:1.6">
+      <strong>${escapeHtml(cfg.title)}</strong>
+      <p style="margin:8px 0 12px;color:var(--ink-mute)">${escapeHtml(cfg.text)}</p>
+      <button type="button" class="btn btn-primary" data-forecast-cta>${escapeHtml(cfg.label)}</button>
+    </li>`;
+    const btn = list.querySelector('[data-forecast-cta]');
+    if (btn) btn.onclick = cfg.action;
   }
 
   async function loadWeekForecast() {
@@ -496,7 +586,7 @@
 
     const initData = getInitData();
     if (!initData) {
-      list.innerHTML = '<li class="forecast-item" style="justify-content:center;color:var(--ink-mute)">Открой Mini App из бота</li>';
+      renderForecastCta(list, empty, 'user_not_started_bot');
       return;
     }
 
@@ -505,18 +595,19 @@
       const data = await res.json().catch(() => ({ ok: false }));
       if (!data.ok) {
         if (data.error === 'profile_incomplete') {
-          list.innerHTML = '';
-          if (empty) { empty.hidden = false; }
+          renderForecastCta(list, empty, 'profile_incomplete');
           return;
         }
-        list.innerHTML = `<li class="forecast-item" style="justify-content:center;color:var(--ink-mute)">${data.error === 'user_not_started_bot' ? 'Сначала запусти бота (/start)' : 'Не удалось загрузить прогноз'}</li>`;
+        if (data.error === 'user_not_started_bot') {
+          renderForecastCta(list, empty, 'user_not_started_bot');
+          return;
+        }
+        list.innerHTML = '<li class="forecast-item" style="justify-content:center;color:var(--ink-mute)">Не удалось загрузить прогноз</li>';
         return;
       }
-      // Конвертируем Telegram-HTML (buildWeeklyForecastText) в обычный HTML
-      const html = data.text
-        .replace(/<b>/g, '<strong>').replace(/<\/b>/g, '</strong>')
-        .replace(/<i>/g, '<em>').replace(/<\/i>/g, '</em>')
-        .replace(/\n/g, '<br>');
+      // Безопасно рендерим Telegram-HTML (buildWeeklyForecastText): разрешаем только <b>/<i>,
+      // а любые сырые <, &, теги из профиля/LLM показываем как текст.
+      const html = renderTelegramForecastHtml(data.text || '');
       list.innerHTML = `<li class="forecast-item forecast-text" style="display:block;padding:16px;line-height:1.6">${html}</li>`;
       if (empty) empty.remove();
     } catch (e) {
@@ -524,7 +615,7 @@
     }
   }
 
-  // ── Profile panel ──────────────────────────────────────
+  // -- Profile panel --------------------------------------
   function openProfilePanel() {
     closeAllPanels();
     $('#panelProfile').hidden = false;
@@ -639,7 +730,7 @@
     return 'лет';
   }
 
-  // ── Tile highlight + panel close ────────────────────────
+  // -- Tile highlight + panel close ------------------------
   function tileActive(name, on) {
     const map = { biorhythm:'tileBiorhythm', forecast:'tileForecast', profile:'tileProfile', chart:'tileChart', gadanie:'tileGadanie' };
     const el = $('#' + map[name]);
@@ -659,7 +750,7 @@
     }
   }
 
-  // ── Chart panel ────────────────────────────────────────
+  // -- Chart panel ----------------------------------------
   function openChartPanel() {
     closeAllPanels();
     $('#panelChart').hidden = false;
@@ -670,7 +761,7 @@
     try { $('#panelChart').scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
   }
 
-  // ── Compat panel (deep-link compat_<tgId> или ручной ввод) ──
+  // -- Compat panel (deep-link compat_<tgId> или ручной ввод) --
   let _compatPartnerTgId = null; // хранится для share
 
   function openCompatPanel(partnerTgId) {
@@ -712,15 +803,19 @@
 
     const input = root.querySelector('#compatInput');
     const goBtn = root.querySelector('#compatGo');
+    const inviteBtn = root.querySelector('#compatInvite');
     if (!input || !goBtn) return;
+
+    if (inviteBtn) {
+      inviteBtn.onclick = () => shareCompatInvite();
+    }
 
     const doCompat = () => {
       const val = input.value.trim();
-      if (!val) { flashToast('Введите ID или @username'); return; }
+      if (!val) { flashToast('Введите числовой Telegram ID партнёра'); return; }
       let tgId;
       if (val.startsWith('@')) {
-        // username — пока не поддерживается API, нужен числовой ID
-        flashToast('Пока только числовой Telegram ID. Попроси партнёра написать /id в боте.');
+        flashToast('Username не подойдёт. Попроси партнёра отправить /id в @astro_byrbot.');
         return;
       } else {
         tgId = Number(val);
@@ -765,12 +860,18 @@
     if (!root) return;
     let msg = 'Не удалось посчитать совместимость.';
     let cta = `<button type="button" class="btn btn-ghost" data-screen="compat">Закрыть</button>`;
+    let hint = '';
     if (errCode === 'partner_no_profile') {
-      msg = 'У партнёра пока нет заполненного профиля.\nПопроси его нажать /start у бота и заполнить дату рождения.';
+      msg = 'У партнёра пока нет заполненного профиля.\nПригласи его в бота: ссылка откроет профиль, а /id поможет вернуться к ручному расчёту.';
+      cta = `<button type="button" class="btn btn-primary" id="compatInviteError">↗ Пригласить партнёра</button>`;
+      hint = 'Если ссылка не откроется, попроси партнёра написать /id в @astro_byrbot и прислать тебе число.';
     } else if (errCode === 'caller_no_profile') {
-      msg = 'Сначала заполни свой профиль — открой «Профиль» на главной.';
+      msg = 'Сначала заполни свой профиль — дата и место рождения нужны для расчёта совместимости.';
+      cta = `<button type="button" class="btn btn-primary" id="compatOpenProfile">Заполнить профиль</button>`;
     } else if (errCode === 'partner_not_started_bot') {
-      msg = 'Этот пользователь ещё не запускал бота.\nПопроси его нажать /start у @astro_byrbot.';
+      msg = 'Этот пользователь ещё не запускал бота.\nПригласи партнёра в @astro_byrbot — после старта он сможет заполнить профиль и прислать /id.';
+      cta = `<button type="button" class="btn btn-primary" id="compatInviteError">↗ Пригласить партнёра</button>`;
+      hint = 'Ручной fallback: партнёр отправляет /id в боте и присылает тебе числовой ID.';
     } else if (errCode === 'invalid_initData') {
       msg = 'Открой приложение через Telegram.';
     } else if (errCode === 'self_compat_not_allowed') {
@@ -781,10 +882,19 @@
         <div class="compat-empty-glyph">☁</div>
         <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
         ${cta}
+        ${hint ? `<p class="compat-form-note">${escapeHtml(hint)}</p>` : ''}
       </div>
     `;
     const closeBtn = root.querySelector('[data-screen="compat"]');
     if (closeBtn) closeBtn.onclick = () => closePanel('compat');
+    const profileBtn = root.querySelector('#compatOpenProfile');
+    if (profileBtn) profileBtn.onclick = () => {
+      closePanel('compat');
+      profileEditing = true;
+      openProfilePanel();
+    };
+    const inviteBtn = root.querySelector('#compatInviteError');
+    if (inviteBtn) inviteBtn.onclick = () => shareCompatInvite();
   }
 
   function renderCompat(data, partnerTgId) {
@@ -891,11 +1001,11 @@
     return `${d} ${months[m - 1] || ''} ${y}`;
   }
 
-  function shareCompat(data, partnerTgId, nameA, nameB) {
-    const { score = 0, category = 'average' } = data || {};
-    const catLabel = COMPAT_CATEGORY_LABEL[category] || '';
-    const text = `🔮 ${nameA} & ${nameB} — ${catLabel} совместимость: ${Math.round(score)}/100\n\nПосчитай свою 👇`;
-    const shareUrl = 'https://t.me/astro_byrbot?start=compat_' + (state.user.id || '');
+  function buildCompatShareUrl() {
+    return 'https://t.me/astro_byrbot?start=compat_' + (state.user.id || '');
+  }
+
+  function openCompatShare(text, shareUrl) {
     const t = window.TelegramApp && window.TelegramApp.tg;
     const tgShareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(text);
     if (t && t.openTelegramLink) {
@@ -905,33 +1015,197 @@
       try { navigator.share({ title: 'Совместимость — Гадалка', text, url: shareUrl }).catch(() => {}); return; } catch (e) {}
     }
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(text + '\n' + shareUrl).then(() => flashToast('Скопировано в буфер'));
+      navigator.clipboard.writeText(text + '\n' + shareUrl).then(() => flashToast('Ссылка скопирована'));
     } else {
       flashToast('Шаринг недоступен');
+    }
+  }
+
+  function shareCompatInvite() {
+    if (!state.user.id) { flashToast('Открой приложение через Telegram'); return; }
+    openCompatShare('🔮 Хочу посчитать нашу астрологическую совместимость. Открой ссылку, заполни профиль и вернись ко мне 👇', buildCompatShareUrl());
+  }
+
+  function shareCompat(data, partnerTgId, nameA, nameB) {
+    const { score = 0, category = 'average' } = data || {};
+    const catLabel = COMPAT_CATEGORY_LABEL[category] || '';
+    const text = `🔮 ${nameA} & ${nameB} — ${catLabel} совместимость: ${Math.round(score)}/100\n\nПосчитай свою 👇`;
+    openCompatShare(text, buildCompatShareUrl());
+  }
+
+  async function loadBackendChart() {
+    const initData = getInitData();
+    if (!initData) return;
+    state.backendChart.loading = true;
+    try {
+      const res = await fetch('/api/chart/latest?initData=' + encodeURIComponent(initData));
+      const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
+      state.backendChart.loaded = true;
+      state.backendChart.loading = false;
+      if (res.ok && data.ok && data.chart) {
+        state.backendChart.chart = normalizeBackendChart(data.chart);
+        state.backendChart.error = '';
+      } else {
+        state.backendChart.chart = null;
+        state.backendChart.error = data.message || data.error || 'no_chart';
+      }
+    } catch (e) {
+      state.backendChart.loaded = true;
+      state.backendChart.loading = false;
+      state.backendChart.chart = null;
+      state.backendChart.error = 'network';
+    }
+  }
+
+  function normalizeBackendChart(record) {
+    const data = record && record.chartData ? record.chartData : null;
+    if (!data || typeof data !== 'object') return null;
+    const signText = (o) => {
+      if (!o || typeof o !== 'object') return '';
+      const symbol = signSymbol(o.sign || o.sign_ru);
+      const sign = o.sign_ru || ruSign(o.sign) || o.sign || '';
+      return `${symbol ? symbol + ' ' : ''}${sign}`.trim();
+    };
+    const planetsObj = data.planets && typeof data.planets === 'object' ? data.planets : {};
+    const order = Array.isArray(data.planet_order) ? data.planet_order : Object.keys(planetsObj);
+    const planets = order
+      .map((id) => normalizeBackendPlanet(id, planetsObj[id]))
+      .filter(Boolean);
+    const aspects = Array.isArray(data.aspects) ? data.aspects.map(normalizeBackendAspect).filter(Boolean) : [];
+    return {
+      id: record.id,
+      birthDate: record.birthDate,
+      birthTime: record.birthTime,
+      birthPlace: record.birthPlace,
+      createdAt: record.createdAt,
+      sunSign: signText(planetsObj.Sun),
+      moonSign: signText(planetsObj.Moon),
+      ascendant: signText(data.ascendant),
+      planets,
+      aspects,
+      elements: formatBackendElements(data.elements),
+    };
+  }
+
+  function normalizeBackendPlanet(id, p) {
+    if (!p || typeof p !== 'object') return null;
+    return {
+      id,
+      name: p.name_ru || id,
+      symbol: p.symbol || '',
+      sign: { name: p.sign_ru || ruSign(p.sign) || p.sign || '', symbol: signSymbol(p.sign || p.sign_ru) },
+      dms: formatDegree(p.degree),
+      retro: !!p.retro,
+    };
+  }
+
+  function normalizeBackendAspect(a) {
+    if (!a || typeof a !== 'object') return null;
+    return {
+      glyph: a.symbol || '',
+      name: a.aspect_ru || a.aspect || '',
+      orb: typeof a.orb === 'number' ? a.orb.toFixed(2) : (a.orb || '0'),
+      p1: { name: a.planet1_ru || a.planet1 || '' },
+      p2: { name: a.planet2_ru || a.planet2 || '' },
+    };
+  }
+
+  function formatDegree(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return '';
+    const d = Math.floor(n);
+    const m = Math.round((n - d) * 60);
+    return `${d}°${String(m).padStart(2, '0')}`;
+  }
+
+  function formatBackendElements(elements) {
+    if (!elements || typeof elements !== 'object') return {};
+    return {
+      Огонь: elements.fire || 0,
+      Земля: elements.earth || 0,
+      Воздух: elements.air || 0,
+      Вода: elements.water || 0,
+    };
+  }
+
+  function ruSign(sign) {
+    const map = { Aries: 'Овен', Taurus: 'Телец', Gemini: 'Близнецы', Cancer: 'Рак', Leo: 'Лев', Virgo: 'Дева', Libra: 'Весы', Scorpio: 'Скорпион', Sagittarius: 'Стрелец', Capricorn: 'Козерог', Aquarius: 'Водолей', Pisces: 'Рыбы' };
+    return map[sign] || '';
+  }
+
+  function signSymbol(sign) {
+    const map = { Aries: '♈', Taurus: '♉', Gemini: '♊', Cancer: '♋', Leo: '♌', Virgo: '♍', Libra: '♎', Scorpio: '♏', Sagittarius: '♐', Capricorn: '♑', Aquarius: '♒', Pisces: '♓', Овен: '♈', Телец: '♉', Близнецы: '♊', Рак: '♋', Лев: '♌', Дева: '♍', Весы: '♎', Скорпион: '♏', Стрелец: '♐', Козерог: '♑', Водолей: '♒', Рыбы: '♓' };
+    return map[sign] || '';
+  }
+
+  function renderCreateChartCta(root, message) {
+    root.innerHTML = `
+      <div class="chart-empty">
+        <svg viewBox="0 0 32 32" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="16" cy="16" r="11" fill="currentColor" fill-opacity="0.1"/>
+          <path d="M16 8v8l5 5"/>
+        </svg>
+        <p>${escapeHtml(message || 'Заполните дату, точное время и город рождения в профиле — Mini App рассчитает настоящую натальную карту.')}</p>
+        <button type="button" class="btn btn-primary" id="chartCtaCreate">Создать карту</button>
+        <button type="button" class="btn btn-ghost" id="chartCtaOpenProfile">Заполнить профиль</button>
+      </div>`;
+    const createBtn = $('#chartCtaCreate');
+    if (createBtn) createBtn.onclick = createBackendChart;
+    const profileBtn = $('#chartCtaOpenProfile');
+    if (profileBtn) profileBtn.onclick = openProfilePanel;
+  }
+
+  async function createBackendChart() {
+    const initData = getInitData();
+    if (!initData) {
+      flashToast('Не удалось получить initData. Перезайди в Mini App из бота.');
+      return;
+    }
+    const btn = $('#chartCtaCreate');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Считаю карту…';
+    }
+    state.backendChart.loading = true;
+    renderChart();
+    try {
+      const res = await fetch('/api/chart/latest?initData=' + encodeURIComponent(initData), { method: 'POST' });
+      const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
+      state.backendChart.loaded = true;
+      state.backendChart.loading = false;
+      if (res.ok && data.ok && data.chart) {
+        state.backendChart.chart = normalizeBackendChart(data.chart);
+        state.backendChart.error = '';
+        flashToast('Карта создана');
+        haptic('success');
+      } else {
+        state.backendChart.chart = null;
+        state.backendChart.error = data.message || data.error || 'Не удалось создать карту';
+        flashToast(state.backendChart.error);
+      }
+      renderChart();
+    } catch (e) {
+      state.backendChart.loaded = true;
+      state.backendChart.loading = false;
+      state.backendChart.chart = null;
+      state.backendChart.error = 'Ошибка сети. Попробуй ещё раз.';
+      flashToast(state.backendChart.error);
+      renderChart();
     }
   }
 
   function renderChart() {
     const root = $('#chartContent');
     if (!root) return;
-    const p = state.profile;
-    if (!p || !p.birthYear) {
-      root.innerHTML = `
-        <div class="chart-empty">
-          <svg viewBox="0 0 32 32" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="16" cy="16" r="11" fill="currentColor" fill-opacity="0.1"/>
-            <path d="M16 8v8l5 5"/>
-          </svg>
-          <p>Для натальной карты нужен профиль: имя, дата, время и место рождения.</p>
-          <button type="button" class="btn btn-primary" id="chartCtaOpenProfile">Заполнить профиль →</button>
-        </div>`;
-      const cta = $('#chartCtaOpenProfile');
-      if (cta) cta.onclick = openProfilePanel;
+    if (state.backendChart.loading) {
+      root.innerHTML = '<p class="chart-empty">Загружаю сохранённую карту из бэкенда…</p>';
       return;
     }
-    const chart = NatalChart.calc(p);
+    const chart = state.backendChart.chart;
     if (!chart) {
-      root.innerHTML = '<p class="chart-empty">Не удалось рассчитать карту.</p>';
+      renderCreateChartCta(root, state.backendChart.error && state.backendChart.error !== 'no_chart'
+        ? state.backendChart.error
+        : 'Заполните дату, точное время и город рождения в профиле — Mini App рассчитает настоящую натальную карту с теми же Солнцем, Луной, ASC и аспектами.');
       return;
     }
     const elements = Object.entries(chart.elements)
@@ -1004,7 +1278,7 @@
     root.innerHTML = html;
   }
 
-  // ── AI-расшифровка натальной карты (глубинный разбор) ───────
+  // -- AI-расшифровка натальной карты (глубинный разбор) -------
   // Минимальный markdown-парсер для AI-вывода (копия из arc-app.js).
   // Без зависимостей, без XSS (escapeHtml → белый список).
   function mdLight(src) {
@@ -1144,8 +1418,13 @@
       const res = await fetch('/api/chart/interpret?initData=' + encodeURIComponent(initData), { method: 'POST' });
       const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
       if (!res.ok || !data.ok) {
-        state.chartAi.error = data.message || data.error || 'Не удалось получить разбор.';
         state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : (state.aiBalance.chart_interpret?.remaining ?? CHART_AI_LIMIT);
+        if (data.error === 'rate_limited' || state.chartAi.remaining === 0) {
+          state.chartAi.remaining = 0;
+          renderChartAiButton();
+          return;
+        }
+        state.chartAi.error = data.message || data.error || 'Не удалось получить разбор.';
         renderChartAiError();
         return;
       }
@@ -1254,12 +1533,16 @@
   function openProfileInBot() {
     openBotLink('https://t.me/astro_byrbot?start=profile');
   }
+
+  function openStarsTopup() {
+    openBotLink(BOT_STARS_URL);
+  }
   function closePanel(name) {
     $('#panel' + name[0].toUpperCase() + name.slice(1)).hidden = true;
     tileActive(name, false);
   }
 
-  // ── Tarot refresh + share ────────────────────────────────
+  // -- Tarot refresh + share --------------------------------
   function refreshTarot() {
     haptic('medium');
     const tgId = state.user.id || 1;
@@ -1286,7 +1569,7 @@
     haptic('light');
   }
 
-  // ── Evening save ────────────────────────────────────────
+  // -- Evening save ----------------------------------------
   function selectMood(btn) {
     state.mood = Number(btn.dataset.mood);
     $$('.mood-btn').forEach(b => b.classList.toggle('is-selected', b === btn));
@@ -1294,7 +1577,7 @@
   }
   // saveCheckin удалён: чек-ин выпилен из UI
 
-  // ── Haptics (no-op если TG недоступен) ──────────────────
+  // -- Haptics (no-op если TG недоступен) ------------------
   function haptic(kind) {
     if (tg && tg.HapticFeedback) {
       try {
@@ -1305,7 +1588,7 @@
     }
   }
 
-  // ── Toast ────────────────────────────────────────────────
+  // -- Toast ------------------------------------------------
   let toastT;
   function flashToast(msg) {
     const t = $('#toast');
@@ -1315,12 +1598,19 @@
     toastT = setTimeout(() => t.classList.remove('is-shown'), 2200);
   }
 
-  // ── Escape ───────────────────────────────────────────────
+  // -- Escape -----------------------------------------------
   function escapeHtml(s) {
     return (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
-  // ── AI-расшифровка карты дня ───────────────────────────────
+  function renderTelegramForecastHtml(text) {
+    return escapeHtml(String(text || ''))
+      .replace(/&lt;b&gt;/g, '<strong>').replace(/&lt;\/b&gt;/g, '</strong>')
+      .replace(/&lt;i&gt;/g, '<em>').replace(/&lt;\/i&gt;/g, '</em>')
+      .replace(/\n/g, '<br>');
+  }
+
+  // -- AI-расшифровка карты дня -------------------------------
   async function handleHeroAiInterpret() {
     const btn = $('#btnHeroAi');
     const slot = $('#heroAiReading');
@@ -1347,6 +1637,12 @@
       return;
     }
 
+    if (getHeroRemaining() === 0) {
+      renderHeroAiLimit(slot);
+      btn.classList.add('is-active');
+      return;
+    }
+
     // fetch
     btn.disabled = true;
     btn.classList.add('is-loading');
@@ -1360,7 +1656,16 @@
         body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
       });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'fail');
+      if (!data.ok) {
+        if (data.error === 'rate_limited') {
+          updateFeatureBalance('daily_card_interpret', data);
+          renderHeroAiLimit(slot);
+          btn.classList.add('is-active');
+          return;
+        }
+        throw new Error(data.error || 'fail');
+      }
+      updateFeatureBalance('daily_card_interpret', data);
       try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
       renderHeroAi(slot, data);
       btn.classList.add('is-active');
@@ -1374,6 +1679,17 @@
     }
   }
 
+  function renderHeroAiLimit(slot) {
+    slot.innerHTML = `
+      <div class="hero-ai-card ai-limit-box">
+        <p>Лимит на сегодня исчерпан. Сброс в полночь UTC.</p>
+        <button type="button" class="btn btn-gold" data-stars-topup>Докупить за Stars</button>
+      </div>`;
+    slot.hidden = false;
+    const btn = slot.querySelector('[data-stars-topup]');
+    if (btn) btn.onclick = openStarsTopup;
+  }
+
   function renderHeroAi(slot, d) {
     slot.innerHTML = `
       <div class="hero-ai-card">
@@ -1385,7 +1701,7 @@
     slot.hidden = false;
   }
 
-  // ── Развёртка дня недели (forecast) ───────────────────────
+  // -- Развёртка дня недели (forecast) -----------------------
   async function openForecastDayDetail(d) {
     haptic('light');
     let panel = $('#forecastDayPanel');
@@ -1397,7 +1713,7 @@
       panel.setAttribute('aria-modal', 'true');
       document.body.appendChild(panel);
     }
-    const reversed = Math.random() < 0.18;
+    const reversed = getForecastDayReversed(d);
     const text = d.card[reversed ? 'reversed' : 'upright'] || '';
     panel.innerHTML = `
       <div class="overlay-backdrop" data-close></div>
@@ -1425,6 +1741,13 @@
       aiBtn.onclick = async () => {
         if (!aiSlot.hidden) { aiSlot.hidden = true; aiSlot.innerHTML = ''; aiBtn.classList.remove('is-active'); return; }
         aiBtn.disabled = true; aiBtn.classList.add('is-loading');
+        if (getHeroRemaining() === 0) {
+          renderHeroAiLimit(aiSlot);
+          aiBtn.classList.add('is-active');
+          aiBtn.disabled = false;
+          aiBtn.classList.remove('is-loading');
+          return;
+        }
         try {
           const initData = getInitData();
           const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
@@ -1432,7 +1755,16 @@
             body: JSON.stringify({ name: d.card.name, reversed })
           });
           const data = await res.json();
-          if (!data.ok) throw new Error(data.error || 'fail');
+          if (!data.ok) {
+            if (data.error === 'rate_limited') {
+              updateFeatureBalance('daily_card_interpret', data);
+              renderHeroAiLimit(aiSlot);
+              aiBtn.classList.add('is-active');
+              return;
+            }
+            throw new Error(data.error || 'fail');
+          }
+          updateFeatureBalance('daily_card_interpret', data);
           renderHeroAi(aiSlot, data);
           aiBtn.classList.add('is-active');
         } catch (e) {
@@ -1445,12 +1777,12 @@
     }
   }
 
-  // ── Wire events (idempotent через .onclick) ──────────────
+  // -- Wire events (idempotent через .onclick) --------------
   function wireEvents() {
     $('#btnRefreshTarot').onclick = refreshTarot;
     $('#btnShareTarot').onclick   = shareTarot;
 
-    // ── AI-расшифровка карты дня ────────────────────────────
+    // -- AI-расшифровка карты дня ----------------------------
     const aiBtn = $('#btnHeroAi');
     if (aiBtn) {
       aiBtn.onclick = handleHeroAiInterpret;
@@ -1489,7 +1821,7 @@
     }
     const $bind = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
 
-    // ── Onboarding (B1): first-run tour, dismissed once ───
+    // -- Onboarding (B1): first-run tour, dismissed once ---
     (function initOnboarding() {
       const overlay = $('#onboarding');
       if (!overlay) return;
@@ -1564,10 +1896,15 @@
     // History (главная) — кнопки "Очистить" / "Открыть гадание" / empty-CTA
     const btnClear = $('#btnHomeHistoryClear');
     if (btnClear) {
-      btnClear.onclick = () => {
-        if (!loadHistory().length) return;
+      btnClear.onclick = async () => {
+        const items = loadHistory();
+        if (!items.length) return;
         if (!confirm('Очистить всю историю раскладов?')) return;
+        const localIds = items.map(it => it && it.id);
+        const backendIds = await fetchBackendHistoryIds();
+        await deleteBackendHistoryItems(backendIds.length ? backendIds : localIds);
         try { localStorage.removeItem('arhHistory'); } catch (_) {}
+        _historyCache = [];
         _historyExpanded.clear();
         _historyFilter = 'all';
         syncHistoryFilterChips();
@@ -1617,7 +1954,7 @@
     });
   }
 
-  // ── BOTTOM TAB BAR ────────────────────────────────────────
+  // -- BOTTOM TAB BAR ----------------------------------------
   // Делим app на 4 экрана: home / arc / history / profile
   // Логика переключения:
   //  - home: закрыть все panels и arc-portal
@@ -1688,14 +2025,85 @@
     $$('.panel').forEach(p => p.hidden = true);
   }
 
-  // ── HISTORY (главная) ────────────────────────────────────
-  // Рендерит localStorage-историю раскладов в #homeHistoryList.
-  // Источник: тот же localStorage, что и arc-portal использует ('arhHistory').
-  function loadHistory() {
+  // -- HISTORY (главная) ------------------------------------
+  // Рендерит backend-историю tarot из /api/history (та же, что пишет arc-portal).
+  // localStorage оставлен только как offline/fallback до первого успешного ответа.
+  let _historyCache = null;
+  let _historyLoading = false;
+
+  function normalizeBackendHistoryItem(it) {
+    const payload = it && it.payload ? it.payload : {};
+    return {
+      id: it.id,
+      ts: new Date(it.created_at || Date.now()).getTime(),
+      deck: payload.deck || 'tarot',
+      spread: payload.spread || 'one',
+      question: it.subtitle || payload.question || '',
+      cards: (payload.cards || []).map((c) => ({
+        id: c.id || c.name || '',
+        name: c.name || c.id || '?',
+        reversed: !!c.reversed,
+        position: c.position || '',
+        advice: c.advice || '',
+      })),
+      summary: it.interpretation || payload.summary || '',
+      interpretation: it.interpretation || '',
+    };
+  }
+
+  function loadHistoryFallback() {
     try { return JSON.parse(localStorage.getItem('arhHistory') || '[]'); } catch { return []; }
   }
+  function loadHistory() {
+    return Array.isArray(_historyCache) ? _historyCache : loadHistoryFallback();
+  }
   function saveHistory(items) {
+    _historyCache = items || [];
     try { localStorage.setItem('arhHistory', JSON.stringify(items || [])); } catch (_) {}
+  }
+  async function deleteBackendHistoryItem(id) {
+    const initData = getInitData();
+    if (!initData || id === undefined || id === null) return false;
+    try {
+      const res = await fetch(`/api/history/${encodeURIComponent(id)}?initData=${encodeURIComponent(initData)}`, { method: 'DELETE' });
+      return !!(res && res.ok);
+    } catch (_) {
+      return false;
+    }
+  }
+  async function fetchBackendHistoryIds() {
+    const initData = getInitData();
+    if (!initData) return [];
+    try {
+      const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
+      const data = await res.json().catch(() => ({ ok: false, items: [] }));
+      if (!data.ok || !Array.isArray(data.items)) return [];
+      return data.items.map(it => it && it.id).filter(id => id !== undefined && id !== null);
+    } catch (_) {
+      return [];
+    }
+  }
+  async function deleteBackendHistoryItems(ids) {
+    const uniqueIds = Array.from(new Set((ids || []).filter(id => id !== undefined && id !== null)));
+    if (!uniqueIds.length) return;
+    await Promise.all(uniqueIds.map(id => deleteBackendHistoryItem(id)));
+  }
+  async function refreshHistoryFromBackend() {
+    const initData = getInitData();
+    if (!initData || _historyLoading) return;
+    _historyLoading = true;
+    try {
+      const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
+      const data = await res.json().catch(() => ({ ok: false, items: [] }));
+      if (!data.ok) return;
+      _historyCache = (data.items || []).map(normalizeBackendHistoryItem);
+      renderHomeHistory(false);
+      updateHistoryBadge();
+    } catch (_) {
+      // keep local fallback; history UI stays usable offline
+    } finally {
+      _historyLoading = false;
+    }
   }
   // Search query (для фильтрации истории по тексту)
   let _historyQuery = '';
@@ -1762,7 +2170,8 @@
   let _historyFilter = 'all';
   let _historyExpanded = new Set(); // idx раскрытых элементов
 
-  function renderHomeHistory() {
+  function renderHomeHistory(fetchBackend = true) {
+    if (fetchBackend && !Array.isArray(_historyCache)) refreshHistoryFromBackend();
     const list = $('#homeHistoryList');
     const empty = $('#homeHistoryEmpty');
     const filters = $('#homeHistoryFilters');
@@ -1899,7 +2308,7 @@
     renderHomeHistory();
   }
 
-  // ── HISTORY READING MODAL ─────────────────────────────────
+  // -- HISTORY READING MODAL ---------------------------------
   // idx — индекс в массиве loadHistory() (оригинальный, нефильтрованный)
   let _historyReadingIdx = -1;
   function openHistoryReading(idx) {
@@ -1977,11 +2386,13 @@
     _historyReadingIdx = -1;
   }
 
-  function deleteCurrentHistoryReading() {
+  async function deleteCurrentHistoryReading() {
     if (_historyReadingIdx < 0) return;
     if (!confirm('Удалить этот расклад из истории? Действие необратимо.')) return;
     const items = loadHistory();
     if (_historyReadingIdx >= items.length) { closeHistoryReading(); return; }
+    const item = items[_historyReadingIdx];
+    await deleteBackendHistoryItem(item && item.id);
     items.splice(_historyReadingIdx, 1);
     saveHistory(items);
     _historyExpanded.delete(String(_historyReadingIdx));
@@ -2159,7 +2570,7 @@
     });
   }
 
-  // ── HERO FLIP CARD ───────────────────────────────────────
+  // -- HERO FLIP CARD ---------------------------------------
   function wireHeroFlip() {
     const card = $('#heroTarotCard');
     if (!card) return;
@@ -2180,7 +2591,7 @@
     });
   }
 
-  // ── Boot ─────────────────────────────────────────────────
+  // -- Boot -------------------------------------------------
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

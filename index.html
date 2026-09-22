@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json?v=3.104">
+  <link rel="manifest" href="manifest.json?v=3.117">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,12 +35,12 @@
   <title>Гадалка</title>
 
   <!-- Telegram WebApp SDK -->
-  <script src="js/vendor/telegram-web-app.js?v=3.104"></script>
+  <script src="js/vendor/telegram-web-app.js?v=3.117"></script>
 
-  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.104">
+  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.117">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.104">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.104">
+  <link rel="stylesheet" href="css/styles.css?v=3.118">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.117">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -356,12 +356,14 @@
       </header>
       <div class="compat-content" id="compatContent">
         <div class="compat-form" id="compatForm">
-          <p class="compat-form-hint">Введите Telegram ID партнёра (число) или @username, чтобы рассчитать астрологическую совместимость.</p>
+          <p class="compat-form-hint">Пригласи партнёра по ссылке — он откроет бота и вернётся в расчёт совместимости без ручного ID.</p>
+          <button type="button" class="btn btn-primary compat-invite-btn" id="compatInvite">↗ Пригласить партнёра</button>
+          <p class="compat-form-note">Если партнёр уже прислал ID, можно ввести его вручную:</p>
           <div class="compat-form-row">
-            <input type="text" id="compatInput" class="compat-input" placeholder="Telegram ID или @username" inputmode="numeric">
-            <button type="button" class="btn btn-primary" id="compatGo">Рассчитать</button>
+            <input type="text" id="compatInput" class="compat-input" placeholder="Например: 123456789" inputmode="numeric">
+            <button type="button" class="btn btn-ghost" id="compatGo">Рассчитать</button>
           </div>
-          <p class="compat-form-note">Партнёр тоже должен быть пользователем бота и иметь заполненный профиль.</p>
+          <p class="compat-form-note">Партнёр должен быть пользователем бота и иметь заполненный профиль. Свой ID он всё ещё может увидеть командой /id в @astro_byrbot.</p>
         </div>
         <div class="compat-loader" id="compatLoader" hidden>
           <div class="compat-loader-glyph">⚜</div>
@@ -487,6 +489,7 @@
               <li><a href="#" data-spread="one"        class="arc-nav-link is-active"><span class="ico">✦</span> Одна карта</a></li>
               <li><a href="#" data-spread="three"      class="arc-nav-link"><span class="ico">⫶</span> Три карты</a></li>
               <li><a href="#" data-spread="yesno"      class="arc-nav-link"><span class="ico">⨯</span> Да или Нет</a></li>
+              <li><a href="#" data-spread="coin"       class="arc-nav-link"><span class="ico">◉</span> Орёл или Решка <span class="arc-nav-meta">10</span></a></li>
               <li><a href="#" data-spread="love"       class="arc-nav-link"><span class="ico">♥</span> Совместимость</a></li>
               <li><a href="#" data-spread="horseshoe"  class="arc-nav-link"><span class="ico">⌒</span> Подкова <span class="arc-nav-meta">7</span></a></li>
               <li><a href="#" data-spread="choice"     class="arc-nav-link"><span class="ico">⚖</span> Выбор <span class="arc-nav-meta">7</span></a></li>
@@ -555,7 +558,7 @@
         <!-- FOOTER -->
         <footer class="arc-site-footer">
           <p>Гадалка · Гадания на картах · Telegram Mini App</p>
-          <p style="margin-top:6px;font-size:11px;">v3.101 · карты не принимают решений за вас</p>
+          <p style="margin-top:6px;font-size:11px;">v3.117 · карты не принимают решений за вас</p>
         </footer>
 
       </div>
@@ -564,7 +567,7 @@
     <!-- ─── FOOTER ─────────────────────────────────────── -->
     <footer class="app-footer">
       <p>Гадалка · Telegram Mini App</p>
-      <p class="app-footer-meta">v3.102 · запущено <span id="loadedAt">—</span></p>
+      <p class="app-footer-meta">v3.117 · запущено <span id="loadedAt">—</span></p>
     </footer>
 
   </div>
@@ -572,18 +575,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.104"></script>
-  <script src="js/tarot.js?v=3.104"></script>
-  <script src="js/biorhythm.js?v=3.104"></script>
-  <script src="js/arc-runes.js?v=3.104"></script>
-  <script src="js/arc-lenormand.js?v=3.104"></script>
-  <script src="js/arc-gypsy.js?v=3.104"></script>
-  <script src="js/arc-playing.js?v=3.104"></script>
-  <script src="js/arc-tarot.js?v=3.104"></script>
-  <script src="js/arc-tarot-minor.js?v=3.104"></script>
-  <script src="js/chart.js?v=3.104"></script>
-  <script src="js/arc-app.js?v=3.104"></script>
-  <script src="js/app.js?v=3.104"></script>
+  <script src="js/data.js?v=3.117"></script>
+  <script src="js/tarot.js?v=3.117"></script>
+  <script src="js/biorhythm.js?v=3.117"></script>
+  <script src="js/arc-runes.js?v=3.117"></script>
+  <script src="js/arc-lenormand.js?v=3.117"></script>
+  <script src="js/arc-gypsy.js?v=3.117"></script>
+  <script src="js/arc-playing.js?v=3.117"></script>
+  <script src="js/arc-tarot.js?v=3.117"></script>
+  <script src="js/arc-tarot-minor.js?v=3.117"></script>
+  <script src="js/chart.js?v=3.117"></script>
+  <script src="js/arc-app.js?v=3.117"></script>
+  <script src="js/app.js?v=3.122"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

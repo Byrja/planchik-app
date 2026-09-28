@@ -84,6 +84,14 @@
   };
   const BOT_PROFILE_START_URL = window.ASTRO_BOT_PROFILE_START_URL || 'https://t.me/astro_byrbot?start=webapp_profile';
   const BOT_STARS_URL = window.ASTRO_BOT_STARS_URL || 'https://t.me/astro_byrbot?start=stars';
+  const AI_FEATURE_LABELS = { tarot_spread: 'Расклады Таро', chart_interpret: 'Разбор карты', daily_card_interpret: 'Карта дня' };
+  const STAR_PACKS_DISPLAY = [
+    { stars: 50, feature: 'tarot_spread', amount: 5, label: '5 раскладов Таро' },
+    { stars: 100, feature: 'tarot_spread', amount: 15, label: '15 раскладов Таро' },
+    { stars: 50, feature: 'chart_interpret', amount: 3, label: '3 разбора натальной карты' },
+    { stars: 100, feature: 'chart_interpret', amount: 10, label: '10 разборов натальной карты' },
+    { stars: 30, feature: 'daily_card_interpret', amount: 7, label: '7 расшифровок карты дня' },
+  ];
 
   function getInitData() {
     if (tg && tg.initData) return tg.initData;
@@ -124,6 +132,7 @@
         if (chartBal && typeof chartBal.remaining === 'number') {
           state.chartAi.remaining = chartBal.remaining;
         }
+        renderStarsEntry();
       }
     } catch (e) {
       // ignore: UX не ломается, fallback-limit покажем
@@ -138,6 +147,31 @@
 
   function getHeroRemaining() {
     return getFeatureRemaining('daily_card_interpret');
+  }
+
+  function renderStarsEntry() {
+    const features = ['tarot_spread', 'chart_interpret', 'daily_card_interpret'];
+    const rem = Object.fromEntries(features.map((f) => [f, getFeatureRemaining(f)]));
+    const meta = $('#starsTileMeta');
+    if (meta) meta.textContent = `Таро ${rem.tarot_spread ?? '—'} · Карта ${rem.chart_interpret ?? '—'} · День ${rem.daily_card_interpret ?? '—'}`;
+    const badge = $('#starsCount');
+    const total = features.reduce((sum, f) => sum + (Number(rem[f]) || 0), 0);
+    if (badge) { badge.textContent = total > 99 ? '99+' : String(total); badge.hidden = false; }
+    const grid = $('#starsBalanceGrid');
+    if (grid) grid.innerHTML = features.map((feature) => {
+      const bal = state.aiBalance[feature] || {};
+      const remaining = getFeatureRemaining(feature);
+      const limit = typeof bal.limit === 'number' ? bal.limit : AI_LIMITS_DISPLAY[feature];
+      const paid = typeof bal.paid === 'number' && bal.paid > 0 ? ` · +${bal.paid} Stars` : '';
+      return `<div class="stars-balance-card"><span class="stars-balance-label">${escapeHtml(AI_FEATURE_LABELS[feature])}</span><strong>${remaining ?? '—'}</strong><span class="stars-balance-sub">из ${limit ?? '—'} сегодня${paid}</span></div>`;
+    }).join('');
+    const list = $('#starsPackList');
+    if (list) {
+      list.innerHTML = STAR_PACKS_DISPLAY.map((pack) => `<button type="button" class="stars-pack-row" data-stars-topup><span><strong>${escapeHtml(pack.label)}</strong><small>${escapeHtml(AI_FEATURE_LABELS[pack.feature])}</small></span><b>${pack.stars} ⭐</b></button>`).join('');
+      list.querySelectorAll('[data-stars-topup]').forEach((btn) => { btn.onclick = openStarsTopup; });
+    }
+    const topup = $('#btnStarsTopup');
+    if (topup) topup.onclick = openStarsTopup;
   }
 
   function updateFeatureBalance(feature, data) {
@@ -283,6 +317,7 @@
     renderTarot();
     renderBiorhythmTile();
     renderProfile();
+    renderStarsEntry();
     await loadAiBalance();
     wireEvents();
     wireBottomTabs();
@@ -637,7 +672,7 @@
       if (!hadBirthday) age--;
     }
     const fields = [
-      { label: 'Имя',          val: p && p.name ? p.name : null, key: 'name', kind: 'text', placeholder: 'Имя', hint: 'для натальной карты нужно полное ФИО' },
+      { label: 'Имя',          val: p && (p.firstName || (!p.lastName ? p.name : null)) ? (p.firstName || p.name) : null, key: 'firstName', kind: 'text', placeholder: 'Имя', hint: 'для натальной карты нужно полное ФИО' },
       { label: 'Фамилия',      val: p && p.lastName ? p.lastName : null, key: 'lastName', kind: 'text', placeholder: 'Фамилия' },
       { label: 'Дата рождения', val: p && p.birthYear ? `${p.birthDay}.${String(p.birthMonth).padStart(2,'0')}.${p.birthYear}` : null, key: 'birthDate', kind: 'date', hint: 'для натальной карты нужна полная дата' },
       { label: 'Время',         val: p && p.birthTime ? p.birthTime : null, key: 'birthTime', kind: 'time', hint: 'если не знаешь — поставь 12:00' },
@@ -732,7 +767,7 @@
 
   // -- Tile highlight + panel close ------------------------
   function tileActive(name, on) {
-    const map = { biorhythm:'tileBiorhythm', forecast:'tileForecast', profile:'tileProfile', chart:'tileChart', gadanie:'tileGadanie' };
+    const map = { biorhythm:'tileBiorhythm', forecast:'tileForecast', profile:'tileProfile', chart:'tileChart', gadanie:'tileGadanie', stars:'tileStars' };
     const el = $('#' + map[name]);
     if (el) el.classList.toggle('is-active', on);
   }
@@ -1470,8 +1505,12 @@
       flashToast('Не удалось получить initData. Перезайди в Mini App из бота.');
       return;
     }
+    const fullNameParts = [p.lastName, p.firstName, p.patronymic]
+      .map((s) => (s || '').trim())
+      .filter(Boolean);
+    const fullName = fullNameParts.length > 0 ? fullNameParts.join(' ') : (p.name || undefined);
     const body = {
-      name: p.name || undefined,
+      name: fullName,
       lastName: p.lastName || undefined,
       firstName: p.firstName || undefined,
       patronymic: p.patronymic || undefined,
@@ -1532,6 +1571,17 @@
 
   function openProfileInBot() {
     openBotLink('https://t.me/astro_byrbot?start=profile');
+  }
+
+  function openStarsPanel() {
+    closeAllPanels();
+    const panel = $('#panelStars');
+    if (!panel) return;
+    panel.hidden = false;
+    tileActive('stars', true);
+    renderStarsEntry();
+    haptic('light');
+    try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
   }
 
   function openStarsTopup() {
@@ -1653,11 +1703,11 @@
       const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
+        body: JSON.stringify({ name: c.name, reversed: !!c.reversed, date: today })
       });
-      const data = await res.json();
-      if (!data.ok) {
-        if (data.error === 'rate_limited') {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        if (res.status === 429 || data.error === 'rate_limited') {
           updateFeatureBalance('daily_card_interpret', data);
           renderHeroAiLimit(slot);
           btn.classList.add('is-active');
@@ -1754,9 +1804,9 @@
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: d.card.name, reversed })
           });
-          const data = await res.json();
-          if (!data.ok) {
-            if (data.error === 'rate_limited') {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            if (res.status === 429 || data.error === 'rate_limited') {
               updateFeatureBalance('daily_card_interpret', data);
               renderHeroAiLimit(aiSlot);
               aiBtn.classList.add('is-active');
@@ -1869,6 +1919,8 @@
     $bind('#tileProfile',     openProfilePanel);
     $bind('#tileChart',       openChartPanel);
     $bind('#tileCompat',      () => openCompatPanel(null));
+    $bind('#tileStars',       openStarsPanel);
+    $bind('#btnStarsTopup',   openStarsTopup);
 
     // User chip — открывает профиль
     const chip = $('#userChip');
@@ -1993,6 +2045,13 @@
       case 'arc': {
         // Гадание = arc-portal
         openGadaniePortal();
+        break;
+      }
+      case 'stars': {
+        closeAllPanels();
+        const portal = $('#arcPortal');
+        if (portal) portal.hidden = true;
+        openStarsPanel();
         break;
       }
       case 'history': {

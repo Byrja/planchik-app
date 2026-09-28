@@ -363,6 +363,11 @@ input, textarea, select { font: inherit; color: inherit; }
 .quick-tile:focus-visible .quick-tile-ico { color: var(--gold-2); background: rgba(212,175,55,0.18); transform: scale(1.05); }
 .quick-tile-label { font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
 .quick-tile-meta { font-size: 12px; color: var(--ink-mute); letter-spacing: 0.3px; }
+.quick-tile-stars {
+  border-color: rgba(212,175,55,0.5);
+  background: linear-gradient(135deg, rgba(212,175,55,0.16), rgba(155,125,255,0.08), rgba(29,26,58,0.62));
+}
+.quick-tile-stars .quick-tile-ico { font-size: 18px; }
 
 /* ── Panels ───────────────────────────────────────────── */
 .panel {
@@ -395,6 +400,20 @@ input, textarea, select { font: inherit; color: inherit; }
   transition: all var(--t);
 }
 .panel-close:hover { color: var(--ink); background: var(--bg); }
+
+/* ── Stars / AI energy panel ───────────────────────────── */
+.stars-panel { border-color: rgba(212,175,55,0.35); }
+.stars-balance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.stars-balance-card { padding: 12px 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: rgba(255,255,255,0.035); }
+.stars-balance-label, .stars-balance-sub { display: block; color: var(--ink-mute); font-size: 11px; line-height: 1.35; }
+.stars-balance-card strong { display: block; margin: 3px 0; color: var(--gold-2); font-size: 24px; line-height: 1; }
+.stars-pack-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.stars-pack-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-2); color: var(--ink); text-align: left; }
+.stars-pack-row small { display: block; margin-top: 2px; color: var(--ink-mute); font-size: 11px; }
+.stars-pack-row b { color: var(--gold-2); white-space: nowrap; }
+.stars-topup-main { width: 100%; justify-content: center; }
+.bottom-tab-star { font-size: 21px; line-height: 1; }
+@media (max-width: 380px) { .stars-balance-grid { grid-template-columns: 1fr; } .bottom-tab { font-size: 10px; padding-inline: 2px; } }
 
 /* ── Biorhythm panel ──────────────────────────────────── */
 .bio-content { display: flex; flex-direction: column; gap: 16px; }
@@ -752,7 +771,7 @@ body.tg-desktop .app { padding-bottom: calc(100px + env(safe-area-inset-bottom, 
   left: 0; right: 0; bottom: 0;
   z-index: 60;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: linear-gradient(180deg, rgba(11,10,26,0.96), rgba(11,10,26,1));
   border-top: 1px solid rgba(212,175,55,0.18);
   padding: 6px 4px calc(env(safe-area-inset-bottom, 0px) + 6px);
@@ -1437,6 +1456,7 @@ body.history-modal-open { overflow: hidden; }
 .compat-content { padding: 16px 16px 32px; }
 .compat-form { padding: 0 0 16px; }
 .compat-form-hint { font-size: 13px; color: var(--ink-mute); margin: 0 0 12px; line-height: 1.5; }
+.compat-invite-btn { width: 100%; margin: 0 0 12px; }
 .compat-form-row { display: flex; gap: 8px; }
 .compat-input { flex: 1; background: var(--panel-bg, rgba(20,18,40,0.4)); border: 1px solid var(--panel-border, rgba(212,175,55,0.2)); border-radius: 10px; padding: 10px 14px; color: var(--ink); font-size: 15px; outline: none; }
 .compat-input:focus { border-color: var(--gold); }

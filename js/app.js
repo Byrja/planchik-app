@@ -84,12 +84,20 @@
   };
   const BOT_PROFILE_START_URL = window.ASTRO_BOT_PROFILE_START_URL || 'https://t.me/astro_byrbot?start=webapp_profile';
   const BOT_STARS_URL = window.ASTRO_BOT_STARS_URL || 'https://t.me/astro_byrbot?start=stars';
-  const AI_FEATURE_LABELS = { tarot_spread: 'Расклады Таро', chart_interpret: 'Разбор карты', daily_card_interpret: 'Карта дня' };
+  const AI_FEATURE_LABELS = {
+    tarot_spread: 'Расклады Таро',
+    chart_interpret: 'Разбор карты',
+    daily_card_interpret: 'Карта дня',
+    tarot_single: 'Карты дня',
+    ask_fortune: 'Вопросы гадалке'
+  };
   const STAR_PACKS_DISPLAY = [
     { stars: 50, feature: 'tarot_spread', amount: 5, label: '5 раскладов Таро' },
     { stars: 100, feature: 'tarot_spread', amount: 15, label: '15 раскладов Таро' },
     { stars: 50, feature: 'chart_interpret', amount: 3, label: '3 разбора натальной карты' },
     { stars: 100, feature: 'chart_interpret', amount: 10, label: '10 разборов натальной карты' },
+    { stars: 30, feature: 'tarot_single', amount: 10, label: '10 карт дня' },
+    { stars: 30, feature: 'ask_fortune', amount: 5, label: '5 вопросов гадалке' },
     { stars: 30, feature: 'daily_card_interpret', amount: 7, label: '7 расшифровок карты дня' },
   ];
 
@@ -772,10 +780,10 @@
     if (el) el.classList.toggle('is-active', on);
   }
   function closeAllPanels() {
-    ['panelBiorhythm','panelForecast','panelProfile','panelChart'].forEach(id => {
+    ['panelBiorhythm','panelForecast','panelProfile','panelChart','panelCompat','panelHistory','panelStars'].forEach(id => {
       const el = $('#' + id); if (el) el.hidden = true;
     });
-    ['biorhythm','forecast','profile','chart'].forEach(n => tileActive(n, false));
+    ['biorhythm','forecast','profile','chart','compat','history','stars'].forEach(n => tileActive(n, false));
     // arc portal
     const ap = $('#arcPortal');
     if (ap && !ap.hidden) {

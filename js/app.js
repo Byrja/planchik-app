@@ -2611,12 +2611,12 @@
     $bind('#tileMoon',        openMoonPanel);
     $bind('#btnOpenMoon',     openMoonPanel);
     $bind('#tileForecast',    openForecastPanel);
-    $bind('#tileProfile',     openProfilePanel);
-    $bind('#tileChart',       openChartPanel);
-    $bind('#tileCompat',      () => openCompatPanel(null));
+    $bind('#tileProfile',     () => setActiveTab('profile'));
+    $bind('#tileChart',       () => setActiveTab('chart'));
+    $bind('#tileCompat',      () => setActiveTab('compat'));
     $bind('#tileJournal',     openDailyJournal);
     $bind('#tileDream',       openDreamPanel);
-    $bind('#tileStars',       openStarsPanel);
+    $bind('#tileStars',       () => setActiveTab('stars'));
     $bind('#btnStarsTopup',   openStarsTopup);
     $bind('#btnDreamShort',   () => submitDreambook('short'));
     $bind('#btnDreamDeep',    () => submitDreambook('deep'));
@@ -2711,8 +2711,8 @@
   // Логика переключения:
   //  - home: закрыть все panels и arc-portal
   //  - arc (Карты): открыть arc-portal
-  //  - history: открыть #panelHistory (новая секция на главной, не зависит от arc-portal)
-  //  - profile: открыть #panelProfile
+  //  - stars/history/profile: открыть соответствующую панель как единственный активный экран
+  //  - chart/compat: поддерживаются для быстрых тайлов и deep-link навигации
   function wireBottomTabs() {
     const app = $('#app');
     if (app) app.classList.add('has-bottom-tabs');
@@ -2729,59 +2729,68 @@
   }
 
 
-  function setActiveTab(which) {
+  function setBottomTabActive(which) {
     $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === which));
+  }
+
+  function openHistoryPanel() {
+    closeAllPanels();
+    const p = $('#panelHistory');
+    if (p) {
+      p.hidden = false;
+      tileActive('history', true);
+      renderHomeHistory();
+      try { p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+    }
+  }
+
+  function setActiveTab(which) {
+    setBottomTabActive(which);
     switch (which) {
       case 'home': {
         closeAllPanels();
-        const portal = $('#arcPortal');
-        if (portal) portal.hidden = true;
-        // При возврате на главную — обновить бейдж истории (могли тянуть в гадании)
         updateHistoryBadge();
-        // Скроллим в начало
         try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
         break;
       }
       case 'arc': {
-        // Гадание = arc-portal
         openGadaniePortal();
         break;
       }
       case 'stars': {
-        closeAllPanels();
-        const portal = $('#arcPortal');
-        if (portal) portal.hidden = true;
         openStarsPanel();
         break;
       }
       case 'history': {
-        closeAllPanels();
-        const portal = $('#arcPortal');
-        if (portal) portal.hidden = true;
-        const p = $('#panelHistory');
-        if (p) {
-          p.hidden = false;
-          renderHomeHistory();
-          // Скроллим к началу секции истории (на главной она лежит ниже других панелей)
-          try { p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
-        }
+        openHistoryPanel();
         break;
       }
       case 'profile': {
-        closeAllPanels();
-        const portal = $('#arcPortal');
-        if (portal) portal.hidden = true;
-        const p = $('#panelProfile');
-        if (p) p.hidden = false;
-        // Скроллим к началу секции профиля
-        try { p && p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+        openProfilePanel();
+        break;
+      }
+      case 'chart': {
+        openChartPanel();
+        break;
+      }
+      case 'compat': {
+        openCompatPanel(null);
         break;
       }
     }
   }
 
   function closeAllPanels() {
-    $$('.panel').forEach(p => p.hidden = true);
+    ['panelBiorhythm','panelForecast','panelProfile','panelChart','panelCompat','panelHistory','panelDream','panelStars'].forEach(id => {
+      const el = $('#' + id); if (el) el.hidden = true;
+    });
+    ['biorhythm','forecast','profile','chart','compat','history','dream','stars'].forEach(n => tileActive(n, false));
+    const ap = $('#arcPortal');
+    if (ap && !ap.hidden) {
+      if (window.ArcApp && window.ArcApp.unmount) window.ArcApp.unmount();
+      ap.hidden = true;
+      tileActive('gadanie', false);
+    }
   }
 
   // -- HISTORY (главная) ------------------------------------

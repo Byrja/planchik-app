@@ -265,7 +265,7 @@
     const picked = r$('#arcAskPicked');
     if (ask && typeof question === 'string') ask.value = question;
     if (picked) {
-      picked.textContent = pickedLabel ? `Подобрано: ${pickedLabel}` : 'Напишите вопрос — я подберу расклад сама.';
+      picked.textContent = pickedLabel ? `Подобрано: ${pickedLabel}` : 'Введите вопрос и нажмите кнопку — я выберу подходящий расклад.';
     }
   }
 
@@ -1274,13 +1274,13 @@ ${reading.detail}
       </button>`;
     }).join('');
     main.innerHTML = `
-      <div class="arc-scenario-block" aria-label="Быстрые жизненные сценарии">
-        <div class="arc-scenario-kicker">Вопрос Гадалке</div>
+      <div class="arc-scenario-block" aria-label="Вопрос Гадалке">
+        <div class="arc-scenario-kicker">Напишите вопрос здесь</div>
         <div class="arc-ask-box">
           <textarea id="arcAskInput" class="arc-ask-input" maxlength="400" placeholder="Например: он вернётся? стоит ли менять работу? что мешает деньгам?"></textarea>
           <div class="arc-ask-actions">
             <button type="button" class="arc-ask-pick" id="arcAskPick">🔮 Подобрать расклад</button>
-            <span class="arc-ask-picked" id="arcAskPicked">Напишите вопрос — я подберу расклад сама.</span>
+            <span class="arc-ask-picked" id="arcAskPicked">Введите вопрос и нажмите кнопку — я выберу подходящий расклад.</span>
           </div>
         </div>
         <details class="arc-scenario-more">
@@ -1298,11 +1298,6 @@ ${reading.detail}
       <p class="arc-panel-sub">${escapeHtml(state.deck === 'all' ? 'По одной карте из каждой колоды: Таро, Ленорман, Руны, Цыганские, Игральные.' : t.ask)}</p>
       ${(state.deck === 'all' ? '5 карт — 5 систем. Самый полный расклад.' : t.hint) ? `<p class="arc-panel-hint">${escapeHtml(state.deck === 'all' ? '5 карт — 5 систем. Самый полный расклад.' : t.hint)}</p>` : ''}
       ${variantsHtml}
-
-      <div class="arc-block">
-        <label class="arc-label" for="arcQuestion">Ваш вопрос (по желанию)</label>
-        <textarea id="arcQuestion" class="arc-question" placeholder="Например: стоит ли мне сейчас менять работу?" maxlength="400"></textarea>
-      </div>
 
       <div class="arc-block">
         <div class="arc-label">Колода</div>

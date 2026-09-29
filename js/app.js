@@ -980,6 +980,54 @@
     try { $('#panelProfile').scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
   }
 
+  function chartBadgeParts(chart) {
+    if (!chart) return [];
+    return [
+      chart.sunSign ? { label: '☉ Солнце', value: chart.sunSign } : null,
+      chart.moonSign ? { label: '☾ Луна', value: chart.moonSign } : null,
+      chart.ascendant ? { label: 'ASC', value: chart.ascendant } : null,
+    ].filter(Boolean);
+  }
+
+  function chartTileSignature(chart) {
+    const parts = chartBadgeParts(chart);
+    if (!parts.length) return '';
+    return parts.map((p) => `${p.label === 'ASC' ? 'ASC ' : ''}${p.value}`).join(' · ');
+  }
+
+  function renderProfileChartStatus() {
+    const chart = state.backendChart.chart;
+    if (!chart) return '';
+    const badges = chartBadgeParts(chart).map((p) => `
+      <span class="profile-astro-badge"><small>${escapeHtml(p.label)}</small><b>${escapeHtml(p.value)}</b></span>`).join('');
+    const meta = [chart.birthDate, chart.birthTime, chart.birthPlace].filter(Boolean).map(escapeHtml).join(' · ');
+    return `<div class="profile-astro-status">
+      <div class="profile-astro-head"><span>✦</span><strong>Натальная карта создана</strong></div>
+      <div class="profile-astro-badges">${badges}</div>
+      ${meta ? `<div class="profile-astro-meta">${meta}</div>` : ''}
+    </div>`;
+  }
+
+  function updateAstroTileMeta() {
+    const chart = state.backendChart.chart;
+    const chartMeta = $('#chartMeta');
+    const profileMeta = $('#profileMeta');
+    const p = state.profile;
+    const hasProfile = !!(p && p.birthYear);
+    if (chart) {
+      const signature = chartTileSignature(chart);
+      if (chartMeta) chartMeta.textContent = signature || 'карта создана';
+      if (profileMeta) profileMeta.textContent = 'заполнен · карта есть';
+      $('#tileChart')?.classList.remove('is-empty');
+      $('#tileProfile')?.classList.remove('is-empty');
+      return;
+    }
+    if (chartMeta) chartMeta.textContent = hasProfile ? 'создать карту' : 'натальная';
+    if (profileMeta && !hasProfile) profileMeta.textContent = 'заполнить';
+    $('#tileChart')?.classList.toggle('is-empty', !hasProfile);
+    $('#tileProfile')?.classList.toggle('is-empty', !hasProfile);
+  }
+
   function renderProfile() {
     const p = state.profile;
     const zod = (p && p.birthYear) ? DATA.zodiacOf(p.birthMonth, p.birthDay) : null;
@@ -1018,7 +1066,7 @@
           ${hint}
         </div>`;
       };
-      $('#profileFields').innerHTML = fields.map(inputHtml).join('');
+      $('#profileFields').innerHTML = renderProfileChartStatus() + fields.map(inputHtml).join('');
       // wire change handlers to local state
       $$('#profileFields input').forEach(inp => {
         inp.oninput = () => {
@@ -1041,7 +1089,7 @@
         };
       });
     } else {
-      $('#profileFields').innerHTML = fields.map(f =>
+      $('#profileFields').innerHTML = renderProfileChartStatus() + fields.map(f =>
         `<div class="profile-field">
           <label>${f.label}</label>
           <div class="val ${f.val ? '' : 'is-empty'}">${f.val ? escapeHtml(f.val) : 'не заполнено'}</div>
@@ -1055,6 +1103,7 @@
     } else {
       if (meta) meta.textContent = 'заполнить';
     }
+    updateAstroTileMeta();
 
     const warning = $('#profileSyncWarning');
     if (warning) {
@@ -1554,6 +1603,7 @@
     if (!root) return;
     if (state.backendChart.loading) {
       root.innerHTML = '<p class="chart-empty">Загружаю сохранённую карту из бэкенда…</p>';
+      updateAstroTileMeta();
       return;
     }
     const chart = state.backendChart.chart;
@@ -1561,6 +1611,7 @@
       renderCreateChartCta(root, state.backendChart.error && state.backendChart.error !== 'no_chart'
         ? state.backendChart.error
         : 'Заполните дату, точное время и город рождения в профиле — Mini App рассчитает настоящую натальную карту с теми же Солнцем, Луной, ASC и аспектами.');
+      updateAstroTileMeta();
       return;
     }
     const elements = Object.entries(chart.elements)
@@ -1596,6 +1647,7 @@
     `;
     renderPlanetTable(chart.planets);
     renderAspects(chart.aspects);
+    updateAstroTileMeta();
     renderAiBadge('chart_interpret', '#chartAiMeta');
     renderChartAiButton();
   }

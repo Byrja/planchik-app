@@ -588,6 +588,26 @@ input, textarea, select { font: inherit; color: inherit; }
 .profile-sync-warning p { margin: 0; color: var(--ink-dim); font-size: 13px; line-height: 1.45; }
 .profile-sync-warning .btn { align-self: flex-start; }
 .profile-fields { display: flex; flex-direction: column; gap: 10px; }
+.profile-astro-status {
+  padding: 13px;
+  border: 1px solid rgba(212,175,55,0.30);
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, rgba(212,175,55,0.12), rgba(122,86,190,0.08)), rgba(255,255,255,0.03);
+}
+.profile-astro-head { display: flex; align-items: center; gap: 8px; color: var(--gold-2); font-size: 13px; margin-bottom: 10px; }
+.profile-astro-head span { filter: drop-shadow(0 0 12px rgba(212,175,55,0.45)); }
+.profile-astro-badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.profile-astro-badge {
+  display: grid;
+  gap: 3px;
+  padding: 9px 8px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  text-align: center;
+}
+.profile-astro-badge small { color: var(--ink-mute); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+.profile-astro-badge b { color: var(--ink); font-size: 13px; line-height: 1.2; }
+.profile-astro-meta { margin-top: 9px; color: var(--ink-mute); font-size: 11px; text-align: center; line-height: 1.35; }
 .profile-field { display: flex; flex-direction: column; gap: 4px; }
 .profile-field label { font-size: 12px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 1px; }
 .profile-field .val { font-family: var(--serif); font-size: 18px; color: var(--ink); }

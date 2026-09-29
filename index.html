@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json?v=3.160">
+  <link rel="manifest" href="manifest.json?v=3.162">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,12 +35,12 @@
   <title>Гадалка</title>
 
   <!-- Telegram WebApp SDK -->
-  <script src="js/vendor/telegram-web-app.js?v=3.160"></script>
+  <script src="js/vendor/telegram-web-app.js?v=3.162"></script>
 
-  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.160">
+  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.162">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.160">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.160">
+  <link rel="stylesheet" href="css/styles.css?v=3.162">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.162">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -107,6 +107,15 @@
         <button type="button" class="home-primary-btn" id="homeDreamBtn"><span>🌘</span><strong>Сонник</strong><small>что значит сон — 4/9 маны</small></button>
       </div>
     </section>
+
+    <button type="button" class="home-mana-card" id="homeManaCard" aria-label="Открыть магазин маны">
+      <span class="home-mana-orb" aria-hidden="true">⭐</span>
+      <span class="home-mana-copy">
+        <strong>Мана / Stars</strong>
+        <small id="homeManaMeta">загружаю баланс…</small>
+      </span>
+      <span class="home-mana-pill" id="homeManaSub">пакеты 25–800</span>
+    </button>
 
     <!-- ─── ALL FEATURES ───────────────────────────────── -->
     <details class="home-more" id="homeTools" aria-label="Все возможности">
@@ -687,7 +696,7 @@
         <!-- FOOTER -->
         <footer class="arc-site-footer">
           <p>Гадалка · Гадания на картах · Telegram Mini App</p>
-          <p style="margin-top:6px;font-size:11px;">v3.160 · карты не принимают решений за вас</p>
+          <p style="margin-top:6px;font-size:11px;">v3.162 · карты не принимают решений за вас</p>
         </footer>
 
       </div>
@@ -696,7 +705,7 @@
     <!-- ─── FOOTER ─────────────────────────────────────── -->
     <footer class="app-footer">
       <p>Гадалка · Telegram Mini App</p>
-      <p class="app-footer-meta">v3.160 · запущено <span id="loadedAt">—</span></p>
+      <p class="app-footer-meta">v3.162 · запущено <span id="loadedAt">—</span></p>
     </footer>
 
   </div>
@@ -704,18 +713,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.160"></script>
-  <script src="js/tarot.js?v=3.160"></script>
-  <script src="js/biorhythm.js?v=3.160"></script>
-  <script src="js/arc-runes.js?v=3.160"></script>
-  <script src="js/arc-lenormand.js?v=3.160"></script>
-  <script src="js/arc-gypsy.js?v=3.160"></script>
-  <script src="js/arc-playing.js?v=3.160"></script>
-  <script src="js/arc-tarot.js?v=3.160"></script>
-  <script src="js/arc-tarot-minor.js?v=3.160"></script>
-  <script src="js/chart.js?v=3.160"></script>
-  <script src="js/arc-app.js?v=3.160"></script>
-  <script src="js/app.js?v=3.160"></script>
+  <script src="js/data.js?v=3.162"></script>
+  <script src="js/tarot.js?v=3.162"></script>
+  <script src="js/biorhythm.js?v=3.162"></script>
+  <script src="js/arc-runes.js?v=3.162"></script>
+  <script src="js/arc-lenormand.js?v=3.162"></script>
+  <script src="js/arc-gypsy.js?v=3.162"></script>
+  <script src="js/arc-playing.js?v=3.162"></script>
+  <script src="js/arc-tarot.js?v=3.162"></script>
+  <script src="js/arc-tarot-minor.js?v=3.162"></script>
+  <script src="js/chart.js?v=3.162"></script>
+  <script src="js/arc-app.js?v=3.162"></script>
+  <script src="js/app.js?v=3.162"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

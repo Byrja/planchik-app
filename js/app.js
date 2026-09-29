@@ -164,8 +164,17 @@
   function renderStarsEntry() {
     const mana = state.manaBalance;
     const packs = (mana && mana.economy && Array.isArray(mana.economy.packs)) ? mana.economy.packs : MANA_PACKS_DISPLAY;
+    const packRange = packs.length ? `${packs[0].mana}–${packs[packs.length - 1].mana} маны` : 'пакеты Stars';
+    const total = mana && typeof mana.total === 'number' ? mana.total : null;
+    const bonus = mana && typeof mana.bonus === 'number' ? mana.bonus : 0;
+    const paid = mana && typeof mana.paid === 'number' ? mana.paid : 0;
+    const tileText = mana ? `${total} маны · бонус ${bonus}` : 'получи стартовую ману';
     const meta = $('#starsTileMeta');
-    if (meta) meta.textContent = mana ? `${mana.total} маны · бонус ${mana.bonus}` : 'единая валюта для AI';
+    if (meta) meta.textContent = tileText;
+    const homeMeta = $('#homeManaMeta');
+    if (homeMeta) homeMeta.textContent = mana ? `${total} маны сейчас · ${paid} платной` : 'единая валюта для раскладов и сонника';
+    const homeSub = $('#homeManaSub');
+    if (homeSub) homeSub.textContent = mana ? 'открыть магазин' : packRange;
     const badge = $('#starsCount');
     if (badge) {
       const totalMana = mana && typeof mana.total === 'number' ? mana.total : 0;
@@ -2541,6 +2550,7 @@
     $bind('#homeLoveBtn',     openGadaniePortal);
     $bind('#homeDayBtn',      () => { try { $('#heroCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} });
     $bind('#homeDreamBtn',    openDreamPanel);
+    $bind('#homeManaCard',    openStarsPanel);
 
     // Quick tiles
     $bind('#tileBiorhythm',   tileBiorhythmClick);

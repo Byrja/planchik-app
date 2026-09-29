@@ -2144,25 +2144,35 @@
     if (btn) { btn.disabled = true; btn.textContent = 'Готовлю сторис…'; }
     const tg = window.TelegramApp && window.TelegramApp.tg;
     const storyText = `${c.name || 'Карта дня'}\n${c.advice || c.upright || ''}`.slice(0, 2048);
-    const cardImageUrl = new URL(DATA.imageFor(c), location.href).href;
-    if (tg && typeof tg.shareToStory === 'function') {
+    const initData = getInitData();
+    let dataUrl = '';
+    if (tg && typeof tg.shareToStory === 'function' && initData) {
       try {
-        tg.shareToStory(cardImageUrl, {
-          text: storyText,
-          widget_link: { url: 'https://t.me/astro_byrbot', name: 'Открыть Гадалку' },
+        dataUrl = await createDailyStoryCard(c);
+        const res = await fetch('/api/share-card?initData=' + encodeURIComponent(initData), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageData: dataUrl, card: c.name || '', date: DATA.todayKey() }),
         });
-        flashToast('Открываю публикацию сторис');
-        haptic('success');
-        return;
+        const uploaded = await res.json().catch(() => ({}));
+        if (res.ok && uploaded.ok && uploaded.url) {
+          tg.shareToStory(uploaded.url, {
+            text: storyText,
+            widget_link: { url: 'https://t.me/astro_byrbot', name: 'Открыть Гадалку' },
+          });
+          flashToast('Открываю публикацию сторис');
+          haptic('success');
+          return;
+        }
       } catch (e) {
-        // older Telegram/Web fallback below
+        // upload/story failed — fallback below
       } finally {
-        if (btn) { btn.disabled = false; btn.textContent = oldText || 'Поделиться карточкой'; }
+        if (btn) { btn.disabled = false; btn.textContent = oldText || 'В сторис / поделиться'; }
       }
     }
 
     try {
-      const dataUrl = await createDailyStoryCard(c);
+      if (!dataUrl) dataUrl = await createDailyStoryCard(c);
       const file = dataUrlToFile(dataUrl, `gadalka-${DATA.todayKey()}.png`);
       if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
         await navigator.share({ title: 'Карта дня — Гадалка', text, files: [file] });

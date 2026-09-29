@@ -1984,9 +1984,179 @@
     renderTarot();
     flashToast('Новая карта вытянута');
   }
-  function shareTarot() {
+  function roundRectPath(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 4) {
+    const words = String(text || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    const lines = [];
+    let line = '';
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+        if (lines.length >= maxLines) break;
+      } else {
+        line = test;
+      }
+    }
+    if (line && lines.length < maxLines) lines.push(line);
+    if (words.length && lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
+      lines[lines.length - 1] = lines[lines.length - 1].replace(/[,.!?…]*$/, '') + '…';
+    }
+    lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineHeight));
+    return y + lines.length * lineHeight;
+  }
+
+  function loadCanvasImage(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  function dataUrlToFile(dataUrl, filename) {
+    const parts = dataUrl.split(',');
+    const mime = (parts[0].match(/:(.*?);/) || [])[1] || 'image/png';
+    const bin = atob(parts[1] || '');
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new File([bytes], filename, { type: mime });
+  }
+
+  async function createDailyStoryCard(c) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#231945');
+    bg.addColorStop(0.48, '#0b0a1a');
+    bg.addColorStop(1, '#1a102b');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    const glow = ctx.createRadialGradient(260, 250, 20, 260, 250, 720);
+    glow.addColorStop(0, 'rgba(245, 215, 110, 0.34)');
+    glow.addColorStop(1, 'rgba(245, 215, 110, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    ctx.globalAlpha = 0.52;
+    ctx.fillStyle = '#d4af37';
+    for (let i = 0; i < 72; i++) {
+      const x = (i * 157) % W;
+      const y = (i * 263) % H;
+      const r = 1.5 + (i % 5);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f5d76e';
+    ctx.font = '700 34px Georgia, serif';
+    ctx.fillText('КАРТА ДНЯ', W / 2, 132);
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = '28px system-ui, -apple-system, sans-serif';
+    ctx.fillText(DATA.dateLabel(), W / 2, 178);
+
+    const cardX = 255, cardY = 250, cardW = 570, cardH = 850;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.58)';
+    ctx.shadowBlur = 56;
+    ctx.shadowOffsetY = 28;
+    roundRectPath(ctx, cardX, cardY, cardW, cardH, 34);
+    ctx.fillStyle = '#120f24';
+    ctx.fill();
+    ctx.restore();
+
+    const img = await loadCanvasImage(new URL(DATA.imageFor(c), location.href).href);
+    if (img) {
+      ctx.save();
+      roundRectPath(ctx, cardX + 22, cardY + 22, cardW - 44, cardH - 44, 26);
+      ctx.clip();
+      const scale = Math.max((cardW - 44) / img.width, (cardH - 44) / img.height);
+      const iw = img.width * scale, ih = img.height * scale;
+      ctx.drawImage(img, cardX + 22 + (cardW - 44 - iw) / 2, cardY + 22 + (cardH - 44 - ih) / 2, iw, ih);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#d4af37';
+      ctx.font = '120px Georgia, serif';
+      ctx.fillText('✦', W / 2, cardY + cardH / 2);
+    }
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(245,215,110,0.72)';
+    roundRectPath(ctx, cardX, cardY, cardW, cardH, 34);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 64px Georgia, serif';
+    ctx.fillText(c.name || 'Карта дня', W / 2, 1215);
+    if (c.reversed) {
+      ctx.fillStyle = 'rgba(212,175,55,0.18)';
+      roundRectPath(ctx, 360, 1240, 360, 56, 28);
+      ctx.fill();
+      ctx.fillStyle = '#f5d76e';
+      ctx.font = '700 26px system-ui, -apple-system, sans-serif';
+      ctx.fillText('ПЕРЕВЁРНУТАЯ', W / 2, 1277);
+    }
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.86)';
+    ctx.font = '36px Georgia, serif';
+    const y1 = wrapCanvasText(ctx, c.upright || c.mood || '', 120, c.reversed ? 1350 : 1318, 840, 50, 4);
+    ctx.fillStyle = '#f5d76e';
+    ctx.font = '700 30px system-ui, -apple-system, sans-serif';
+    ctx.fillText('Совет дня', 120, y1 + 44);
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.font = '32px system-ui, -apple-system, sans-serif';
+    wrapCanvasText(ctx, c.advice || '', 120, y1 + 92, 840, 44, 3);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.62)';
+    ctx.font = '28px system-ui, -apple-system, sans-serif';
+    ctx.fillText('Гадалка · @astro_byrbot', W / 2, H - 96);
+    return canvas.toDataURL('image/png');
+  }
+
+  async function shareTarot() {
     const c = TarotDaily.calc(state.user.id || 1, DATA.todayKey());
     const text = TarotDaily.formatShare(c);
+    const btn = $('#btnShareTarot');
+    const oldText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Готовлю карточку…'; }
+    try {
+      const dataUrl = await createDailyStoryCard(c);
+      const file = dataUrlToFile(dataUrl, `gadalka-${DATA.todayKey()}.png`);
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+        await navigator.share({ title: 'Карта дня — Гадалка', text, files: [file] });
+        flashToast('Карточка готова к отправке');
+        haptic('success');
+        return;
+      }
+    } catch (e) {
+      // fall through to text share
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = oldText || 'Поделиться'; }
+    }
+
     const tg = window.TelegramApp && window.TelegramApp.tg;
     if (tg && tg.openTelegramLink) {
       flashToast('Выбери чат для отправки');

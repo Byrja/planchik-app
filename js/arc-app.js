@@ -4,8 +4,11 @@
 (function () {
   'use strict';
 
-  // ── DIAG: показывать ошибки прямо в UI (для TG WebView где нет консоли) ──
+  // ── DIAG: показывать ошибки прямо в UI только при ?debug=1 ──
+  const ARC_DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
+
   function _showErr(e) {
+    if (!ARC_DEBUG) return;
     try {
       const msg = (e && (e.message || e.error && e.error.message)) || String(e);
       const stack = (e && e.error && e.error.stack) || (e && e.stack) || '';
@@ -19,8 +22,10 @@
       bar.textContent = '⚠️ ' + msg + '\n' + stack.split('\n').slice(0,3).join('\n');
     } catch (_) {}
   }
-  window.addEventListener('error', (e) => _showErr(e));
-  window.addEventListener('unhandledrejection', (e) => _showErr(e.reason || e));
+  if (ARC_DEBUG) {
+    window.addEventListener('error', (e) => _showErr(e));
+    window.addEventListener('unhandledrejection', (e) => _showErr(e.reason || e));
+  }
 
   // ── Колода и источники ────────────────────────────────────
   const DECKS = {
@@ -62,6 +67,13 @@
       title: 'Да или Нет',
       icon: '⨯',
       hint: 'Карта скажет «да», «нет» или «подожди».'
+    },
+    coin: {
+      count: 10,
+      ask: 'Задайте вопрос и бросьте монеты. Орёл подталкивает к действию, решка просит подождать.',
+      title: 'Орёл или Решка',
+      icon: '◉',
+      hint: 'Быстрый оракул на монетах — с красивым скином вместо скучного генератора.'
     },
     cross: {
       count: 10,
@@ -157,6 +169,106 @@
     return s ? s.icon : '✦';
   }
 
+
+  const SCENARIO_GROUPS = [
+    {
+      id: 'love',
+      icon: '❤️',
+      title: 'Любовь',
+      text: 'Что чувствует, почему молчит, есть ли будущее.',
+      presets: [
+        { label: 'Что он/она чувствует?', spread: 'three', variant: 2, deck: 'tarot', question: 'Что он/она сейчас чувствует ко мне?' },
+        { label: 'Почему молчит?', spread: 'three', variant: 2, deck: 'lenormand', question: 'Почему он/она молчит и что за этим стоит?' },
+        { label: 'Есть ли будущее?', spread: 'love', deck: 'tarot', question: 'Есть ли у этих отношений будущее?' },
+        { label: 'Вернётся ли бывший?', spread: 'yesno', deck: 'tarot', question: 'Вернётся ли бывший человек в мою жизнь?' },
+        { label: 'Стоит ли писать?', spread: 'yesno', deck: 'tarot', question: 'Стоит ли мне написать первой/первым?' },
+        { label: 'Есть ли соперник/соперница?', spread: 'three', variant: 2, deck: 'lenormand', question: 'Есть ли третий человек или скрытое влияние в этих отношениях?' },
+        { label: 'Что мешает любви?', spread: 'alchemist', deck: 'tarot', question: 'Что сейчас мешает любви и сближению между нами?' },
+        { label: 'Прогноз на 7 дней', spread: 'horseshoe', deck: 'tarot', question: 'Как будут развиваться отношения в ближайшие 7 дней?' },
+      ],
+    },
+    {
+      id: 'viral',
+      icon: '✨',
+      title: 'Быстрые форматы',
+      text: 'Короткие вопросы, которыми хочется поделиться.',
+      presets: [
+        { label: 'Карта на него/неё', spread: 'one', deck: 'tarot', question: 'Какая карта описывает этого человека по отношению ко мне?' },
+        { label: 'Твой красный флаг', spread: 'one', deck: 'runes', question: 'Какой мой главный красный флаг сейчас?' },
+        { label: 'Кто я в любви?', spread: 'one', deck: 'tarot', question: 'Какой мой архетип в любви сейчас?' },
+        { label: 'Что обо мне думают?', spread: 'three', variant: 0, deck: 'gypsy', question: 'Что обо мне думают за спиной?' },
+        { label: 'Послание Вселенной', spread: 'one', deck: 'all', question: 'Какое послание мне сейчас важно услышать?' },
+        { label: 'Что мешает мне?', spread: 'three', variant: 0, deck: 'lenormand', question: 'Что мне сейчас мешает и как это обойти?' },
+      ],
+    },
+    {
+      id: 'money',
+      icon: '💰',
+      title: 'Деньги / работа',
+      text: 'Работа, деньги, проект, риск и точка роста.',
+      presets: [
+        { label: 'Менять работу?', spread: 'career', deck: 'tarot', question: 'Стоит ли мне сейчас менять работу?' },
+        { label: 'Будут ли деньги?', spread: 'horseshoe', deck: 'playing', question: 'Что с деньгами в ближайший месяц?' },
+        { label: 'Запускать проект?', spread: 'choice', deck: 'tarot', question: 'Стоит ли мне запускать этот проект сейчас?' },
+        { label: 'Какой риск?', spread: 'alchemist', deck: 'lenormand', question: 'Какой главный риск в моей ситуации я не вижу?' },
+      ],
+    },
+    {
+      id: 'ask',
+      icon: '🔮',
+      title: 'Задать вопрос',
+      text: 'Выберите быстрый формат — вопрос уже подставится в поле.',
+      presets: [
+        { label: 'Да или нет', spread: 'yesno', deck: 'tarot', question: 'Мой вопрос: да или нет?' },
+        { label: 'Что происходит?', spread: 'three', variant: 0, deck: 'tarot', question: 'Что на самом деле происходит в этой ситуации?' },
+        { label: 'Что выбрать?', spread: 'choice', deck: 'tarot', question: 'Какой вариант для меня лучше: A или B?' },
+        { label: 'Глубоко разобрать', spread: 'cross', deck: 'tarot', question: 'Разбери мой важный вопрос глубже.' },
+      ],
+    },
+    {
+      id: 'day',
+      icon: '🌙',
+      title: 'Мой день',
+      text: 'Совет, шанс, осторожность и короткое послание дня.',
+      presets: [
+        { label: 'Совет дня', spread: 'one', deck: 'tarot', question: 'Какой главный совет для меня на сегодня?' },
+        { label: 'Что не делать?', spread: 'one', deck: 'runes', question: 'Чего мне сегодня лучше не делать?' },
+        { label: 'Шанс дня', spread: 'three', variant: 0, deck: 'lenormand', question: 'Какой шанс сегодня стоит заметить?' },
+        { label: 'Энергия дня', spread: 'one', deck: 'all', question: 'Какая главная энергия моего дня?' },
+      ],
+    },
+  ];
+
+  function classifyFortuneQuestion(question) {
+    const q = String(question || '').toLowerCase().trim();
+    const has = (re) => re.test(q);
+    if (has(/(люб|отнош|чувств|скуч|молч|бывш|верн[её]т|измен|партн|парен|девуш|муж|жен|напис|свидан|соперниц|соперник|ревн|флирт|поцел|секс|бывшая|бывший)/i)) {
+      return { label: 'Любовный вопрос', spread: 'three', variant: 2, deck: 'tarot', question };
+    }
+    if (has(/(работ|карьер|деньг|финанс|зарплат|проект|бизнес|клиент|увол|офер|сделк|продаж|заработ)/i)) {
+      return { label: 'Деньги / работа', spread: 'career', deck: 'tarot', question };
+    }
+    if (has(/(выбр|вариант| или |остаться|уйти|переезж|покупать|продавать|а или б|a или b)/i)) {
+      return { label: 'Выбор', spread: 'choice', deck: 'tarot', question };
+    }
+    if (has(/(сегодня|завтра|день|недел|месяц|срок|когда)/i)) {
+      return { label: 'Ближайшее время', spread: 'horseshoe', deck: 'lenormand', question };
+    }
+    if (has(/^(стоит|будет|получится|надо|можно|верно|правда|да|нет|писать|ждать|делать)\b/i) || q.endsWith('?')) {
+      return { label: 'Да / нет', spread: 'yesno', deck: 'tarot', question };
+    }
+    return { label: 'Общий вопрос', spread: 'three', variant: 0, deck: 'tarot', question };
+  }
+
+  function syncAskBox(question, pickedLabel) {
+    const ask = r$('#arcAskInput');
+    const picked = r$('#arcAskPicked');
+    if (ask && typeof question === 'string') ask.value = question;
+    if (picked) {
+      picked.textContent = pickedLabel ? `Подобрано: ${pickedLabel}` : 'Напишите вопрос — я подберу расклад сама.';
+    }
+  }
+
   // ── State ────────────────────────────────────────────────
   const state = {
     spread: 'one',     // active spread
@@ -167,12 +279,33 @@
     history: [],
     lastEntryId: null, // id только что вытянутой записи (для заметок)
     aiBalance: {},
+    coinCount: 10,
+    coins: [],
+    coinAttempts: 0,
   };
 
   const TAROT_AI_LIMIT_FALLBACK = 5;
 
   function getInitData() {
     return window.Telegram?.WebApp?.initData || '';
+  }
+
+  const BOT_STARS_URL = window.ASTRO_BOT_STARS_URL || 'https://t.me/astro_byrbot?start=stars';
+
+  function openStarsTopup() {
+    const tg = window.TelegramApp && window.TelegramApp.tg;
+    if (tg && tg.openTelegramLink) {
+      try { tg.openTelegramLink(BOT_STARS_URL); return; } catch (e) {}
+    }
+    if (tg && tg.openLink) {
+      try { tg.openLink(BOT_STARS_URL); return; } catch (e) {}
+    }
+    window.open(BOT_STARS_URL, '_blank', 'noopener');
+  }
+
+  function wireStarsTopup(rootEl) {
+    if (!rootEl) return;
+    rootEl.querySelectorAll('[data-stars-topup]').forEach((btn) => { btn.onclick = openStarsTopup; });
   }
 
   async function loadAiBalance() {
@@ -184,6 +317,9 @@
       if (data.ok && Array.isArray(data.balance)) {
         state.aiBalance = Object.fromEntries(data.balance.map(b => [b.feature, b]));
       }
+      if (data.ok && data.mana && typeof data.mana.total === 'number') {
+        state.manaBalance = data.mana;
+      }
     } catch (e) {
       // ignore: UX не ломается, fallback-limit покажем
     }
@@ -193,6 +329,25 @@
     const bal = state.aiBalance.tarot_spread;
     if (bal && typeof bal.remaining === 'number') return bal.remaining;
     return TAROT_AI_LIMIT_FALLBACK;
+  }
+
+  function getDailyCardInterpretRemaining() {
+    const bal = state.aiBalance.daily_card_interpret;
+    if (bal && typeof bal.remaining === 'number') return bal.remaining;
+    return 1;
+  }
+
+  function updateManaBalance(data) {
+    if (data && data.mana && typeof data.mana.total === 'number') state.manaBalance = data.mana;
+  }
+
+  function updateDailyCardInterpretBalance(data) {
+    updateManaBalance(data);
+    if (!data || typeof data.remaining !== 'number') return;
+    const bal = state.aiBalance.daily_card_interpret || { feature: 'daily_card_interpret', limit: 1, used: 0, paid: 0 };
+    bal.remaining = data.remaining;
+    if (typeof data.resetAt === 'number') bal.resetAt = data.resetAt;
+    state.aiBalance.daily_card_interpret = bal;
   }
 
   function consumeTarotBalance() {
@@ -459,6 +614,18 @@
   function buildShareText() {
     const isAllDecks = state.deck === 'all';
     const deckName = isAllDecks ? 'Все колоды' : DECKS[state.deck].label;
+    if (state.spread === 'coin') {
+      if (!state.coins.length) return '';
+      const reading = coinOracleReading(state.coins);
+      const { heads, tails } = coinStats(state.coins);
+      return `◉ Орёл или Решка — ${reading.verdict}
+Орёл: ${heads}, решка: ${tails}
+${state.coins.map(c => c.label).join(' · ')}
+
+${reading.detail}
+
+— Гадалка`;
+    }
     if (state.cards.length === 0) return '';
     const cfg = templateSpread();
     if (state.cards.length === 1) {
@@ -480,6 +647,162 @@
   }
 
   // getSpreadName/getSpreadIcon определены выше (в разделе SPREADS)
+
+  const COIN_ORACLE = {
+    heads: {
+      key: 'heads',
+      label: 'Орёл',
+      short: 'О',
+      aria: 'орёл',
+      meaning: 'движение, смелый шаг, внешняя сила помогает',
+    },
+    tails: {
+      key: 'tails',
+      label: 'Решка',
+      short: 'Р',
+      aria: 'решка',
+      meaning: 'пауза, внутренний ответ, сначала проверь детали',
+    },
+  };
+
+  function flipCoins(count) {
+    return Array.from({ length: count }, () => Math.random() < 0.5 ? COIN_ORACLE.heads : COIN_ORACLE.tails);
+  }
+
+  function coinStats(coins) {
+    const heads = coins.filter(c => c.key === 'heads').length;
+    const tails = coins.length - heads;
+    return { heads, tails, total: coins.length };
+  }
+
+  function coinOracleReading(coins) {
+    const { heads, tails, total } = coinStats(coins);
+    if (!total) return null;
+    const delta = heads - tails;
+    if (heads === total) {
+      return { tone: 'yes', verdict: 'Чистый орёл', detail: 'Редкий бросок: все монеты за движение. Если вопрос про действие — не тяни, но оставь один контрольный шаг перед стартом.' };
+    }
+    if (tails === total) {
+      return { tone: 'no', verdict: 'Чистая решка', detail: 'Монеты тормозят. Сейчас лучше не ломиться: подожди, собери факты, дай ситуации проявиться.' };
+    }
+    if (delta >= Math.max(2, Math.ceil(total * 0.25))) {
+      return { tone: 'yes', verdict: 'Скорее да', detail: `Орёл сильнее: ${heads} против ${tails}. Ответ за действие, но без фанатизма — сначала маленький шаг, потом смотри на реакцию.` };
+    }
+    if (-delta >= Math.max(2, Math.ceil(total * 0.25))) {
+      return { tone: 'no', verdict: 'Скорее нет', detail: `Решка сильнее: ${tails} против ${heads}. Не отказ навсегда, а знак не давить сейчас. Вопрос ещё не дозрел.` };
+    }
+    return { tone: 'wait', verdict: 'Баланс', detail: `Почти поровну: ${heads} / ${tails}. Ответ зависит от нюанса, который ты пока не назвал. Уточни вопрос или брось меньше монет на конкретный вариант.` };
+  }
+
+  function renderCoinMarkup() {
+    const countOptions = [1, 3, 5, 7, 10].map(n => `<option value="${n}"${state.coinCount === n ? ' selected' : ''}>${n}</option>`).join('');
+    const coins = state.coins.length ? state.coins : Array.from({ length: state.coinCount }, () => null);
+    const resultText = state.coins.length
+      ? state.coins.map(c => c.label).join(' · ')
+      : 'Монеты ждут броска';
+    const reading = coinOracleReading(state.coins);
+    const coinsHtml = coins.map((c, i) => {
+      const face = c || COIN_ORACLE.heads;
+      const settled = c ? ' is-settled' : '';
+      const side = c ? ` is-${c.key}` : '';
+      const label = c ? c.label : 'Монета';
+      return `<div class="coin-oracle-coin${settled}${side}" data-coin-idx="${i}" role="img" aria-label="${escapeHtml(label)}">
+        <div class="coin-oracle-coin-inner">
+          <div class="coin-face coin-face-heads">
+            <span class="coin-rim-text">ГАДАЛКА · ОРАКУЛ</span>
+            <span class="coin-eagle" aria-hidden="true">✦</span>
+            <span class="coin-face-label">Орёл</span>
+          </div>
+          <div class="coin-face coin-face-tails">
+            <span class="coin-rim-text">ЛУНА · ВЫБОР</span>
+            <span class="coin-moon" aria-hidden="true">☾</span>
+            <span class="coin-face-label">Решка</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return `
+      <div class="arc-spread-tabs-wrap">
+        <nav class="arc-spread-tabs" id="arcSpreadTabs" aria-label="Сменить расклад">
+          ${Object.keys(SPREADS).map(id => {
+            const sp = SPREADS[id];
+            const active = id === state.spread ? ' is-active' : '';
+            return `<button type="button" class="arc-spread-tab${active}" data-spread="${id}"><span class="arc-spread-tab-ico">${sp.icon}</span><span class="arc-spread-tab-label">${escapeHtml(sp.title)}</span></button>`;
+          }).join('')}
+        </nav>
+      </div>
+      <div class="arc-panel-title">Орёл или Решка</div>
+      <p class="arc-panel-sub">Не скучный генератор, а маленький ритуал выбора. Задай вопрос — монеты покажут перевес.</p>
+      <p class="arc-panel-hint">Орёл = действуй. Решка = подожди. Баланс = уточни вопрос.</p>
+
+      <div class="coin-oracle" id="coinOracle">
+        <div class="coin-oracle-board" id="coinBoard" data-count="${state.coinCount}">
+          ${coinsHtml}
+        </div>
+        <div class="coin-oracle-strip" id="coinResultStrip">${escapeHtml(resultText)}</div>
+        <div class="coin-oracle-controls">
+          <button id="coinFlipBtn" class="arc-cta arc-cta-primary" type="button">◉  Бросить монеты</button>
+          <label class="coin-count-label">Монет
+            <select id="coinCountSelect" class="coin-count-select">${countOptions}</select>
+          </label>
+          <button id="coinResetBtn" class="arc-cta arc-cta-ghost" type="button"${state.coins.length ? '' : ' disabled'}>↺ Сброс</button>
+        </div>
+        <div class="coin-attempts">Попыток: <strong>${state.coinAttempts}</strong></div>
+        ${reading ? `<article class="coin-reading arc-verdict-${reading.tone}">
+          <div class="coin-reading-verdict">${escapeHtml(reading.verdict)}</div>
+          <p>${escapeHtml(reading.detail)}</p>
+          <div class="coin-reading-stats"><span>Орёл: ${coinStats(state.coins).heads}</span><span>Решка: ${coinStats(state.coins).tails}</span></div>
+        </article>` : `<article class="coin-reading is-empty"><p>Сформулируй вопрос. Если рука тянется перебросить — значит ответ уже не нравится.</p></article>`}
+      </div>`;
+  }
+
+  function mountCoinOracle() {
+    const main = root();
+    if (!main) return;
+    main.innerHTML = renderCoinMarkup();
+    $$('.arc-spread-tab', main).forEach(btn => {
+      btn.onclick = (e) => { e.preventDefault(); setSpread(btn.dataset.spread); };
+    });
+    const select = r$('#coinCountSelect');
+    if (select) select.onchange = () => {
+      state.coinCount = parseInt(select.value, 10) || 10;
+      state.coins = [];
+      mountCoinOracle();
+    };
+    const flip = r$('#coinFlipBtn');
+    if (flip) flip.onclick = beginCoinFlip;
+    const reset = r$('#coinResetBtn');
+    if (reset) reset.onclick = () => { state.coins = []; mountCoinOracle(); tryVibrate(8); };
+    requestAnimationFrame(() => {
+      const active = main.querySelector('.arc-spread-tab.is-active');
+      if (active && active.parentElement) {
+        try {
+          active.parentElement.scrollTo({ left: active.offsetLeft - 24, behavior: 'smooth' });
+        } catch (_) {}
+      }
+    });
+  }
+
+  function beginCoinFlip() {
+    const board = r$('#coinBoard');
+    const btn = r$('#coinFlipBtn');
+    if (!board || !btn) return;
+    btn.disabled = true;
+    btn.textContent = '◉  Бросаю...';
+    board.querySelectorAll('.coin-oracle-coin').forEach((coin, i) => {
+      coin.classList.remove('is-heads', 'is-tails', 'is-settled');
+      coin.classList.add('is-flipping');
+      coin.style.animationDelay = `${Math.min(i * 45, 360)}ms`;
+    });
+    tryVibrate(12);
+    const delay = reducedMotion() ? 80 : 980;
+    setTimeout(() => {
+      state.coins = flipCoins(state.coinCount);
+      state.coinAttempts += 1;
+      mountCoinOracle();
+      tryVibrate(25);
+    }, delay);
+  }
 
   function shareResult() {
     const text = buildShareText();
@@ -810,6 +1133,17 @@
           btn.textContent = 'свернуть';
           return;
         }
+        if (getDailyCardInterpretRemaining() === 0) {
+          slot.innerHTML = `<div class="ai-limit-box arc-ai-limit-box">
+            <p>Лимит на сегодня исчерпан. Сброс в полночь UTC.</p>
+            <button type="button" class="btn btn-gold" data-stars-topup>Докупить за Stars</button>
+          </div>`;
+          slot.hidden = false;
+          btn.setAttribute('aria-expanded', 'true');
+          btn.textContent = 'свернуть';
+          wireStarsTopup(slot);
+          return;
+        }
         btn.disabled = true;
         btn.textContent = '⏳ гадаю...';
         try {
@@ -819,8 +1153,26 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
           });
-          const data = await res.json();
-          if (!data.ok) throw new Error(data.error || 'fail');
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            if (res.status === 429 || res.status === 402 || data.error === 'rate_limited' || data.error === 'insufficient_mana') {
+              updateDailyCardInterpretBalance(data);
+              const msg = data.error === 'insufficient_mana'
+                ? (data.message || 'Не хватает маны для AI-расшифровки.')
+                : (data.message || 'Лимит на сегодня исчерпан. Сброс в полночь UTC.');
+              slot.innerHTML = `<div class="ai-limit-box arc-ai-limit-box">
+                <p>${escapeHtml(msg)}</p>
+                <button type="button" class="btn btn-gold" data-stars-topup>Пополнить ману за Stars</button>
+              </div>`;
+              slot.hidden = false;
+              btn.setAttribute('aria-expanded', 'true');
+              btn.textContent = 'свернуть';
+              wireStarsTopup(slot);
+              return;
+            }
+            throw new Error(data.error || 'fail');
+          }
+          updateDailyCardInterpretBalance(data);
           try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
           slot.innerHTML = renderExpandContent(data);
           slot.hidden = false;
@@ -856,10 +1208,33 @@
     return templateSpread().positions || [];
   }
 
+  function applyScenarioPreset(preset, questionOverride) {
+    if (!preset || !SPREADS[preset.spread]) return;
+    if (preset.deck && (preset.deck === 'all' || DECKS[preset.deck])) state.deck = preset.deck;
+    state.question = typeof questionOverride === 'string' ? questionOverride : (preset.question || '');
+    try { localStorage.setItem('arhQuestion', state.question); } catch (e) {}
+    const cfg = SPREADS[preset.spread];
+    if (Array.isArray(cfg.variants) && typeof preset.variant === 'number') {
+      cfg.activeVariant = Math.max(0, Math.min(cfg.variants.length - 1, preset.variant));
+    }
+    setSpread(preset.spread);
+    const q = r$('#arcQuestion');
+    if (q) q.value = state.question;
+    syncAskBox(state.question, preset.label || getSpreadName(preset.spread));
+    requestAnimationFrame(() => {
+      const target = r$('#arcQuestion') || r$('#arcStage') || r$('#arcSpreadTabs');
+      if (target && target.scrollIntoView) {
+        try { target.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
+      }
+    });
+    flashToast('Сценарий выбран: ' + (preset.label || getSpreadName(preset.spread)));
+  }
+
   // ── Mount конкретного расклада ─────────────────────────
   function mountSpread() {
     const main = root();
     if (!main) return;
+    if (state.spread === 'coin') { mountCoinOracle(); return; }
     const t = templateSpread();
     const cfg = getSpreadConfig(state.spread);
     const hasVariants = Array.isArray(cfg.variants) && cfg.variants.length > 1;
@@ -868,12 +1243,27 @@
         <div class="arc-label">Схема расклада</div>
         <div class="arc-variant-chips" role="radiogroup" aria-label="Схема расклада">
           ${cfg.variants.map((v, i) => `
-            <button type="button" class="arc-variant-chip${i === 0 ? ' is-active' : ''}" data-variant="${i}" role="radio" aria-checked="${i === 0}">
+            <button type="button" class="arc-variant-chip${i === (cfg.activeVariant || 0) ? ' is-active' : ''}" data-variant="${i}" role="radio" aria-checked="${i === (cfg.activeVariant || 0)}">
               ${escapeHtml(v.label)}
             </button>
           `).join('')}
         </div>
       </div>` : '';
+    const scenariosHtml = SCENARIO_GROUPS.map((group) => `
+      <section class="arc-scenario-card" data-scenario="${group.id}">
+        <div class="arc-scenario-head">
+          <span class="arc-scenario-icon" aria-hidden="true">${group.icon}</span>
+          <div>
+            <div class="arc-scenario-title">${escapeHtml(group.title)}</div>
+            <p class="arc-scenario-text">${escapeHtml(group.text)}</p>
+          </div>
+        </div>
+        <div class="arc-scenario-presets">
+          ${group.presets.map((preset, idx) => `
+            <button type="button" class="arc-scenario-preset" data-scenario="${group.id}" data-preset="${idx}">${escapeHtml(preset.label)}</button>
+          `).join('')}
+        </div>
+      </section>`).join('');
     // Горизонтальный таб-бар раскладов (sticky на мобиле, inline на десктопе)
     const tabsHtml = Object.keys(SPREADS).map(id => {
       const s = SPREADS[id];
@@ -884,6 +1274,21 @@
       </button>`;
     }).join('');
     main.innerHTML = `
+      <div class="arc-scenario-block" aria-label="Быстрые жизненные сценарии">
+        <div class="arc-scenario-kicker">Вопрос Гадалке</div>
+        <div class="arc-ask-box">
+          <textarea id="arcAskInput" class="arc-ask-input" maxlength="400" placeholder="Например: он вернётся? стоит ли менять работу? что мешает деньгам?"></textarea>
+          <div class="arc-ask-actions">
+            <button type="button" class="arc-ask-pick" id="arcAskPick">🔮 Подобрать расклад</button>
+            <span class="arc-ask-picked" id="arcAskPicked">Напишите вопрос — я подберу расклад сама.</span>
+          </div>
+        </div>
+        <details class="arc-scenario-more">
+          <summary>Показать готовые сценарии: любовь, деньги, день</summary>
+          <div class="arc-scenario-grid">${scenariosHtml}</div>
+        </details>
+      </div>
+
       <div class="arc-spread-tabs-wrap">
         <nav class="arc-spread-tabs" id="arcSpreadTabs" aria-label="Сменить расклад">
           ${tabsHtml}
@@ -921,9 +1326,38 @@
       </div>
     `;
 
+    // wire ask autopicker
+    const askPick = r$('#arcAskPick');
+    const askInput = r$('#arcAskInput');
+    if (askInput) {
+      askInput.value = state.question || '';
+      askInput.oninput = (e) => {
+        state.question = e.target.value;
+        try { localStorage.setItem('arhQuestion', state.question); } catch (err) {}
+      };
+    }
+    if (askPick) {
+      askPick.onclick = () => {
+        const question = (askInput && askInput.value ? askInput.value : state.question || '').trim();
+        if (question.length < 3) { flashToast('Напишите вопрос хотя бы в пару слов'); return; }
+        applyScenarioPreset(classifyFortuneQuestion(question), question);
+      };
+    }
+    syncAskBox(state.question || '', null);
+
+    // wire scenarios
+    $$('.arc-scenario-preset', main).forEach((btn) => {
+      btn.onclick = () => {
+        const group = SCENARIO_GROUPS.find((g) => g.id === btn.dataset.scenario);
+        const preset = group && group.presets[Number(btn.dataset.preset)];
+        if (!preset) return;
+        applyScenarioPreset(preset);
+      };
+    });
+
     // wire variants
     if (hasVariants) {
-      let activeVariant = 0;
+      let activeVariant = cfg.activeVariant || 0;
       $$('.arc-variant-chip', main).forEach((btn, i) => {
         btn.onclick = () => {
           activeVariant = i;
@@ -934,11 +1368,11 @@
           cfg.activeVariant = i;
         };
       });
-      cfg.activeVariant = 0;
+      cfg.activeVariant = activeVariant;
     }
 
     // question persisted
-    state.question = localStorage.getItem('arhQuestion') || '';
+    state.question = state.question || localStorage.getItem('arhQuestion') || '';
     const q = r$('#arcQuestion');
     if (q) {
       q.value = state.question;
@@ -965,8 +1399,10 @@
     // прокрутить активный таб в зону видимости (мобила)
     requestAnimationFrame(() => {
       const active = main.querySelector('.arc-spread-tab.is-active');
-      if (active && active.scrollIntoView) {
-        try { active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (_) {}
+      if (active && active.parentElement) {
+        try {
+          active.parentElement.scrollTo({ left: active.offsetLeft - 24, behavior: 'smooth' });
+        } catch (_) {}
       }
     });
   }
@@ -1006,6 +1442,37 @@
       const data = await res.json().catch(() => ({ ok: false }));
       if (data.ok && data.id) {
         state.lastEntryId = data.id;
+        const savedEntry = {
+          id: data.id,
+          type: 'tarot',
+          spread: state.spread,
+          spreadName: spreadCfg.title,
+          title: spreadCfg.title,
+          subtitle: state.question || `${cards.length} карт`,
+          question: state.question,
+          cards,
+          created_at: new Date().toISOString(),
+        };
+        state.history = [savedEntry, ...(state.history || []).filter((h) => h.id !== data.id)].slice(0, 30);
+        renderHistoryList();
+        if (window.dispatchEvent) window.dispatchEvent(new CustomEvent('astro:history-updated'));
+      } else {
+        state.lastEntryId = `local-${Date.now()}`;
+        const savedEntry = {
+          id: state.lastEntryId,
+          type: 'tarot',
+          spread: state.spread,
+          spreadName: spreadCfg.title,
+          title: spreadCfg.title,
+          subtitle: state.question || `${cards.length} карт`,
+          question: state.question,
+          cards,
+          created_at: new Date().toISOString(),
+          localOnly: true,
+        };
+        state.history = [savedEntry, ...(state.history || [])].slice(0, 30);
+        try { localStorage.setItem('arcHistoryFallback', JSON.stringify(state.history)); } catch (_) {}
+        renderHistoryList();
       }
     } catch {
       // не блокируем UX если история не сохранилась
@@ -1210,9 +1677,17 @@
     return out.join('\n');
   }
 
+  function hashString(s) {
+    let h = 0;
+    const text = String(s || '');
+    for (let i = 0; i < text.length; i++) h = ((h << 5) - h + text.charCodeAt(i)) | 0;
+    return Math.abs(h).toString(36);
+  }
+
   function aiKey(spread, cards) {
-    // ключ кэша: расклад + позиции (без имени карты — она уже видна)
-    return 'arhAi_' + spread + '_' + cards.map(c => (c.position || '?') + ':' + (c.reversed ? 'r' : 'u')).join('|');
+    // ключ кэша: расклад + вопрос + сами карты, иначе разные вопросы могли видеть старый ответ
+    const cardKey = cards.map(c => `${c.position || '?'}:${c.name || '?'}:${c.reversed ? 'r' : 'u'}`).join('|');
+    return 'arhAi_' + spread + '_' + hashString((state.question || '') + '|' + cardKey);
   }
 
   function renderAiButton() {
@@ -1233,7 +1708,7 @@
           <div class="arc-ai-head">
             <span class="arc-ai-orb">🔮</span>
             <div>
-              <div class="arc-ai-title">Глубинный разбор от гадалки</div>
+              <div class="arc-ai-title">Ответ Гадалки по вашему вопросу</div>
               <div class="arc-ai-sub">сохранено · осталось сегодня: ${remaining}/${TAROT_AI_LIMIT_FALLBACK}</div>
             </div>
           </div>
@@ -1253,15 +1728,16 @@
           <div class="arc-ai-head">
             <span class="arc-ai-orb">🔮</span>
             <div>
-              <div class="arc-ai-title">Глубинный разбор от гадалки</div>
+              <div class="arc-ai-title">Ответ Гадалки по вашему вопросу</div>
               <div class="arc-ai-sub">лимит ${TAROT_AI_LIMIT_FALLBACK}/день исчерпан · сброс в полночь UTC</div>
             </div>
           </div>
         </div>
         <div class="ai-limit-box arc-ai-limit-box">
-          <p>Лимит ${TAROT_AI_LIMIT_FALLBACK}/день исчерпан. Сброс в полночь UTC.</p>
-          <button type="button" class="btn btn-gold" disabled title="Покупка звёзд — позже">Пополнить (скоро)</button>
+          <p>Лимит на сегодня исчерпан. Сброс в полночь UTC.</p>
+          <button type="button" class="btn btn-gold" data-stars-topup>Докупить за Stars</button>
         </div>`;
+      wireStarsTopup(slot);
       return;
     }
 
@@ -1270,13 +1746,13 @@
         <div class="arc-ai-head">
           <span class="arc-ai-orb">🔮</span>
           <div>
-            <div class="arc-ai-title">Глубинный разбор от гадалки</div>
+            <div class="arc-ai-title">Ответ Гадалки по вашему вопросу</div>
             <div class="arc-ai-sub">Гадалка · осталось сегодня: ${remaining}/${TAROT_AI_LIMIT_FALLBACK}</div>
           </div>
         </div>
-        <p class="arc-ai-pitch">Психологическая и символическая интерпретация вашего расклада. Не общая астрология, а личный разбор — что лежит в основе, где узел, и что делать.</p>
+        <p class="arc-ai-pitch">Гадалка свяжет ваш вопрос с выпавшими картами: прямой ответ, скрытый узел и одно действие здесь и сейчас. Любовные и быстрые форматы специально сделаны короткими и шерибельными. Бесплатные ответы ограничены, дальше — Stars.</p>
         <div class="arc-ai-actions">
-          <button type="button" class="arc-ai-go" data-action="go">🔮  Получить разбор</button>
+          <button type="button" class="arc-ai-go" data-action="go">🔮  Получить ответ</button>
         </div>
       </div>`;
     wireAiCard(slot, key, /*alreadyCached*/ false);
@@ -1347,13 +1823,28 @@
       if (!res.ok || !data.ok) {
         // откатить счётчик
         rollbackTarotBalance();
-        const msg = data?.error === 'rate_limited' ? 'Лимит на сегодня исчерпан. Сброс в полночь UTC.' :
-                    data?.error === 'llm_failed' ? 'Гадалка временно недоступна. Попробуйте позже.' :
+        if (data?.error === 'rate_limited' || data?.error === 'insufficient_mana') {
+          updateManaBalance(data);
+          if (body) {
+            const msg = data.error === 'insufficient_mana'
+              ? (data.message || 'Не хватает маны для глубокого разбора.')
+              : 'Лимит на сегодня исчерпан. Сброс в полночь UTC.';
+            body.innerHTML = `<div class="ai-limit-box arc-ai-limit-box">
+              <p>${escapeHtml(msg)}</p>
+              <button type="button" class="btn btn-gold" data-stars-topup>Пополнить ману за Stars</button>
+            </div>`;
+            wireStarsTopup(body);
+          }
+          card.classList.remove('is-loading');
+          return;
+        }
+        const msg = data?.error === 'llm_failed' ? 'Гадалка временно недоступна. Попробуйте позже.' :
                     data?.message || ('Ошибка ' + res.status);
         if (body) body.innerHTML = '<div class="arc-ai-error">' + escapeHtml(msg) + '</div>';
         card.classList.remove('is-loading');
         return;
       }
+      updateManaBalance(data);
       // сохранить в кэш + история
       try { localStorage.setItem(key, data.interpretation); } catch (e) {}
       // записать interpretation в backend history если есть lastEntryId
@@ -1398,7 +1889,9 @@
     const eyebrow = document.querySelector('.arc-hero-eyebrow');
     if (eyebrow) {
       const c = cfg.count;
-      const word = c === 1 ? 'карта' : (c >= 2 && c <= 4 ? 'карты' : 'карт');
+      const word = state.spread === 'coin'
+        ? (c === 1 ? 'монета' : (c >= 2 && c <= 4 ? 'монеты' : 'монет'))
+        : (c === 1 ? 'карта' : (c >= 2 && c <= 4 ? 'карты' : 'карт'));
       eyebrow.textContent = cfg.title ? `${cfg.title.toLowerCase()} · ${c} ${word}` : `${c} ${word}`;
     }
     // Подсветка в сайдбаре и mobile-nav

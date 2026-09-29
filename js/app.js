@@ -74,6 +74,7 @@
     chartAi: { loaded: false, interpretation: '', remaining: 3, cached: false, error: '' },
     backendChart: { loaded: false, loading: false, chart: null, error: '' },
     aiBalance: {},
+    manaBalance: null,
     profileSync: { userNotStartedBot: false },
   };
 
@@ -91,14 +92,12 @@
     tarot_single: 'Карты дня',
     ask_fortune: 'Вопросы гадалке'
   };
-  const STAR_PACKS_DISPLAY = [
-    { stars: 50, feature: 'tarot_spread', amount: 5, label: '5 раскладов Таро' },
-    { stars: 100, feature: 'tarot_spread', amount: 15, label: '15 раскладов Таро' },
-    { stars: 50, feature: 'chart_interpret', amount: 3, label: '3 разбора натальной карты' },
-    { stars: 100, feature: 'chart_interpret', amount: 10, label: '10 разборов натальной карты' },
-    { stars: 30, feature: 'tarot_single', amount: 10, label: '10 карт дня' },
-    { stars: 30, feature: 'ask_fortune', amount: 5, label: '5 вопросов гадалке' },
-    { stars: 30, feature: 'daily_card_interpret', amount: 7, label: '7 расшифровок карты дня' },
+  const MANA_PACKS_DISPLAY = [
+    { stars: 25, mana: 25, label: '25 маны' },
+    { stars: 50, mana: 60, label: '60 маны' },
+    { stars: 100, mana: 130, label: '130 маны' },
+    { stars: 250, mana: 360, label: '360 маны' },
+    { stars: 500, mana: 800, label: '800 маны' },
   ];
 
   function getInitData() {
@@ -134,11 +133,16 @@
     try {
       const res = await fetch(`/api/ai-balance?initData=${encodeURIComponent(initData)}`);
       const data = await res.json();
-      if (data.ok && Array.isArray(data.balance)) {
-        state.aiBalance = Object.fromEntries(data.balance.map(b => [b.feature, b]));
-        const chartBal = state.aiBalance.chart_interpret;
-        if (chartBal && typeof chartBal.remaining === 'number') {
-          state.chartAi.remaining = chartBal.remaining;
+      if (data.ok) {
+        if (Array.isArray(data.balance)) {
+          state.aiBalance = Object.fromEntries(data.balance.map(b => [b.feature, b]));
+          const chartBal = state.aiBalance.chart_interpret;
+          if (chartBal && typeof chartBal.remaining === 'number') {
+            state.chartAi.remaining = chartBal.remaining;
+          }
+        }
+        if (data.mana && typeof data.mana.total === 'number') {
+          state.manaBalance = data.mana;
         }
         renderStarsEntry();
       }
@@ -158,31 +162,110 @@
   }
 
   function renderStarsEntry() {
-    const features = ['tarot_spread', 'chart_interpret', 'daily_card_interpret'];
-    const rem = Object.fromEntries(features.map((f) => [f, getFeatureRemaining(f)]));
+    const mana = state.manaBalance;
+    const packs = (mana && mana.economy && Array.isArray(mana.economy.packs)) ? mana.economy.packs : MANA_PACKS_DISPLAY;
     const meta = $('#starsTileMeta');
-    if (meta) meta.textContent = `Таро ${rem.tarot_spread ?? '—'} · Карта ${rem.chart_interpret ?? '—'} · День ${rem.daily_card_interpret ?? '—'}`;
+    if (meta) meta.textContent = mana ? `${mana.total} маны · бонус ${mana.bonus}` : 'единая валюта для AI';
     const badge = $('#starsCount');
-    const total = features.reduce((sum, f) => sum + (Number(rem[f]) || 0), 0);
-    if (badge) { badge.textContent = total > 99 ? '99+' : String(total); badge.hidden = false; }
+    if (badge) {
+      const totalMana = mana && typeof mana.total === 'number' ? mana.total : 0;
+      badge.textContent = totalMana > 99 ? '99+' : String(totalMana);
+      badge.hidden = !mana;
+    }
     const grid = $('#starsBalanceGrid');
-    if (grid) grid.innerHTML = features.map((feature) => {
-      const bal = state.aiBalance[feature] || {};
-      const remaining = getFeatureRemaining(feature);
-      const limit = typeof bal.limit === 'number' ? bal.limit : AI_LIMITS_DISPLAY[feature];
-      const paid = typeof bal.paid === 'number' && bal.paid > 0 ? ` · +${bal.paid} Stars` : '';
-      return `<div class="stars-balance-card"><span class="stars-balance-label">${escapeHtml(AI_FEATURE_LABELS[feature])}</span><strong>${remaining ?? '—'}</strong><span class="stars-balance-sub">из ${limit ?? '—'} сегодня${paid}</span></div>`;
-    }).join('');
+    if (grid) {
+      if (mana) {
+        grid.innerHTML = `
+          <div class="stars-balance-card mana-balance-main"><span class="stars-balance-label">Всего маны</span><strong>${mana.total}</strong><span class="stars-balance-sub">тратится на расклады, сонник и совместимость</span></div>
+          <div class="stars-balance-card"><span class="stars-balance-label">Бонусная</span><strong>${mana.bonus}</strong><span class="stars-balance-sub">cap ${mana.bonusCap ?? 15}, сгорает</span></div>
+          <div class="stars-balance-card"><span class="stars-balance-label">Платная</span><strong>${mana.paid}</strong><span class="stars-balance-sub">не сгорает</span></div>`;
+      } else {
+        const features = ['tarot_spread', 'chart_interpret', 'daily_card_interpret'];
+        grid.innerHTML = features.map((feature) => {
+          const bal = state.aiBalance[feature] || {};
+          const remaining = getFeatureRemaining(feature);
+          const limit = typeof bal.limit === 'number' ? bal.limit : AI_LIMITS_DISPLAY[feature];
+          return `<div class="stars-balance-card"><span class="stars-balance-label">${escapeHtml(AI_FEATURE_LABELS[feature])}</span><strong>${remaining ?? '—'}</strong><span class="stars-balance-sub">из ${limit ?? '—'} сегодня</span></div>`;
+        }).join('');
+      }
+    }
     const list = $('#starsPackList');
     if (list) {
-      list.innerHTML = STAR_PACKS_DISPLAY.map((pack) => `<button type="button" class="stars-pack-row" data-stars-topup><span><strong>${escapeHtml(pack.label)}</strong><small>${escapeHtml(AI_FEATURE_LABELS[pack.feature])}</small></span><b>${pack.stars} ⭐</b></button>`).join('');
+      list.innerHTML = packs.map((pack) => `<button type="button" class="stars-pack-row" data-stars-topup><span><strong>${escapeHtml(pack.label || (pack.mana + ' маны'))}</strong><small>пополнение единого баланса</small></span><b>${pack.stars} ⭐</b></button>`).join('');
       list.querySelectorAll('[data-stars-topup]').forEach((btn) => { btn.onclick = openStarsTopup; });
     }
     const topup = $('#btnStarsTopup');
     if (topup) topup.onclick = openStarsTopup;
+    const invite = $('#btnInviteMana');
+    if (invite) invite.onclick = shareReferralInvite;
+  }
+
+  function getReferralShareUrl() {
+    const id = state.user && Number(state.user.id);
+    if (!Number.isFinite(id) || id <= 0) return '';
+    const botLink = `https://t.me/astro_byrbot?start=ref_${id}`;
+    const text = 'Попробуй Гадалку: карта дня, расклады и мана за старт ✨';
+    return `https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent(text)}`;
+  }
+
+  function shareReferralInvite() {
+    const url = getReferralShareUrl();
+    if (!url) {
+      flashToast('Откройте Mini App из Telegram, чтобы получить ссылку');
+      return;
+    }
+    if (tg && tg.openTelegramLink) {
+      try { tg.openTelegramLink(url); return; } catch (e) {}
+    }
+    if (tg && tg.openLink) {
+      try { tg.openLink(url); return; } catch (e) {}
+    }
+    window.open(url, '_blank', 'noopener');
+  }
+
+  function updateManaBalance(data) {
+    if (data && data.mana && typeof data.mana.total === 'number') {
+      state.manaBalance = data.mana;
+      renderStarsEntry();
+    }
+  }
+
+  async function claimDailyManaCheckin() {
+    const btn = $('#dailyManaCheckinBtn');
+    const saved = $('#dailyJournalSaved');
+    const initData = getInitData();
+    if (!initData) {
+      flashToast('Откройте Mini App из бота, чтобы получить ману');
+      return;
+    }
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch('/api/mana/checkin?initData=' + encodeURIComponent(initData), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'daily_checkin' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.message || data.error || 'fail');
+      updateManaBalance(data);
+      if (saved) saved.textContent = data.claimed ? '+1 мана начислена' : 'мана за сегодня уже получена';
+      if (btn) btn.textContent = data.claimed ? '✨ +1 мана получена' : '✨ чек-ин уже был';
+      flashToast(data.message || (data.claimed ? '+1 мана' : 'Уже получено'));
+    } catch (e) {
+      if (saved) saved.textContent = 'не удалось начислить ману';
+      flashToast('Не удалось начислить ману');
+    } finally {
+      setTimeout(() => {
+        if (btn) {
+          btn.disabled = false;
+          if (!/уже был|получена/.test(btn.textContent || '')) btn.textContent = '✨ +1 мана за чек-ин';
+        }
+      }, 1800);
+    }
   }
 
   function updateFeatureBalance(feature, data) {
+    updateManaBalance(data);
     if (!data || typeof data.remaining !== 'number') return;
     const bal = state.aiBalance[feature] || { feature, limit: AI_LIMITS_DISPLAY[feature] || 0, used: 0, paid: 0 };
     bal.remaining = data.remaining;
@@ -327,6 +410,7 @@
     renderProfile();
     renderStarsEntry();
     await loadAiBalance();
+    await loadMoonToday();
     wireEvents();
     wireBottomTabs();
     wireHeroFlip();
@@ -358,8 +442,11 @@
       await window.ArcApp.mount();
     }
     haptic('medium');
-    // scroll to top
-    setTimeout(() => portal.scrollIntoView({ behavior: 'auto', block: 'start' }), 50);
+    // На мобиле ведём сразу к рабочей зоне, без длинного hero/каталога сверху.
+    setTimeout(() => {
+      const target = document.getElementById('arcMain') || portal;
+      try { target.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
+    }, 80);
   }
 
   function closeGadaniePortal() {
@@ -473,6 +560,139 @@
         setTimeout(() => { card.dataset.state = 'flipped'; }, 350);
       }));
     }
+    renderDailyJournal();
+  }
+
+  // -- Daily journal / retention ----------------------------
+  const DAILY_JOURNAL_KEY = 'dailyJournal:v1';
+  const OUTCOME_LABELS = { hit: 'сбылось', partial: 'частично', miss: 'не про меня' };
+
+  function loadDailyJournal() {
+    try { return JSON.parse(localStorage.getItem(DAILY_JOURNAL_KEY) || '{}') || {}; } catch { return {}; }
+  }
+
+  function saveDailyJournal(data) {
+    try { localStorage.setItem(DAILY_JOURNAL_KEY, JSON.stringify(data)); } catch {}
+  }
+
+  function todayJournalEntry() {
+    const date = DATA.todayKey();
+    const data = loadDailyJournal();
+    if (!data[date]) data[date] = {};
+    const c = state.dailyCard || {};
+    data[date] = {
+      ...data[date],
+      date,
+      card: c.name || data[date].card || '',
+      mood: c.mood || data[date].mood || '',
+      suit: c.suit || data[date].suit || '',
+      kind: c.kind || data[date].kind || '',
+    };
+    saveDailyJournal(data);
+    return data[date];
+  }
+
+  function setDailyOutcome(outcome) {
+    const date = DATA.todayKey();
+    const data = loadDailyJournal();
+    const c = state.dailyCard || {};
+    data[date] = {
+      ...(data[date] || {}),
+      date,
+      outcome,
+      card: c.name || '',
+      mood: c.mood || '',
+      suit: c.suit || '',
+      kind: c.kind || '',
+      ts: Date.now(),
+    };
+    saveDailyJournal(data);
+    renderDailyJournal();
+    flashToast(outcome === 'hit' ? 'Записала: карта попала' : outcome === 'partial' ? 'Записала: частично' : 'Записала: сегодня не попало');
+    haptic('selection');
+  }
+
+  function setDailyNote(note) {
+    const date = DATA.todayKey();
+    const data = loadDailyJournal();
+    data[date] = { ...(data[date] || todayJournalEntry()), note: String(note || '').slice(0, 420), ts: Date.now() };
+    saveDailyJournal(data);
+    renderDailyJournal(false);
+  }
+
+  function weeklyJournalSummary() {
+    const data = loadDailyJournal();
+    const items = Object.values(data)
+      .filter(x => x && x.date)
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+      .slice(0, 7);
+    if (!items.length) return 'Недельная тема появится после первых отметок.';
+    const total = items.length;
+    const hits = items.filter(x => x.outcome === 'hit').length;
+    const partial = items.filter(x => x.outcome === 'partial').length;
+    const suits = items.reduce((m, x) => { const k = x.suit || x.kind || 'major'; m[k] = (m[k] || 0) + 1; return m; }, {});
+    const top = Object.entries(suits).sort((a, b) => b[1] - a[1])[0];
+    const suitLabel = { wands: 'действие и энергия', cups: 'чувства и отношения', swords: 'мысли и решения', pentacles: 'деньги и тело', major: 'важный поворот' }[top?.[0]] || 'личная тема';
+    const accuracy = hits + partial ? `${hits} точных · ${partial} частично` : 'пока без попаданий';
+    return `За ${total} дн.: ${accuracy}. Тема недели: ${suitLabel}.`;
+  }
+
+  function renderDailyJournalHistory() {
+    const host = $('#dailyJournalHistory');
+    if (!host) return;
+    const data = loadDailyJournal();
+    const items = Object.values(data)
+      .filter(x => x && x.date && (x.note || x.outcome || x.card))
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+      .slice(0, 12);
+    if (!items.length) {
+      host.innerHTML = '<div class="daily-journal-empty">Пока нет сохранённых заметок. Сохраните сегодняшнюю — она появится здесь.</div>';
+      return;
+    }
+    host.innerHTML = items.map((x) => {
+      const outcome = x.outcome ? `<span class="daily-journal-entry-outcome">${OUTCOME_LABELS[x.outcome] || x.outcome}</span>` : '<span class="daily-journal-entry-outcome is-muted">итог не отмечен</span>';
+      const note = x.note ? `<p>${escapeHtml(x.note)}</p>` : '<p class="is-muted">Без заметки</p>';
+      return `<article class="daily-journal-entry">
+        <div class="daily-journal-entry-head"><strong>${escapeHtml(x.date)}</strong>${outcome}</div>
+        <div class="daily-journal-entry-card">${escapeHtml(x.card || 'Карта дня')}</div>
+        ${note}
+      </article>`;
+    }).join('');
+  }
+
+  function toggleDailyJournalHistory(forceOpen) {
+    const host = $('#dailyJournalHistory');
+    if (!host) return;
+    const willOpen = typeof forceOpen === 'boolean' ? forceOpen : host.hidden;
+    if (willOpen) renderDailyJournalHistory();
+    host.hidden = !willOpen;
+    if (willOpen) {
+      try { host.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) {}
+    }
+  }
+
+  function openDailyJournal() {
+    const box = $('#dailyJournal');
+    if (!box) return;
+    try { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+    toggleDailyJournalHistory(true);
+  }
+
+  function renderDailyJournal(updateNote = true) {
+    const box = $('#dailyJournal');
+    if (!box) return;
+    const entry = todayJournalEntry();
+    const status = $('#dailyJournalStatus');
+    if (status) status.textContent = entry.outcome ? `итог: ${OUTCOME_LABELS[entry.outcome]}` : 'итог — вечером';
+    box.querySelectorAll('[data-daily-outcome]').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.dailyOutcome === entry.outcome);
+    });
+    const note = $('#dailyJournalNote');
+    if (note && updateNote) note.value = entry.note || '';
+    const week = $('#dailyJournalWeek');
+    if (week) week.textContent = weeklyJournalSummary();
+    const hist = $('#dailyJournalHistory');
+    if (hist && !hist.hidden) renderDailyJournalHistory();
   }
 
   // -- Biorhythm tile (summary) ----------------------------
@@ -577,6 +797,89 @@
         инт ${r.tomorrow.intellectual > 0 ? '+' : ''}${r.tomorrow.intellectual}%
         <br>${r.tomorrow.overall}
       </div>`;
+  }
+
+  function fmtMoonDate(d) {
+    if (!d) return '';
+    return `${String(d.day).padStart(2, '0')}.${String(d.month).padStart(2, '0')}`;
+  }
+
+  function moonAdvice(entry) {
+    const fav = String(entry?.favorable || '').replace(/^[^А-Яа-яA-Za-z]+\s*/, '');
+    if (fav) return fav;
+    return entry?.moon_day_desc || entry?.moon_phase_desc || 'Доверься интуиции и не спеши с резкими решениями.';
+  }
+
+  async function loadMoonToday() {
+    try {
+      let res = await fetch('/api/moon/today?days=30');
+      let data = await res.json().catch(() => ({ ok: false }));
+      if ((!res.ok || !data.ok) && data.error === 'not found') {
+        res = await fetch('/api/arc/daily?days=30');
+        data = await res.json().catch(() => ({ ok: false }));
+      }
+      if (!data.ok || !data.today) throw new Error(data.error || 'moon');
+      state.moon = data;
+      renderMoonCard(data);
+      renderMoonMonth(data);
+    } catch (_) {
+      const title = $('#moonCardTitle');
+      const advice = $('#moonCardAdvice');
+      const meta = $('#moonCardMeta');
+      if (title) title.textContent = 'Луна скрылась за облаками';
+      if (advice) advice.textContent = 'Открой позже — календарь обновится автоматически.';
+      if (meta) meta.textContent = 'API временно недоступен';
+    }
+  }
+
+  function renderMoonCard(data) {
+    const e = data.today || {};
+    const title = $('#moonCardTitle');
+    const advice = $('#moonCardAdvice');
+    const meta = $('#moonCardMeta');
+    const tile = $('#moonTileMeta');
+    const orb = $('#moonOrb');
+    if (title) title.textContent = `${e.moon_phase || 'Фаза Луны'} · ${e.moon_sign_emoji || '♋'} ${e.moon_sign_ru || ''}`.trim();
+    if (advice) advice.textContent = moonAdvice(e);
+    if (meta) meta.textContent = `${e.moon_day || '—'} лунный день · ${Math.round(e.moon_phase_angle || 0)}° · ${fmtMoonDate(e.date)}`;
+    if (tile) tile.textContent = `${e.moon_sign_emoji || '🌙'} ${e.moon_day || '—'} день`;
+    if (orb) orb.textContent = (e.moon_phase || '').includes('Полн') ? '○' : ((e.moon_phase || '').includes('Нов') ? '●' : '☾');
+  }
+
+  function renderMoonMonth(data) {
+    const host = $('#moonMonthContent');
+    if (!host) return;
+    const e = data.today || {};
+    const phases = Array.isArray(data.moon_phases) ? data.moon_phases.slice(0, 6) : [];
+    const signs = Array.isArray(data.moon_sign_changes) ? data.moon_sign_changes.slice(0, 8) : [];
+    const week = Array.isArray(data.daily) ? data.daily.slice(0, 7) : [];
+    host.innerHTML = `
+      <article class="moon-detail-today">
+        <div class="moon-detail-orb">${e.moon_sign_emoji || '🌙'}</div>
+        <div><div class="moon-detail-kicker">Сегодня · ${fmtMoonDate(e.date)}</div>
+        <h3>${escapeHtml(e.moon_phase || 'Лунный день')}</h3>
+        <p>${escapeHtml(e.moon_phase_desc || moonAdvice(e))}</p></div>
+      </article>
+      <div class="moon-mini-grid">
+        <div><span>Знак</span><strong>${escapeHtml((e.moon_sign_emoji || '') + ' ' + (e.moon_sign_ru || '—'))}</strong></div>
+        <div><span>Лунный день</span><strong>${escapeHtml(String(e.moon_day || '—'))}/29</strong></div>
+      </div>
+      <h3 class="moon-section-title">Ближайшие фазы</h3>
+      <ul class="moon-list">${phases.map(ph => `<li><span>${fmtMoonDate(ph.date)}</span><strong>${escapeHtml(ph.phase_name || '')}</strong></li>`).join('') || '<li><span>—</span><strong>В этом окне точных фаз нет</strong></li>'}</ul>
+      <h3 class="moon-section-title">Смена знака</h3>
+      <ul class="moon-list">${signs.map(ch => `<li><span>${fmtMoonDate(ch.date)}</span><strong>${escapeHtml((ch.sign_emoji || '') + ' ' + (ch.sign_ru || ''))}</strong></li>`).join('')}</ul>
+      <h3 class="moon-section-title">7 дней</h3>
+      <ul class="moon-list moon-week">${week.map(d => `<li><span>${fmtMoonDate(d.date)}</span><strong>${escapeHtml((d.moon_sign_emoji || '') + ' ' + (d.moon_phase || ''))}</strong></li>`).join('')}</ul>`;
+  }
+
+  function openMoonPanel() {
+    closeAllPanels();
+    const p = $('#panelMoon');
+    if (p) p.hidden = false;
+    tileActive('moon', true);
+    if (state.moon) renderMoonMonth(state.moon); else loadMoonToday();
+    haptic('light');
+    try { p && p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
   }
 
   // -- Forecast panel (7-day astro forecast from backend) --
@@ -775,15 +1078,15 @@
 
   // -- Tile highlight + panel close ------------------------
   function tileActive(name, on) {
-    const map = { biorhythm:'tileBiorhythm', forecast:'tileForecast', profile:'tileProfile', chart:'tileChart', gadanie:'tileGadanie', stars:'tileStars' };
+    const map = { biorhythm:'tileBiorhythm', forecast:'tileForecast', profile:'tileProfile', chart:'tileChart', compat:'tileCompat', history:'tileJournal', gadanie:'tileGadanie', dream:'tileDream', stars:'tileStars' };
     const el = $('#' + map[name]);
     if (el) el.classList.toggle('is-active', on);
   }
   function closeAllPanels() {
-    ['panelBiorhythm','panelForecast','panelProfile','panelChart','panelCompat','panelHistory','panelStars'].forEach(id => {
+    ['panelBiorhythm','panelForecast','panelProfile','panelChart','panelCompat','panelHistory','panelDream','panelStars'].forEach(id => {
       const el = $('#' + id); if (el) el.hidden = true;
     });
-    ['biorhythm','forecast','profile','chart','compat','history','stars'].forEach(n => tileActive(n, false));
+    ['biorhythm','forecast','profile','chart','compat','history','dream','stars'].forEach(n => tileActive(n, false));
     // arc portal
     const ap = $('#arcPortal');
     if (ap && !ap.hidden) {
@@ -1461,16 +1764,25 @@
       const res = await fetch('/api/chart/interpret?initData=' + encodeURIComponent(initData), { method: 'POST' });
       const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
       if (!res.ok || !data.ok) {
+        updateManaBalance(data);
         state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : (state.aiBalance.chart_interpret?.remaining ?? CHART_AI_LIMIT);
         if (data.error === 'rate_limited' || state.chartAi.remaining === 0) {
           state.chartAi.remaining = 0;
           renderChartAiButton();
           return;
         }
+        if (data.error === 'insufficient_mana') {
+          state.chartAi.error = data.message || 'Не хватает маны для глубинного разбора карты.';
+          renderChartAiError();
+          const err = $('#chartAiSlot');
+          if (err) renderAiTopup('chart_interpret', '#chartAiTopup');
+          return;
+        }
         state.chartAi.error = data.message || data.error || 'Не удалось получить разбор.';
         renderChartAiError();
         return;
       }
+      updateManaBalance(data);
       state.chartAi.loaded = true;
       state.chartAi.interpretation = data.interpretation;
       state.chartAi.remaining = typeof data.remaining === 'number' ? data.remaining : (state.aiBalance.chart_interpret?.remaining ?? CHART_AI_LIMIT);
@@ -1579,6 +1891,69 @@
 
   function openProfileInBot() {
     openBotLink('https://t.me/astro_byrbot?start=profile');
+  }
+
+
+  function openDreamPanel() {
+    closeAllPanels();
+    const panel = $('#panelDream');
+    if (!panel) return;
+    panel.hidden = false;
+    tileActive('dream', true);
+    haptic('light');
+    try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+  }
+
+  async function submitDreambook(mode) {
+    const text = ($('#dreamText')?.value || '').trim();
+    const mood = ($('#dreamMood')?.value || '').trim();
+    const out = $('#dreamResult');
+    const btn = mode === 'deep' ? $('#btnDreamDeep') : $('#btnDreamShort');
+    if (!out) return;
+    if (!text || text.length < 8) {
+      out.hidden = false;
+      out.classList.add('is-error');
+      out.textContent = 'Опишите сон хотя бы одним предложением.';
+      return;
+    }
+    const initData = getInitData();
+    if (!initData) {
+      out.hidden = false;
+      out.classList.add('is-error');
+      out.textContent = 'Откройте Mini App из Telegram, чтобы использовать сонник.';
+      return;
+    }
+    out.hidden = false;
+    out.classList.remove('is-error');
+    out.textContent = 'Гадалка листает сонник…';
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch('/api/dreambook/interpret?initData=' + encodeURIComponent(initData), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ dream: text, mood, mode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        if (data.error === 'insufficient_mana') {
+          updateManaBalance(data);
+          out.innerHTML = `<div class="ai-limit-box"><p>${escapeHtml(data.message || 'Недостаточно маны.')}</p><button type="button" class="btn btn-gold" data-stars-topup>Пополнить ману</button></div>`;
+          const top = out.querySelector('[data-stars-topup]');
+          if (top) top.onclick = openStarsTopup;
+          return;
+        }
+        throw new Error(data.message || data.error || 'dreambook_failed');
+      }
+      updateManaBalance(data);
+      out.textContent = data.interpretation || 'Сонник молчит. Попробуйте переформулировать сон.';
+      haptic('success');
+    } catch (e) {
+      out.classList.add('is-error');
+      out.textContent = 'Не удалось разобрать сон. Мана вернётся, если списание уже было.';
+      haptic('error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   function openStarsPanel() {
@@ -1715,9 +2090,9 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        if (res.status === 429 || data.error === 'rate_limited') {
+        if (res.status === 429 || res.status === 402 || data.error === 'rate_limited' || data.error === 'insufficient_mana') {
           updateFeatureBalance('daily_card_interpret', data);
-          renderHeroAiLimit(slot);
+          renderHeroAiLimit(slot, data);
           btn.classList.add('is-active');
           return;
         }
@@ -1737,11 +2112,16 @@
     }
   }
 
-  function renderHeroAiLimit(slot) {
+  function renderHeroAiLimit(slot, data = {}) {
+    const insufficientMana = data && data.error === 'insufficient_mana';
+    const text = insufficientMana
+      ? escapeHtml(data.message || 'Не хватает маны для AI-расшифровки.')
+      : 'Расшифровка карты дня уже использована сегодня. Сброс в полночь UTC.';
+    const cta = insufficientMana ? 'Пополнить ману за Stars' : 'Пополнить ману';
     slot.innerHTML = `
       <div class="hero-ai-card ai-limit-box">
-        <p>Лимит на сегодня исчерпан. Сброс в полночь UTC.</p>
-        <button type="button" class="btn btn-gold" data-stars-topup>Докупить за Stars</button>
+        <p>${text}</p>
+        <button type="button" class="btn btn-gold" data-stars-topup>${cta}</button>
       </div>`;
     slot.hidden = false;
     const btn = slot.querySelector('[data-stars-topup]');
@@ -1814,9 +2194,9 @@
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data.ok) {
-            if (res.status === 429 || data.error === 'rate_limited') {
+            if (res.status === 429 || res.status === 402 || data.error === 'rate_limited' || data.error === 'insufficient_mana') {
               updateFeatureBalance('daily_card_interpret', data);
-              renderHeroAiLimit(aiSlot);
+              renderHeroAiLimit(aiSlot, data);
               aiBtn.classList.add('is-active');
               return;
             }
@@ -1837,8 +2217,34 @@
 
   // -- Wire events (idempotent через .onclick) --------------
   function wireEvents() {
+    const $bind = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
     $('#btnRefreshTarot').onclick = refreshTarot;
     $('#btnShareTarot').onclick   = shareTarot;
+    $$('#dailyJournal [data-daily-outcome]').forEach((btn) => {
+      btn.onclick = (e) => { e.stopPropagation(); setDailyOutcome(btn.dataset.dailyOutcome); };
+    });
+    const dailyNote = $('#dailyJournalNote');
+    if (dailyNote) {
+      let dailyNoteTimer = null;
+      const saved = $('#dailyJournalSaved');
+      const saveNow = () => {
+        setDailyNote(dailyNote.value);
+        if (saved) saved.textContent = 'сохранено';
+        flashToast('Заметка сохранена');
+      };
+      dailyNote.onclick = (e) => e.stopPropagation();
+      dailyNote.oninput = () => {
+        if (saved) saved.textContent = 'пишу…';
+        clearTimeout(dailyNoteTimer);
+        dailyNoteTimer = setTimeout(() => {
+          setDailyNote(dailyNote.value);
+          if (saved) saved.textContent = 'сохранено автоматически';
+        }, 600);
+      };
+      $bind('#dailyJournalSave', (e) => { if (e && e.stopPropagation) e.stopPropagation(); saveNow(); });
+      $bind('#dailyManaCheckinBtn', (e) => { if (e && e.stopPropagation) e.stopPropagation(); claimDailyManaCheckin(); });
+      $bind('#dailyJournalHistoryBtn', (e) => { if (e && e.stopPropagation) e.stopPropagation(); toggleDailyJournalHistory(); });
+    }
 
     // -- AI-расшифровка карты дня ----------------------------
     const aiBtn = $('#btnHeroAi');
@@ -1865,21 +2271,15 @@
         tg.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
       };
     }
-    // Hero-card кликабельна — открывает гадание
+    // Hero-card больше не открывает портал: пользователь нажимал карту дня и улетал в расклад.
     const hero = $('#heroCard');
     if (hero) {
-      hero.style.cursor = 'pointer';
-      hero.setAttribute('role', 'button');
-      hero.setAttribute('aria-label', 'Открыть гадание');
-      hero.onclick = (e) => {
-        // Не открывать, если клик на кнопке
-        if (e.target.closest('button')) return;
-        openGadaniePortal();
-      };
+      hero.style.cursor = 'default';
+      hero.removeAttribute('role');
+      hero.removeAttribute('aria-label');
+      hero.onclick = null;
     }
-    const $bind = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
 
-    // -- Onboarding (B1): first-run tour, dismissed once ---
     (function initOnboarding() {
       const overlay = $('#onboarding');
       if (!overlay) return;
@@ -1918,17 +2318,34 @@
       if (document.visibilityState === 'visible') resyncProfile();
     });
     window.addEventListener('focus', resyncProfile);
+    window.addEventListener('astro:history-updated', () => {
+      refreshHistoryFromBackend().catch(() => {});
+      updateHistoryBadge();
+    });
+
+    // Primary home actions
+    $bind('#homeAskBtn',      openGadaniePortal);
+    $bind('#homeLoveBtn',     openGadaniePortal);
+    $bind('#homeDayBtn',      () => { try { $('#heroCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} });
+    $bind('#homeDreamBtn',    openDreamPanel);
 
     // Quick tiles
     $bind('#tileBiorhythm',   tileBiorhythmClick);
     // tileEvening удалён: чек-ин выпилен
     $bind('#tileGadanie',     openGadaniePortal);
+    $bind('#tileMoon',        openMoonPanel);
+    $bind('#btnOpenMoon',     openMoonPanel);
     $bind('#tileForecast',    openForecastPanel);
     $bind('#tileProfile',     openProfilePanel);
     $bind('#tileChart',       openChartPanel);
     $bind('#tileCompat',      () => openCompatPanel(null));
+    $bind('#tileJournal',     openDailyJournal);
+    $bind('#tileDream',       openDreamPanel);
     $bind('#tileStars',       openStarsPanel);
     $bind('#btnStarsTopup',   openStarsTopup);
+    $bind('#btnDreamShort',   () => submitDreambook('short'));
+    $bind('#btnDreamDeep',    () => submitDreambook('deep'));
+    $$('[data-dream-chip]').forEach(btn => { btn.onclick = () => { const t = $('#dreamText'); if (t) { t.value = btn.dataset.dreamChip || ''; t.focus(); } }; });
 
     // User chip — открывает профиль
     const chip = $('#userChip');
@@ -2100,12 +2517,17 @@
 
   function normalizeBackendHistoryItem(it) {
     const payload = it && it.payload ? it.payload : {};
+    const type = it.type || payload.type || 'tarot';
     return {
       id: it.id,
+      type,
       ts: new Date(it.created_at || Date.now()).getTime(),
       deck: payload.deck || 'tarot',
-      spread: payload.spread || 'one',
-      question: it.subtitle || payload.question || '',
+      spread: type === 'dream' ? 'dream' : (payload.spread || 'one'),
+      question: it.subtitle || payload.question || payload.dream || '',
+      dream: payload.dream || '',
+      mood: payload.mood || '',
+      mode: payload.mode || '',
       cards: (payload.cards || []).map((c) => ({
         id: c.id || c.name || '',
         name: c.name || c.id || '?',
@@ -2142,7 +2564,7 @@
     const initData = getInitData();
     if (!initData) return [];
     try {
-      const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
+      const res = await fetch('/api/history?initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false, items: [] }));
       if (!data.ok || !Array.isArray(data.items)) return [];
       return data.items.map(it => it && it.id).filter(id => id !== undefined && id !== null);
@@ -2160,7 +2582,7 @@
     if (!initData || _historyLoading) return;
     _historyLoading = true;
     try {
-      const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
+      const res = await fetch('/api/history?initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false, items: [] }));
       if (!data.ok) return;
       _historyCache = (data.items || []).map(normalizeBackendHistoryItem);
@@ -2176,13 +2598,13 @@
   let _historyQuery = '';
 
   const SPREAD_LABELS = {
-    one: 'Одна карта', three: 'Три карты', five: 'Пять карт',
+    one: 'Одна карта', dream: 'Сонник', three: 'Три карты', five: 'Пять карт',
     relation: 'Отношения', day: 'День', celtic: 'Кельтский крест',
     week: 'Неделя', yesno: 'Да/Нет', horseshoe: 'Подкова',
     love: 'Любовь', mind: 'Разум', mirror: 'Зеркало'
   };
   const SPREAD_ICONS = {
-    one: '✦', three: '✦✦✦', five: '✦✦✦✦✦',
+    one: '✦', dream: '🌘', three: '✦✦✦', five: '✦✦✦✦✦',
     relation: '♥', day: '☀', celtic: '✠',
     week: '☾', yesno: '?', horseshoe: '⊃',
     love: '♡', mind: '◐', mirror: '◑'
@@ -2293,6 +2715,8 @@
       items = items.filter(h => {
         if ((h.question || '').toLowerCase().includes(q)) return true;
         if ((h.note || '').toLowerCase().includes(q)) return true;
+        if ((h.dream || '').toLowerCase().includes(q)) return true;
+        if ((h.summary || '').toLowerCase().includes(q)) return true;
         if ((h.spread || '').toLowerCase().includes(q)) return true;
         if (Array.isArray(h.cards) && h.cards.some(c =>
           (c.name || '').toLowerCase().includes(q) ||
@@ -2575,15 +2999,23 @@
     const label = SPREAD_LABELS[h.spread] || h.spread || 'расклад';
     const icon = SPREAD_ICONS[h.spread] || '✦';
     const cards = (h.cards || []);
-    const previewCards = cards.slice(0, 4).map(c =>
-      `<span class="arc-history-card-chip${c.reversed ? ' is-rev' : ''}">${escapeHtml(c.name || c.id || '')}${c.reversed ? ' ⇄' : ''}</span>`
-    ).join('') + (cards.length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${cards.length - 4}</span>` : '');
+    const isDream = h.type === 'dream' || h.spread === 'dream';
+    const previewCards = isDream
+      ? `<span class="arc-history-card-chip">🌘 ${escapeHtml(h.mode === 'deep' ? 'глубокий разбор' : 'короткий разбор')}</span>`
+      : cards.slice(0, 4).map(c =>
+        `<span class="arc-history-card-chip${c.reversed ? ' is-rev' : ''}">${escapeHtml(c.name || c.id || '')}${c.reversed ? ' ⇄' : ''}</span>`
+      ).join('') + (cards.length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${cards.length - 4}</span>` : '');
     const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
     const note = (h.note && h.note.trim()) ? `<div class="arc-history-note">✎ ${escapeHtml(h.note)}</div>` : '';
 
     // Детали: визуал карты (как выпала) + позиция + имя + расшифровка (advice)
     const positions = SPREAD_POSITIONS[h.spread] || cards.map((_, i) => `Позиция ${i+1}`);
-    const detailsHtml = cards.length > 0 ? `
+    const detailsHtml = isDream ? `
+      <div class="arc-history-details">
+        <div class="arc-history-note">${escapeHtml(h.summary || 'Разбор сна сохранён.')}</div>
+        <button type="button" class="arc-history-open-full" data-history-open="${origIdx}">🌘 Открыть сонник полностью</button>
+      </div>
+    ` : cards.length > 0 ? `
       <div class="arc-history-details">
         ${cards.map((c, i) => {
           const v = resolveCardVisual(h.deck, c.id, c.name || c.id);

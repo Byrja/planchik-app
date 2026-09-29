@@ -2141,7 +2141,26 @@
     const text = TarotDaily.formatShare(c);
     const btn = $('#btnShareTarot');
     const oldText = btn ? btn.textContent : '';
-    if (btn) { btn.disabled = true; btn.textContent = 'Готовлю карточку…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Готовлю сторис…'; }
+    const tg = window.TelegramApp && window.TelegramApp.tg;
+    const storyText = `${c.name || 'Карта дня'}\n${c.advice || c.upright || ''}`.slice(0, 2048);
+    const cardImageUrl = new URL(DATA.imageFor(c), location.href).href;
+    if (tg && typeof tg.shareToStory === 'function') {
+      try {
+        tg.shareToStory(cardImageUrl, {
+          text: storyText,
+          widget_link: { url: 'https://t.me/astro_byrbot', name: 'Открыть Гадалку' },
+        });
+        flashToast('Открываю публикацию сторис');
+        haptic('success');
+        return;
+      } catch (e) {
+        // older Telegram/Web fallback below
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = oldText || 'Поделиться карточкой'; }
+      }
+    }
+
     try {
       const dataUrl = await createDailyStoryCard(c);
       const file = dataUrlToFile(dataUrl, `gadalka-${DATA.todayKey()}.png`);
@@ -2154,10 +2173,9 @@
     } catch (e) {
       // fall through to text share
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = oldText || 'Поделиться'; }
+      if (btn) { btn.disabled = false; btn.textContent = oldText || 'Поделиться карточкой'; }
     }
 
-    const tg = window.TelegramApp && window.TelegramApp.tg;
     if (tg && tg.openTelegramLink) {
       flashToast('Выбери чат для отправки');
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/astro_byrbot') + '&text=' + encodeURIComponent(text);

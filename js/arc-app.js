@@ -804,10 +804,204 @@ ${reading.detail}
     }, delay);
   }
 
-  function shareResult() {
+  function arcRoundRect(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + rr, y, rr);
+    ctx.closePath();
+  }
+
+  function arcWrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 4) {
+    const words = String(text || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    const lines = [];
+    let line = '';
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+        if (lines.length >= maxLines) break;
+      } else {
+        line = test;
+      }
+    }
+    if (line && lines.length < maxLines) lines.push(line);
+    if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
+      lines[lines.length - 1] = lines[lines.length - 1].replace(/[,.!?…]*$/, '') + '…';
+    }
+    lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineHeight));
+    return y + Math.max(1, lines.length) * lineHeight;
+  }
+
+  function arcLoadCanvasImage(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  async function createArcStoryCard() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cfg = templateSpread();
+    const cards = (state.cards || []).slice(0, 5);
+    const deckName = state.deck === 'all' ? 'Все колоды' : (DECKS[state.deck]?.label || 'Гадание');
+
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#21163f');
+    bg.addColorStop(0.5, '#080715');
+    bg.addColorStop(1, '#2a1430');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    const glow = ctx.createRadialGradient(820, 260, 30, 820, 260, 760);
+    glow.addColorStop(0, 'rgba(245, 215, 110, 0.32)');
+    glow.addColorStop(1, 'rgba(245, 215, 110, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.globalAlpha = 0.46;
+    ctx.fillStyle = '#f5d76e';
+    for (let i = 0; i < 88; i++) {
+      const x = (i * 173) % W;
+      const y = (i * 281) % H;
+      ctx.beginPath(); ctx.arc(x, y, 1.6 + (i % 4), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f5d76e';
+    ctx.font = '700 34px Georgia, serif';
+    ctx.fillText('ГАДАЛКА', W / 2, 110);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 58px Georgia, serif';
+    arcWrapText(ctx, cfg.title || 'Расклад', W / 2, 190, 880, 64, 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = '28px system-ui, -apple-system, sans-serif';
+    ctx.fillText(deckName, W / 2, 330);
+
+    if (state.question) {
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.font = '32px system-ui, -apple-system, sans-serif';
+      arcWrapText(ctx, `«${state.question}»`, W / 2, 400, 870, 42, 3);
+    }
+
+    const count = Math.max(1, Math.min(3, cards.length));
+    const cardW = count === 1 ? 430 : 280;
+    const cardH = count === 1 ? 640 : 430;
+    const gap = 34;
+    const totalW = count * cardW + (count - 1) * gap;
+    let x = (W - totalW) / 2;
+    const y = state.question ? 570 : 500;
+    for (let i = 0; i < count; i++) {
+      const c = cards[i];
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.62)';
+      ctx.shadowBlur = 44;
+      ctx.shadowOffsetY = 22;
+      arcRoundRect(ctx, x, y, cardW, cardH, 28);
+      ctx.fillStyle = '#120f24';
+      ctx.fill();
+      ctx.restore();
+      const imgSrc = cardImage(c);
+      const img = imgSrc ? await arcLoadCanvasImage(new URL(imgSrc, location.href).href) : null;
+      if (img) {
+        ctx.save();
+        arcRoundRect(ctx, x + 16, y + 16, cardW - 32, cardH - 32, 22);
+        ctx.clip();
+        const scale = Math.max((cardW - 32) / img.width, (cardH - 32) / img.height);
+        const iw = img.width * scale, ih = img.height * scale;
+        if (c.reversed) {
+          ctx.translate(x + cardW / 2, y + cardH / 2);
+          ctx.rotate(Math.PI);
+          ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih);
+        } else {
+          ctx.drawImage(img, x + 16 + (cardW - 32 - iw) / 2, y + 16 + (cardH - 32 - ih) / 2, iw, ih);
+        }
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#d4af37';
+        ctx.font = `${count === 1 ? 112 : 72}px Georgia, serif`;
+        ctx.fillText(c.symbol || '✦', x + cardW / 2, y + cardH / 2);
+      }
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(245,215,110,0.72)';
+      arcRoundRect(ctx, x, y, cardW, cardH, 28);
+      ctx.stroke();
+      x += cardW + gap;
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 42px Georgia, serif';
+    const names = cards.slice(0, 3).map(c => `${c.name}${c.reversed ? ' ↺' : ''}`).join(' · ');
+    let nextY = arcWrapText(ctx, names, W / 2, 1260, 900, 50, 3) + 36;
+    const first = cards[0];
+    const meaning = first ? (first.reversed || first.upright || '') : '';
+    ctx.fillStyle = 'rgba(255,255,255,0.84)';
+    ctx.font = '31px system-ui, -apple-system, sans-serif';
+    nextY = arcWrapText(ctx, meaning, W / 2, nextY, 850, 42, 5) + 64;
+
+    ctx.fillStyle = 'rgba(245,215,110,0.16)';
+    arcRoundRect(ctx, 150, nextY, 780, 92, 46);
+    ctx.fill();
+    ctx.fillStyle = '#f5d76e';
+    ctx.font = '700 30px system-ui, -apple-system, sans-serif';
+    ctx.fillText('Открыть свой расклад в Telegram', W / 2, nextY + 58);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.64)';
+    ctx.font = '26px system-ui, -apple-system, sans-serif';
+    ctx.fillText('@astro_byrbot · карты не принимают решений за вас', W / 2, H - 86);
+    return canvas.toDataURL('image/png');
+  }
+
+  async function uploadArcStoryCard(dataUrl) {
+    const initData = getInitData();
+    if (!initData) return null;
+    const res = await fetch('/api/share-card?initData=' + encodeURIComponent(initData), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData: dataUrl, spread: state.spread, question: state.question || '' }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok || !data.url) return null;
+    return data.url;
+  }
+
+  async function shareResult() {
     const text = buildShareText();
     if (!text) return;
     const tg = window.TelegramApp && window.TelegramApp.tg;
+    const btn = r$('#ctaShare');
+    const oldText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳  Готовлю сторис'; }
+    let dataUrl = '';
+    if (tg && typeof tg.shareToStory === 'function') {
+      try {
+        dataUrl = await createArcStoryCard();
+        const storyUrl = await uploadArcStoryCard(dataUrl);
+        if (storyUrl) {
+          tg.shareToStory(storyUrl, {
+            text: text.slice(0, 2048),
+            widget_link: { url: 'https://t.me/astro_byrbot', name: 'Открыть Гадалку' },
+          });
+          flashToast('Открываю публикацию сторис');
+          return;
+        }
+      } catch (e) {
+        // fallback below
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = oldText || '⤴  Поделиться'; }
+      }
+    }
     if (tg && tg.openTelegramLink) {
       flashToast('Выбери чат для отправки');
       const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/astro_byrbot') + '&text=' + encodeURIComponent(text);

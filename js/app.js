@@ -2488,13 +2488,28 @@
         overlay.querySelectorAll('.onb-step').forEach(s => { s.hidden = +s.dataset.step !== n; });
         overlay.querySelectorAll('.onb-dots .dot').forEach((d, i) => d.classList.toggle('is-active', i === n - 1));
         const next = overlay.querySelector('.onb-next');
-        if (next) next.textContent = n === total ? 'Поехали! ✦' : 'Далее →';
+        if (next) next.textContent = n === total ? 'На главный экран ✦' : 'Далее →';
         step = n;
       }
-      $bind('.onb-skip', () => { localStorage.setItem('onb_seen', '1'); overlay.hidden = true; });
+      function finish(action) {
+        localStorage.setItem('onb_seen', '1');
+        overlay.hidden = true;
+        requestAnimationFrame(() => {
+          if (action === 'ask') return openGadaniePortal();
+          if (action === 'dream') return openDreamPanel();
+          const hero = $('#heroCard') || $('#dailyCard') || $('#btnReadingToggle');
+          if (hero && hero.scrollIntoView) {
+            try { hero.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+          }
+        });
+      }
+      $bind('.onb-skip', () => finish('daily'));
+      overlay.querySelectorAll('[data-onb-action]').forEach((btn) => {
+        btn.addEventListener('click', () => finish(btn.dataset.onbAction || 'daily'));
+      });
       $bind('.onb-next', () => {
         if (step < total) show(step + 1);
-        else { localStorage.setItem('onb_seen', '1'); overlay.hidden = true; }
+        else finish('daily');
       });
     })();
 

@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json?v=3.177">
+  <link rel="manifest" href="manifest.json?v=3.180">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,12 +35,12 @@
   <title>Гадалка</title>
 
   <!-- Telegram WebApp SDK -->
-  <script src="js/vendor/telegram-web-app.js?v=3.177"></script>
+  <script src="js/vendor/telegram-web-app.js?v=3.180"></script>
 
-  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.177">
+  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.180">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.177">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.177">
+  <link rel="stylesheet" href="css/styles.css?v=3.180">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.180">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -148,6 +148,32 @@
         <button type="button" class="home-primary-btn" id="homeLoveBtn"><span>❤️</span><strong>Любовь</strong><small>что чувствует, вернётся ли, что мешает</small></button>
         <button type="button" class="home-primary-btn" id="homeDayBtn"><span>🌙</span><strong>Мой день</strong><small>карта дня и вечерняя отметка</small></button>
         <button type="button" class="home-primary-btn" id="homeDreamBtn"><span>🌘</span><strong>Сонник</strong><small>что значит сон — 4/9 маны</small></button>
+      </div>
+    </section>
+
+    <section class="home-ask-flow" id="homeAskFlow" hidden aria-labelledby="homeAskFlowTitle">
+      <div class="home-ask-flow-head">
+        <div>
+          <p class="home-ask-kicker">быстрый расклад</p>
+          <h2 id="homeAskFlowTitle">Спроси здесь — ответ появится сразу</h2>
+        </div>
+        <span class="home-ask-price" id="homeAskPrice">7 маны</span>
+      </div>
+      <textarea id="homeAskInput" class="home-ask-input" maxlength="220" rows="3" placeholder="Например: стоит ли писать первой? куда двинутся деньги? какой вариант выбрать?"></textarea>
+      <div class="home-ask-chips" aria-label="Быстрые темы">
+        <button type="button" data-home-ask-chip="love" data-question="Что сейчас происходит в любви и какой шаг мне сделать?">❤️ любовь</button>
+        <button type="button" data-home-ask-chip="money" data-question="Что с деньгами в ближайший месяц и где мой шанс?">💰 деньги</button>
+        <button type="button" data-home-ask-chip="choice" data-question="Какой вариант выбрать и что я не вижу?">⚖ выбор</button>
+      </div>
+      <div class="home-ask-spreads" role="radiogroup" aria-label="Выбор расклада">
+        <button type="button" class="is-active" data-home-spread="three">⫶ 3 карты</button>
+        <button type="button" data-home-spread="yesno">⨯ Да/нет</button>
+        <button type="button" data-home-spread="choice">⚖ Выбор</button>
+      </div>
+      <div class="home-ask-meter" id="homeAskMeter">Цена: 7 маны · баланс загружается…</div>
+      <div class="home-ask-actions">
+        <button type="button" class="btn btn-gold" id="homeAskSubmit">Получить ответ ✦</button>
+        <button type="button" class="btn btn-ghost" id="homeAskOpenCards">Открыть все карты</button>
       </div>
     </section>
 
@@ -270,8 +296,20 @@
         <div><strong>30</strong><span>натальная AI</span></div>
       </div>
       <div class="stars-pack-list" id="starsPackList"></div>
+      <article class="referral-mana-card" id="referralManaCard" aria-labelledby="referralManaTitle">
+        <div class="referral-mana-orb" aria-hidden="true">🎁</div>
+        <div class="referral-mana-body">
+          <p class="referral-mana-kicker">магический бонус</p>
+          <h3 id="referralManaTitle">Пригласи друга · +10 маны</h3>
+          <p class="referral-mana-copy">Друг получает стартовую ману для первых раскладов, ты — +10 бонусной маны после активации.</p>
+          <div class="referral-mana-progress" aria-live="polite">
+            <span id="referralManaProgress">Приглашений: —</span>
+            <small>первая покупка друга даст ещё +20 платной маны</small>
+          </div>
+        </div>
+        <button type="button" class="btn btn-gold referral-mana-share" id="btnInviteMana">Поделиться ✦</button>
+      </article>
       <button type="button" class="btn btn-gold stars-topup-main" id="btnStarsTopup">Пополнить ману за Stars</button>
-      <button type="button" class="btn btn-ghost stars-topup-main" id="btnInviteMana">🎁 Пригласить друга +10 маны</button>
       <p class="stars-panel-hint">Бонус за приглашение начисляется только за активированного пользователя. За первую покупку друга — ещё +20 платной маны.</p>
     </section>
 
@@ -746,7 +784,7 @@
         <!-- FOOTER -->
         <footer class="arc-site-footer">
           <p>Гадалка · Гадания на картах · Telegram Mini App</p>
-          <p style="margin-top:6px;font-size:11px;">v3.177 · карты не принимают решений за вас</p>
+          <p style="margin-top:6px;font-size:11px;">v3.180 · карты не принимают решений за вас</p>
         </footer>
 
       </div>
@@ -755,7 +793,7 @@
     <!-- ─── FOOTER ─────────────────────────────────────── -->
     <footer class="app-footer">
       <p>Гадалка · Telegram Mini App</p>
-      <p class="app-footer-meta">v3.177 · запущено <span id="loadedAt">—</span></p>
+      <p class="app-footer-meta">v3.180 · запущено <span id="loadedAt">—</span></p>
     </footer>
 
   </div>
@@ -763,18 +801,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.177"></script>
-  <script src="js/tarot.js?v=3.177"></script>
-  <script src="js/biorhythm.js?v=3.177"></script>
-  <script src="js/arc-runes.js?v=3.177"></script>
-  <script src="js/arc-lenormand.js?v=3.177"></script>
-  <script src="js/arc-gypsy.js?v=3.177"></script>
-  <script src="js/arc-playing.js?v=3.177"></script>
-  <script src="js/arc-tarot.js?v=3.177"></script>
-  <script src="js/arc-tarot-minor.js?v=3.177"></script>
-  <script src="js/chart.js?v=3.177"></script>
-  <script src="js/arc-app.js?v=3.177"></script>
-  <script src="js/app.js?v=3.177"></script>
+  <script src="js/data.js?v=3.180"></script>
+  <script src="js/tarot.js?v=3.180"></script>
+  <script src="js/biorhythm.js?v=3.180"></script>
+  <script src="js/arc-runes.js?v=3.180"></script>
+  <script src="js/arc-lenormand.js?v=3.180"></script>
+  <script src="js/arc-gypsy.js?v=3.180"></script>
+  <script src="js/arc-playing.js?v=3.180"></script>
+  <script src="js/arc-tarot.js?v=3.180"></script>
+  <script src="js/arc-tarot-minor.js?v=3.180"></script>
+  <script src="js/chart.js?v=3.180"></script>
+  <script src="js/arc-app.js?v=3.180"></script>
+  <script src="js/app.js?v=3.180"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

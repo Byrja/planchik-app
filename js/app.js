@@ -76,6 +76,7 @@
     aiBalance: {},
     manaBalance: null,
     profileSync: { userNotStartedBot: false },
+    referralStats: null,
   };
 
   const AI_LIMITS_DISPLAY = {
@@ -161,6 +162,74 @@
     return getFeatureRemaining('daily_card_interpret');
   }
 
+  const HOME_ASK_COST = 7;
+
+  function getHomeAskSelection() {
+    const active = document.querySelector('[data-home-spread].is-active');
+    const spread = active ? active.dataset.homeSpread : 'three';
+    const q = ($('#homeAskInput') && $('#homeAskInput').value || '').trim();
+    return { question: q, spread };
+  }
+
+  function renderHomeAskMeter() {
+    const meter = $('#homeAskMeter');
+    const price = $('#homeAskPrice');
+    if (price) price.textContent = `${HOME_ASK_COST} маны`;
+    if (!meter) return;
+    const total = state.manaBalance && typeof state.manaBalance.total === 'number' ? state.manaBalance.total : null;
+    if (total === null) {
+      meter.textContent = `Цена: ${HOME_ASK_COST} маны · баланс загружается…`;
+      meter.classList.remove('is-low');
+      return;
+    }
+    const missing = HOME_ASK_COST - total;
+    meter.textContent = missing > 0
+      ? `Цена: ${HOME_ASK_COST} маны · у тебя ${total}, не хватает ${missing} — пополни Stars перед отправкой`
+      : `Цена: ${HOME_ASK_COST} маны · у тебя ${total}, можно гадать`;
+    meter.classList.toggle('is-low', missing > 0);
+  }
+
+  function openHomeAskFlow(prefill) {
+    const flow = $('#homeAskFlow');
+    if (!flow) { openGadaniePortal(); return; }
+    flow.hidden = false;
+    if (prefill) {
+      const input = $('#homeAskInput');
+      if (input && !input.value.trim()) input.value = prefill;
+    }
+    renderHomeAskMeter();
+    haptic('light');
+    requestAnimationFrame(() => {
+      try { flow.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+      const input = $('#homeAskInput');
+      if (input) input.focus({ preventScroll: true });
+    });
+  }
+
+  async function submitHomeAskFlow() {
+    const { question, spread } = getHomeAskSelection();
+    if (question.length < 3) { flashToast('Напишите вопрос хотя бы в пару слов'); openHomeAskFlow(); return; }
+    const total = state.manaBalance && typeof state.manaBalance.total === 'number' ? state.manaBalance.total : null;
+    if (total !== null && total < HOME_ASK_COST) {
+      renderHomeAskMeter();
+      flashToast(`Не хватает маны: нужно ${HOME_ASK_COST}`);
+      openStarsTopup();
+      return;
+    }
+    closeAllPanels();
+    const portal = $('#arcPortal');
+    if (portal) portal.hidden = false;
+    tileActive('gadanie', true);
+    $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'arc'));
+    if (window.ArcApp && window.ArcApp.mount) await window.ArcApp.mount();
+    if (window.ArcApp && window.ArcApp.quickAsk) window.ArcApp.quickAsk({ question, spread });
+    haptic('medium');
+    setTimeout(() => {
+      const target = document.getElementById('arcMain') || portal;
+      try { target.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
+    }, 80);
+  }
+
   function renderStarsEntry() {
     const mana = state.manaBalance;
     const packs = (mana && mana.economy && Array.isArray(mana.economy.packs)) ? mana.economy.packs : MANA_PACKS_DISPLAY;
@@ -203,17 +272,36 @@
       list.innerHTML = packs.map((pack) => `<button type="button" class="stars-pack-row" data-stars-topup><span><strong>${escapeHtml(pack.label || (pack.mana + ' маны'))}</strong><small>пополнение единого баланса</small></span><b>${pack.stars} ⭐</b></button>`).join('');
       list.querySelectorAll('[data-stars-topup]').forEach((btn) => { btn.onclick = openStarsTopup; });
     }
+    renderReferralManaCard();
     const topup = $('#btnStarsTopup');
     if (topup) topup.onclick = openStarsTopup;
     const invite = $('#btnInviteMana');
     if (invite) invite.onclick = shareReferralInvite;
   }
 
+  function getReferralCount() {
+    const fromApi = state.referralStats && Number(state.referralStats.count);
+    if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
+    const fromUser = state.user && Number(state.user.referral_count ?? state.user.referralCount);
+    if (Number.isFinite(fromUser) && fromUser >= 0) return fromUser;
+    return null;
+  }
+
+  function renderReferralManaCard() {
+    const progress = $('#referralManaProgress');
+    if (!progress) return;
+    const count = getReferralCount();
+    progress.textContent = count === null
+      ? 'Ссылка готова в Telegram'
+      : `Приглашений: ${count} · следующий друг = +10 маны`;
+  }
+
   function getReferralShareUrl() {
     const id = state.user && Number(state.user.id);
-    if (!Number.isFinite(id) || id <= 0) return '';
-    const botLink = `https://t.me/astro_byrbot?start=ref_${id}`;
-    const text = 'Попробуй Гадалку: карта дня, расклады и мана за старт ✨';
+    const botLink = Number.isFinite(id) && id > 0
+      ? `https://t.me/astro_byrbot?start=ref_${id}`
+      : 'https://t.me/astro_byrbot?start=ref_0';
+    const text = '🔮 Идём в Гадалку: тебе — стартовая мана на первые расклады, мне — +10 маны за приглашение. Карта дня, Таро и натальная карта внутри ✨';
     return `https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent(text)}`;
   }
 
@@ -235,6 +323,7 @@
   function updateManaBalance(data) {
     if (data && data.mana && typeof data.mana.total === 'number') {
       state.manaBalance = data.mana;
+      if (data.referral && typeof data.referral.count === 'number') state.referralStats = data.referral;
       renderStarsEntry();
     }
   }
@@ -2802,7 +2891,7 @@
         localStorage.setItem('onb_seen', '1');
         overlay.hidden = true;
         requestAnimationFrame(() => {
-          if (action === 'ask') return openGadaniePortal();
+          if (action === 'ask') return openHomeAskFlow();
           if (action === 'dream') return openDreamPanel();
           const hero = $('#heroCard') || $('#dailyCard') || $('#btnReadingToggle');
           if (hero && hero.scrollIntoView) {
@@ -2849,11 +2938,16 @@
     $bind('#dailyCardDeepBtn', (e) => { e.stopPropagation(); openDailyCardDeepDive(); });
     $bind('#todayChartBtn',   () => setActiveTab('chart'));
     $bind('#todayCompatBtn',  () => setActiveTab('compat'));
-    $bind('#homeAskBtn',      openGadaniePortal);
-    $bind('#homeLoveBtn',     openGadaniePortal);
+    $bind('#homeAskBtn',      () => openHomeAskFlow());
+    $bind('#homeLoveBtn',     () => openHomeAskFlow('Что сейчас происходит в любви и какой шаг мне сделать?'));
     $bind('#homeDayBtn',      () => { try { $('#heroCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} });
     $bind('#homeDreamBtn',    openDreamPanel);
     $bind('#homeManaCard',    openStarsPanel);
+    $bind('#homeAskSubmit',  submitHomeAskFlow);
+    $bind('#homeAskOpenCards', openGadaniePortal);
+    $$('[data-home-ask-chip]').forEach(btn => { btn.onclick = () => { const input = $('#homeAskInput'); if (input) { input.value = btn.dataset.question || ''; input.focus(); } }; });
+    $$('[data-home-spread]').forEach(btn => { btn.onclick = () => { $$('[data-home-spread]').forEach(b => b.classList.toggle('is-active', b === btn)); }; });
+    renderHomeAskMeter();
 
     // Quick tiles
     $bind('#tileBiorhythm',   tileBiorhythmClick);

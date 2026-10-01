@@ -2048,6 +2048,104 @@
     try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
   }
 
+  function dreamModeLabel(mode) {
+    return mode === 'deep' ? 'глубокий разбор' : 'короткий разбор';
+  }
+
+  function buildDreamShareText(result) {
+    const dream = String(result?.dream || '').trim();
+    const mood = String(result?.mood || '').trim();
+    const interpretation = String(result?.interpretation || '').trim();
+    return [
+      `🌘 Сонник — ${dreamModeLabel(result?.mode)}`,
+      dream ? `Сон: ${dream}` : '',
+      mood ? `Настроение: ${mood}` : '',
+      interpretation ? `\n${interpretation}` : '',
+      '\n— расшифровано в Гадалке 🔮',
+    ].filter(Boolean).join('\n');
+  }
+
+  async function saveDreambookResult(result, btn) {
+    if (result?.historyId) {
+      await refreshHistoryFromBackend();
+      updateHistoryBadge();
+      flashToast('Сон уже сохранён в истории');
+      openHistoryPanel();
+      return;
+    }
+    const initData = getInitData();
+    if (!initData) return flashToast('Откройте Mini App из Telegram');
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch('/api/history?initData=' + encodeURIComponent(initData), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          type: 'dream',
+          title: `Сонник: ${dreamModeLabel(result.mode)}`,
+          subtitle: String(result.dream || '').slice(0, 160),
+          payload: {
+            mode: result.mode,
+            dream: result.dream,
+            mood: result.mood || null,
+            manaCost: result.manaCost || null,
+          },
+          interpretation: result.interpretation,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'history_save_failed');
+      result.historyId = data.id;
+      await refreshHistoryFromBackend();
+      updateHistoryBadge();
+      flashToast('Сон сохранён в истории');
+      openHistoryPanel();
+    } catch (_) {
+      flashToast('Не удалось сохранить сон');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function shareDreambookResult(result) {
+    const text = buildDreamShareText(result);
+    const shareUrl = 'https://t.me/astro_byrbot';
+    if (tg && tg.openTelegramLink) {
+      try {
+        tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(text));
+        haptic('light');
+        return;
+      } catch (_) {}
+    }
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Сонник — Гадалка', text, url: shareUrl }); haptic('light'); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(text + '\n' + shareUrl); flashToast('Текст для подруги скопирован'); }
+    catch (_) { try { window.prompt('Скопируйте трактовку:', text); } catch (_) {} }
+  }
+
+  function renderDreambookResult(out, result) {
+    if (!out) return;
+    out.classList.remove('is-error');
+    out.innerHTML = `
+      <div class="dream-result-text">${escapeHtml(result.interpretation)}</div>
+      <div class="dream-result-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button type="button" class="btn btn-ghost" data-dream-save>💾 Сохранить в историю</button>
+        <button type="button" class="btn btn-primary" data-dream-share>💌 Поделиться с подругой</button>
+      </div>
+      ${result.historyId ? '<div class="dream-result-saved" style="margin-top:8px;opacity:.78;font-size:13px">Уже сохранено: откройте «Историю» на любом устройстве.</div>' : ''}
+    `;
+    const saveBtn = out.querySelector('[data-dream-save]');
+    const shareBtn = out.querySelector('[data-dream-share]');
+    if (saveBtn) saveBtn.onclick = () => saveDreambookResult(result, saveBtn);
+    if (shareBtn) shareBtn.onclick = () => shareDreambookResult(result);
+    if (result.historyId) {
+      refreshHistoryFromBackend();
+      updateHistoryBadge();
+    }
+  }
+
   async function submitDreambook(mode) {
     const text = ($('#dreamText')?.value || '').trim();
     const mood = ($('#dreamMood')?.value || '').trim();
@@ -2089,7 +2187,14 @@
         throw new Error(data.message || data.error || 'dreambook_failed');
       }
       updateManaBalance(data);
-      out.textContent = data.interpretation || 'Сонник молчит. Попробуйте переформулировать сон.';
+      renderDreambookResult(out, {
+        dream: text,
+        mood,
+        mode,
+        interpretation: data.interpretation || 'Сонник молчит. Попробуйте переформулировать сон.',
+        historyId: data.history_id,
+        manaCost: data.manaCost,
+      });
       haptic('success');
     } catch (e) {
       out.classList.add('is-error');
@@ -3196,7 +3301,11 @@
 
     const qEl = $('#historyReadingQuestion');
     if (qEl) {
-      if (h.question) { qEl.textContent = `«${h.question}»`; qEl.hidden = false; }
+      if (h.type === 'dream' || h.spread === 'dream') {
+        const moodTxt = h.mood ? ` · настроение: ${h.mood}` : '';
+        qEl.textContent = `Сон: «${h.dream || h.question || ''}»${moodTxt}`;
+        qEl.hidden = false;
+      } else if (h.question) { qEl.textContent = `«${h.question}»`; qEl.hidden = false; }
       else qEl.hidden = true;
     }
 
@@ -3204,6 +3313,9 @@
     const positions = SPREAD_POSITIONS[h.spread] || cards.map((_, i) => `Позиция ${i+1}`);
     const cardsEl = $('#historyReadingCards');
     if (cardsEl) {
+      if (h.type === 'dream' || h.spread === 'dream') {
+        cardsEl.innerHTML = `<div class="history-modal-card"><div class="history-modal-card-visual"><div class="history-modal-card-glyph">🌘</div></div><div class="history-modal-card-body"><div class="history-modal-card-pos">${escapeHtml(dreamModeLabel(h.mode))}</div><div class="history-modal-card-name">${escapeHtml(h.mood || 'настроение не указано')}</div></div></div>`;
+      } else {
       cardsEl.innerHTML = cards.map((c, i) => {
         const v = resolveCardVisual(h.deck, c.id, c.name || c.id);
         const visual = v.kind === 'image'
@@ -3222,6 +3334,7 @@
           </div>
         `;
       }).join('');
+      }
     }
 
     // Итог (если есть)
@@ -3275,19 +3388,24 @@
     const dateStr = `${dayMonth(d)} ${d.getFullYear()}`;
     const cards = (h.cards || []);
     const positions = SPREAD_POSITIONS[h.spread] || cards.map((_, i) => `Карта ${i+1}`);
-    const cardsTxt = cards.map((c, i) => {
-      const pos = positions[i] || `Карта ${i+1}`;
-      const rev = c.reversed ? ' (перевёрнутая)' : '';
-      return `  ${i+1}. ${pos}: ${c.name || c.id || '—'}${rev}`;
-    }).join('\n');
-    const qTxt = h.question ? `\nВопрос: «${h.question}»\n` : '';
-    const noteTxt = (h.note && h.note.trim()) ? `\nЗаметка: ${h.note}\n` : '';
-    const text = `✦ ${label} — ${dateStr}${qTxt}\nКарты:\n${cardsTxt}${noteTxt}\n— разложено в Астро-бурлаб`;
+    let text;
+    if (h.type === 'dream' || h.spread === 'dream') {
+      text = buildDreamShareText({ dream: h.dream || h.question, mood: h.mood, mode: h.mode, interpretation: h.interpretation || h.summary });
+    } else {
+      const cardsTxt = cards.map((c, i) => {
+        const pos = positions[i] || `Карта ${i+1}`;
+        const rev = c.reversed ? ' (перевёрнутая)' : '';
+        return `  ${i+1}. ${pos}: ${c.name || c.id || '—'}${rev}`;
+      }).join('\n');
+      const qTxt = h.question ? `\nВопрос: «${h.question}»\n` : '';
+      const noteTxt = (h.note && h.note.trim()) ? `\nЗаметка: ${h.note}\n` : '';
+      text = `✦ ${label} — ${dateStr}${qTxt}\nКарты:\n${cardsTxt}${noteTxt}\n— разложено в Астро-бурлаб`;
+    }
 
     // 1) Прямой шеринг в Telegram (мобильный, открывает chooser)
     if (tg && tg.openTelegramLink) {
       try {
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent('https://astro-burlab.duckdns.org')}&text=${encodeURIComponent(text)}`;
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent('https://t.me/astro_byrbot')}&text=${encodeURIComponent(text)}`;
         tg.openTelegramLink(shareUrl);
         haptic && haptic('light');
         return;
@@ -3377,7 +3495,9 @@
       : cards.slice(0, 4).map(c =>
         `<span class="arc-history-card-chip${c.reversed ? ' is-rev' : ''}">${escapeHtml(c.name || c.id || '')}${c.reversed ? ' ⇄' : ''}</span>`
       ).join('') + (cards.length > 4 ? `<span class="arc-history-card-chip arc-history-more">+${cards.length - 4}</span>` : '');
-    const q = h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '';
+    const q = isDream
+      ? `<div class="arc-history-q">Сон: «${escapeHtml(h.dream || h.question || '')}»${h.mood ? ` · ${escapeHtml(h.mood)}` : ''}</div>`
+      : (h.question ? `<div class="arc-history-q">«${escapeHtml(h.question)}»</div>` : '');
     const note = (h.note && h.note.trim()) ? `<div class="arc-history-note">✎ ${escapeHtml(h.note)}</div>` : '';
 
     // Детали: визуал карты (как выпала) + позиция + имя + расшифровка (advice)
@@ -3385,6 +3505,7 @@
     const detailsHtml = isDream ? `
       <div class="arc-history-details">
         <div class="arc-history-note">${escapeHtml(h.summary || 'Разбор сна сохранён.')}</div>
+        <div class="arc-history-note">Режим: ${escapeHtml(dreamModeLabel(h.mode))}${h.mood ? ` · настроение: ${escapeHtml(h.mood)}` : ''}</div>
         <button type="button" class="arc-history-open-full" data-history-open="${origIdx}">🌘 Открыть сонник полностью</button>
       </div>
     ` : cards.length > 0 ? `

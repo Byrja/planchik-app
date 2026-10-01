@@ -504,6 +504,7 @@
     const c = TarotDaily.calc(tgId, date);
     // Заполняем лицо flip-карты (новая разметка: #heroTarotCard > .tarot-card-inner)
     state.dailyCard = c; // для AI-расшифровки
+    renderDailyCardTeaser(c);
     const imgEl    = $('#heroImg');
     const nameEl   = $('#heroName');
     const moodEl   = $('#heroMood');
@@ -570,6 +571,34 @@
       }));
     }
     renderDailyJournal();
+  }
+
+  function renderDailyCardTeaser(c) {
+    const box = $('#dailyCardTeaser');
+    if (!box || !c) return;
+    const img = $('#dailyCardTeaserImg');
+    const glyph = $('#dailyCardTeaserGlyph');
+    if (img) {
+      img.src = DATA.imageFor(c);
+      img.alt = c.name || 'Карта дня';
+      img.hidden = false;
+    }
+    if (glyph) glyph.hidden = true;
+    const title = $('#dailyCardTeaserTitle');
+    const meaning = $('#dailyCardTeaserMeaning');
+    if (title) title.textContent = c.name || 'Сегодняшний знак';
+    if (meaning) meaning.textContent = c.upright || c.advice || c.mood || 'Карта дня готова — открой разбор, чтобы понять её подсказку.';
+  }
+
+  function openDailyCardDeepDive() {
+    const hero = $('#heroCard');
+    const toggle = $('#btnReadingToggle');
+    try { hero?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+    if (toggle && toggle.getAttribute('aria-expanded') !== 'true') {
+      setTimeout(() => toggle.click(), 180);
+    }
+    setTimeout(() => { try { $('#btnHeroAi')?.focus({ preventScroll: true }); } catch (_) {} }, 260);
+    haptic('light');
   }
 
   // -- Daily journal / retention ----------------------------
@@ -2598,7 +2627,9 @@
     });
 
     // Primary home actions
-    $bind('#todayCardBtn',    () => { try { $('#heroCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} });
+    $bind('#todayCardBtn',    openDailyCardDeepDive);
+    $bind('#dailyCardTeaser', openDailyCardDeepDive);
+    $bind('#dailyCardDeepBtn', (e) => { e.stopPropagation(); openDailyCardDeepDive(); });
     $bind('#todayChartBtn',   () => setActiveTab('chart'));
     $bind('#todayCompatBtn',  () => setActiveTab('compat'));
     $bind('#homeAskBtn',      openGadaniePortal);

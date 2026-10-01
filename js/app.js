@@ -257,19 +257,17 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.message || data.error || 'fail');
       updateManaBalance(data);
+      markDailyCheckin(data.claimed ? 'claimed' : 'already');
       if (saved) saved.textContent = data.claimed ? '+1 мана начислена' : 'мана за сегодня уже получена';
-      if (btn) btn.textContent = data.claimed ? '✨ +1 мана получена' : '✨ чек-ин уже был';
       flashToast(data.message || (data.claimed ? '+1 мана' : 'Уже получено'));
     } catch (e) {
       if (saved) saved.textContent = 'не удалось начислить ману';
       flashToast('Не удалось начислить ману');
     } finally {
       setTimeout(() => {
-        if (btn) {
-          btn.disabled = false;
-          if (!/уже был|получена/.test(btn.textContent || '')) btn.textContent = '✨ +1 мана за чек-ин';
-        }
-      }, 1800);
+        if (btn) btn.disabled = false;
+        renderDailyJournal(false);
+      }, 600);
     }
   }
 
@@ -659,21 +657,79 @@
     renderDailyJournal(false);
   }
 
-  function weeklyJournalSummary() {
+  function dateKeyFromOffset(offset) {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() - offset);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function markDailyCheckin(status) {
+    const date = DATA.todayKey();
     const data = loadDailyJournal();
+    const entry = todayJournalEntry();
+    data[date] = { ...entry, checkin: status || 'claimed', checkinTs: Date.now(), ts: Date.now() };
+    saveDailyJournal(data);
+    renderDailyJournal(false);
+  }
+
+  function dailyCheckinStreak(data = loadDailyJournal()) {
+    let streak = 0;
+    for (let i = 0; i < 60; i += 1) {
+      const entry = data[dateKeyFromOffset(i)];
+      if (!entry || !entry.checkin) break;
+      streak += 1;
+    }
+    return streak;
+  }
+
+  function pluralJournalDays(n) {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return 'день';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дня';
+    return 'дней';
+  }
+
+  function renderDailyRitual(entry, data) {
+    const streak = dailyCheckinStreak(data);
+    const checked = !!entry.checkin;
+    const streakEl = $('#dailyRitualStreak');
+    const subEl = $('#dailyRitualSub');
+    const btn = $('#dailyManaCheckinBtn');
+    const daysEl = $('#dailyRitualDays');
+    if (streakEl) streakEl.textContent = `${streak} ${pluralJournalDays(streak)} подряд`;
+    if (subEl) subEl.textContent = checked ? 'Сегодняшний ритуал закрыт: +1 мана уже получена' : 'Отметь карту дня и забери +1 ману';
+    if (btn) {
+      btn.textContent = checked ? '✨ Уже получено сегодня' : '✨ Забрать +1 ману';
+      btn.classList.toggle('is-done', checked);
+    }
+    if (daysEl) {
+      const labels = ['сегодня', '−1', '−2', '−3', '−4', '−5', '−6'];
+      daysEl.innerHTML = labels.map((label, i) => {
+        const key = dateKeyFromOffset(i);
+        const done = !!(data[key] && data[key].checkin);
+        return `<span class="daily-ritual-day ${done ? 'is-done' : ''}" title="${escapeHtml(key)}">${done ? '✦' : '·'}<small>${label}</small></span>`;
+      }).join('');
+    }
+  }
+
+  function weeklyJournalSummary(data = loadDailyJournal()) {
     const items = Object.values(data)
       .filter(x => x && x.date)
       .sort((a, b) => String(b.date).localeCompare(String(a.date)))
       .slice(0, 7);
     if (!items.length) return 'Недельная тема появится после первых отметок.';
     const total = items.length;
+    const checkins = items.filter(x => x.checkin).length;
+    const streak = dailyCheckinStreak(data);
     const hits = items.filter(x => x.outcome === 'hit').length;
     const partial = items.filter(x => x.outcome === 'partial').length;
     const suits = items.reduce((m, x) => { const k = x.suit || x.kind || 'major'; m[k] = (m[k] || 0) + 1; return m; }, {});
     const top = Object.entries(suits).sort((a, b) => b[1] - a[1])[0];
     const suitLabel = { wands: 'действие и энергия', cups: 'чувства и отношения', swords: 'мысли и решения', pentacles: 'деньги и тело', major: 'важный поворот' }[top?.[0]] || 'личная тема';
-    const accuracy = hits + partial ? `${hits} точных · ${partial} частично` : 'пока без попаданий';
-    return `За ${total} дн.: ${accuracy}. Тема недели: ${suitLabel}.`;
+    const accuracy = hits + partial ? `${hits} точных · ${partial} частично` : 'пока без итогов';
+    return `Мистический итог недели: ${checkins}/${total} ритуалов, серия ${streak}. ${accuracy}. Главная тема — ${suitLabel}.`;
   }
 
   function renderDailyJournalHistory() {
@@ -721,15 +777,17 @@
     const box = $('#dailyJournal');
     if (!box) return;
     const entry = todayJournalEntry();
+    const data = loadDailyJournal();
     const status = $('#dailyJournalStatus');
-    if (status) status.textContent = entry.outcome ? `итог: ${OUTCOME_LABELS[entry.outcome]}` : 'итог — вечером';
+    if (status) status.textContent = entry.checkin ? '+1 мана уже получена' : 'чек-ин ждёт';
+    renderDailyRitual(entry, data);
     box.querySelectorAll('[data-daily-outcome]').forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.dailyOutcome === entry.outcome);
     });
     const note = $('#dailyJournalNote');
     if (note && updateNote) note.value = entry.note || '';
     const week = $('#dailyJournalWeek');
-    if (week) week.textContent = weeklyJournalSummary();
+    if (week) week.textContent = weeklyJournalSummary(data);
     const hist = $('#dailyJournalHistory');
     if (hist && !hist.hidden) renderDailyJournalHistory();
   }

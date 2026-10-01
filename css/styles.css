@@ -2200,6 +2200,92 @@ button, .btn, .quick-tile, .bottom-tab, .panel-close { touch-action: manipulatio
 }
 
 
+/* ── Today wow block (GAD55) ───────────────────────────── */
+.today-wow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 12px;
+  margin: 2px 0 12px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(212,175,55,0.46);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(245,215,110,0.22), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgba(155,125,255,0.22), transparent 42%),
+    linear-gradient(145deg, rgba(29,26,58,0.96), rgba(11,10,26,0.92));
+  box-shadow: 0 18px 46px -26px rgba(212,175,55,0.72), inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+.today-wow::after {
+  content: '';
+  position: absolute;
+  inset: auto -28px -46px auto;
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,175,55,0.16), transparent 68%);
+  pointer-events: none;
+}
+.today-wow-orb {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(245,215,110,0.42);
+  border-radius: 18px;
+  background: rgba(212,175,55,0.12);
+  color: var(--gold-2);
+  font: 700 28px/1 var(--serif);
+  text-shadow: 0 0 18px rgba(212,175,55,0.55);
+}
+.today-wow-copy { min-width: 0; }
+.today-wow-kicker {
+  margin: 0 0 2px;
+  color: var(--gold-2);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.today-wow h2 {
+  margin: 0;
+  color: var(--ink);
+  font: 600 clamp(18px, 5vw, 22px)/1.08 var(--serif);
+}
+.today-wow p:last-child {
+  margin: 5px 0 0;
+  color: var(--ink-dim);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.today-wow-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+.today-wow-btn {
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 1px solid rgba(212,175,55,0.28);
+  border-radius: 16px;
+  background: rgba(11,10,26,0.54);
+  color: var(--ink);
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.today-wow-btn span { font-size: 20px; line-height: 1; }
+.today-wow-btn strong { font-size: 11px; line-height: 1.15; }
+.today-wow-btn:active { transform: translateY(1px) scale(0.99); }
+
 /* ── Home simplification / launch funnel ─────────────────── */
 .home-primary {
   display: grid;

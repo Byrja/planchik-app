@@ -2598,6 +2598,9 @@
     });
 
     // Primary home actions
+    $bind('#todayCardBtn',    () => { try { $('#heroCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} });
+    $bind('#todayChartBtn',   () => setActiveTab('chart'));
+    $bind('#todayCompatBtn',  () => setActiveTab('compat'));
     $bind('#homeAskBtn',      openGadaniePortal);
     $bind('#homeLoveBtn',     openGadaniePortal);
     $bind('#homeDayBtn',      () => { try { $('#heroCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} });

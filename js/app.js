@@ -417,6 +417,7 @@
     renderTarot();
     renderBiorhythmTile();
     renderProfile();
+    renderHomeProfileState();
     renderStarsEntry();
     await loadAiBalance();
     await loadMoonToday();
@@ -1049,12 +1050,65 @@
       if (profileMeta) profileMeta.textContent = 'заполнен · карта есть';
       $('#tileChart')?.classList.remove('is-empty');
       $('#tileProfile')?.classList.remove('is-empty');
+      renderHomeProfileState();
       return;
     }
     if (chartMeta) chartMeta.textContent = hasProfile ? 'создать карту' : 'натальная';
-    if (profileMeta && !hasProfile) profileMeta.textContent = 'заполнить';
+    if (profileMeta) profileMeta.textContent = hasProfile ? 'профиль заполнен' : 'заполнить';
     $('#tileChart')?.classList.toggle('is-empty', !hasProfile);
     $('#tileProfile')?.classList.toggle('is-empty', !hasProfile);
+    renderHomeProfileState();
+  }
+
+  function renderHomeProfileState() {
+    const card = $('#homeProfileState');
+    if (!card) return;
+    const p = state.profile;
+    const hasProfile = !!(p && p.birthYear);
+    const chart = state.backendChart.chart;
+    const title = $('#homeProfileStateTitle');
+    const kicker = $('#homeProfileStateKicker');
+    const text = $('#homeProfileStateText');
+    const orb = $('#homeProfileStateOrb');
+    const badges = $('#homeProfileBadges');
+    const primary = $('#homeProfileStatePrimary');
+    const secondary = $('#homeProfileStateSecondary');
+    card.classList.toggle('is-empty', !hasProfile);
+    card.classList.toggle('has-chart', !!chart);
+
+    if (chart) {
+      const parts = chartBadgeParts(chart);
+      if (kicker) kicker.textContent = 'Карта готова';
+      if (title) title.textContent = 'Профиль заполнен';
+      if (text) text.textContent = 'Натальная карта уже сохранена — можно открыть разбор или обновить данные профиля.';
+      if (orb) orb.textContent = '♃';
+      if (badges) {
+        badges.hidden = !parts.length;
+        badges.innerHTML = parts.map((part) => `<span><small>${escapeHtml(part.label)}</small><b>${escapeHtml(part.value)}</b></span>`).join('');
+      }
+      if (primary) { primary.textContent = 'Открыть карту'; primary.onclick = openChartPanel; }
+      if (secondary) { secondary.hidden = false; secondary.textContent = 'Изменить профиль'; secondary.onclick = openProfilePanel; }
+      return;
+    }
+
+    if (hasProfile) {
+      if (kicker) kicker.textContent = 'Профиль заполнен';
+      if (title) title.textContent = 'Осталось создать карту';
+      if (text) text.textContent = 'Дата рождения есть. Нажми «Создать карту», чтобы увидеть Солнце, Луну и ASC.';
+      if (orb) orb.textContent = '☉';
+      if (badges) { badges.hidden = true; badges.innerHTML = ''; }
+      if (primary) { primary.textContent = 'Создать карту'; primary.onclick = openChartPanel; }
+      if (secondary) { secondary.hidden = false; secondary.textContent = 'Профиль'; secondary.onclick = openProfilePanel; }
+      return;
+    }
+
+    if (kicker) kicker.textContent = 'Профиль не заполнен';
+    if (title) title.textContent = 'Начни с профиля';
+    if (text) text.textContent = 'Заполни дату, время и место рождения — после этого появятся натальная карта и персональные прогнозы.';
+    if (orb) orb.textContent = '◇';
+    if (badges) { badges.hidden = true; badges.innerHTML = ''; }
+    if (primary) { primary.textContent = 'Заполнить профиль'; primary.onclick = openProfilePanel; }
+    if (secondary) secondary.hidden = true;
   }
 
   function renderProfile() {

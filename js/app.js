@@ -786,21 +786,13 @@
     const streakEl = $('#dailyRitualStreak');
     const subEl = $('#dailyRitualSub');
     const btn = $('#dailyManaCheckinBtn');
-    const daysEl = $('#dailyRitualDays');
-    if (streakEl) streakEl.textContent = `${streak} ${pluralJournalDays(streak)} подряд`;
-    if (subEl) subEl.textContent = checked ? 'Сегодня отметка уже засчитана: +1 мана получена' : 'Один тап в день — +1 мана на расклады';
+    if (streakEl) streakEl.textContent = `Серия: ${streak} ${pluralJournalDays(streak)}`;
+    if (subEl) subEl.textContent = checked ? 'Сегодня уже получено' : 'Ежедневная награда для раскладов';
     if (btn) {
-      btn.textContent = checked ? '✓ Уже получено сегодня' : '+1 мана за отметку';
+      btn.textContent = checked ? 'Получено сегодня' : 'Получить +1 ману';
       btn.classList.toggle('is-done', checked);
     }
-    if (daysEl) {
-      const labels = ['сегодня', '−1', '−2', '−3', '−4', '−5', '−6'];
-      daysEl.innerHTML = labels.map((label, i) => {
-        const key = dateKeyFromOffset(i);
-        const done = !!(data[key] && data[key].checkin);
-        return `<span class="daily-ritual-day ${done ? 'is-done' : ''}" title="${escapeHtml(key)}"><b>${done ? '✓' : '—'}</b><small>${label}</small></span>`;
-      }).join('');
-    }
+
   }
 
   function weeklyJournalSummary(data = loadDailyJournal()) {

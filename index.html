@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json?v=3.182">
+  <link rel="manifest" href="manifest.json?v=3.184">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,12 +35,12 @@
   <title>Гадалка</title>
 
   <!-- Telegram WebApp SDK -->
-  <script src="js/vendor/telegram-web-app.js?v=3.182"></script>
+  <script src="js/vendor/telegram-web-app.js?v=3.184"></script>
 
-  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.182">
+  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.184">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.182">
-  <link rel="stylesheet" href="css/arc-styles.css?v=3.182">
+  <link rel="stylesheet" href="css/styles.css?v=3.184">
+  <link rel="stylesheet" href="css/arc-styles.css?v=3.184">
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
 </head>
@@ -412,39 +412,21 @@
         </button>
       </div>
 
-      <section class="daily-journal" id="dailyJournal" aria-label="Дневник карты дня">
+      <section class="daily-journal" id="dailyJournal" aria-label="Ежедневная мана">
         <div class="daily-journal-head">
           <div>
-            <div class="daily-journal-kicker">Ежедневная отметка</div>
-            <h3>Сохраните мысль дня и заберите ману</h3>
+            <div class="daily-journal-kicker">Ежедневная мана</div>
+            <h3>Заберите ману за сегодня</h3>
           </div>
           <span class="daily-journal-status" id="dailyJournalStatus">можно забрать +1</span>
         </div>
         <div class="daily-ritual" id="dailyRitual" aria-live="polite">
           <div class="daily-ritual-main">
-            <div class="daily-ritual-streak" id="dailyRitualStreak">0 дней подряд</div>
-            <div class="daily-ritual-sub" id="dailyRitualSub">Один тап в день — +1 мана на расклады</div>
+            <div class="daily-ritual-streak" id="dailyRitualStreak">Серия: 0 дней</div>
+            <div class="daily-ritual-sub" id="dailyRitualSub">Ежедневная награда для раскладов</div>
           </div>
-          <button type="button" class="btn btn-gold daily-ritual-btn" id="dailyManaCheckinBtn">+1 мана за отметку</button>
+          <button type="button" class="btn btn-gold daily-ritual-btn" id="dailyManaCheckinBtn">Получить +1 ману</button>
         </div>
-        <div class="daily-ritual-days" id="dailyRitualDays" aria-label="Серия за 7 дней"></div>
-        <p class="daily-journal-hint">Можно просто забрать ману, а заметку оставить для себя. В конце недели появится спокойная сводка.</p>
-        <textarea class="daily-journal-note" id="dailyJournalNote" maxlength="420" placeholder="Например: что жду от дня, на что обратить внимание, первое ощущение от карты…"></textarea>
-        <div class="daily-journal-note-actions">
-          <button type="button" class="btn btn-primary btn-sm" id="dailyJournalSave">💾 Сохранить заметку</button>
-          <button type="button" class="btn btn-ghost btn-sm" id="dailyJournalHistoryBtn">📓 Смотреть дневник</button>
-          <span id="dailyJournalSaved" class="daily-journal-saved">автосохранение включено</span>
-        </div>
-        <details class="daily-outcome-details" id="dailyOutcomeDetails">
-          <summary>Отметить итог дня</summary>
-          <div class="daily-journal-actions" role="group" aria-label="Оценка дня">
-            <button type="button" data-daily-outcome="hit">✅ Сбылось</button>
-            <button type="button" data-daily-outcome="partial">◐ Частично</button>
-            <button type="button" data-daily-outcome="miss">✕ Не про меня</button>
-          </div>
-        </details>
-        <div class="daily-journal-week" id="dailyJournalWeek">Недельная сводка появится после первых отметок.</div>
-        <div class="daily-journal-history" id="dailyJournalHistory" hidden></div>
       </section>
     </section>
 
@@ -784,7 +766,7 @@
         <!-- FOOTER -->
         <footer class="arc-site-footer">
           <p>Гадалка · Гадания на картах · Telegram Mini App</p>
-          <p style="margin-top:6px;font-size:11px;">v3.181 · карты не принимают решений за вас</p>
+          <p style="margin-top:6px;font-size:11px;">v3.184 · карты не принимают решений за вас</p>
         </footer>
 
       </div>
@@ -793,7 +775,7 @@
     <!-- ─── FOOTER ─────────────────────────────────────── -->
     <footer class="app-footer">
       <p>Гадалка · Telegram Mini App</p>
-      <p class="app-footer-meta">v3.181 · запущено <span id="loadedAt">—</span></p>
+      <p class="app-footer-meta">v3.184 · запущено <span id="loadedAt">—</span></p>
     </footer>
 
   </div>
@@ -801,18 +783,18 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data.js?v=3.182"></script>
-  <script src="js/tarot.js?v=3.182"></script>
-  <script src="js/biorhythm.js?v=3.182"></script>
-  <script src="js/arc-runes.js?v=3.182"></script>
-  <script src="js/arc-lenormand.js?v=3.182"></script>
-  <script src="js/arc-gypsy.js?v=3.182"></script>
-  <script src="js/arc-playing.js?v=3.182"></script>
-  <script src="js/arc-tarot.js?v=3.182"></script>
-  <script src="js/arc-tarot-minor.js?v=3.182"></script>
-  <script src="js/chart.js?v=3.182"></script>
-  <script src="js/arc-app.js?v=3.182"></script>
-  <script src="js/app.js?v=3.182"></script>
+  <script src="js/data.js?v=3.184"></script>
+  <script src="js/tarot.js?v=3.184"></script>
+  <script src="js/biorhythm.js?v=3.184"></script>
+  <script src="js/arc-runes.js?v=3.184"></script>
+  <script src="js/arc-lenormand.js?v=3.184"></script>
+  <script src="js/arc-gypsy.js?v=3.184"></script>
+  <script src="js/arc-playing.js?v=3.184"></script>
+  <script src="js/arc-tarot.js?v=3.184"></script>
+  <script src="js/arc-tarot-minor.js?v=3.184"></script>
+  <script src="js/chart.js?v=3.184"></script>
+  <script src="js/arc-app.js?v=3.184"></script>
+  <script src="js/app.js?v=3.184"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

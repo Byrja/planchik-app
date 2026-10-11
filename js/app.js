@@ -575,6 +575,12 @@
       setTimeout(openChartPanel, 50);
     }
 
+    // Карта дня из бота: /start с кнопкой «✨ Карта дня» → startapp=daily →
+    // сразу раскрывается чтение карты дня (flip + расшифровка), без навигации.
+    if (state.user.startParam === 'daily') {
+      setTimeout(openDailyCardDeepDive, 50);
+    }
+
     // Moon card deep-link from /moon: startapp=moon_YYYY-MM-DD
     if (state.user.startParam && state.user.startParam.startsWith('moon_')) {
       const m = /^moon_(\d{4})-(\d{2})-(\d{2})$/.exec(state.user.startParam);

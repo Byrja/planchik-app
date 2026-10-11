@@ -77,6 +77,7 @@
     manaBalance: null,
     profileSync: { userNotStartedBot: false },
     referralStats: null,
+    moonSelectedDate: null,
   };
 
   const AI_LIMITS_DISPLAY = {
@@ -572,6 +573,14 @@
     updateHistoryBadge();
     if (state.user.startParam === 'mychart') {
       setTimeout(openChartPanel, 50);
+    }
+
+    // Moon card deep-link from /moon: startapp=moon_YYYY-MM-DD
+    if (state.user.startParam && state.user.startParam.startsWith('moon_')) {
+      const m = /^moon_(\d{4})-(\d{2})-(\d{2})$/.exec(state.user.startParam);
+      if (m) {
+        state.moonSelectedDate = `${m[1]}-${m[2]}-${m[3]}`;
+      }
     }
 
     // Compat deep-link: /start compat_<tgId>
@@ -1084,6 +1093,9 @@
   async function loadMoonToday() {
     try {
       let res = await fetch('/api/moon/today?days=30');
+      if (state.moonSelectedDate) {
+        res = await fetch('/api/moon/today?date=' + state.moonSelectedDate + '&days=30');
+      }
       let data = await res.json().catch(() => ({ ok: false }));
       if ((!res.ok || !data.ok) && data.error === 'not found') {
         res = await fetch('/api/arc/daily?days=30');

@@ -162,7 +162,43 @@
     return getFeatureRemaining('daily_card_interpret');
   }
 
+  const DAILY_CARD_INTERPRET_COST = 7;
   const HOME_ASK_COST = 7;
+
+  function getDailyCardCacheKey(card = state.dailyCard) {
+    if (!card || !card.name) return '';
+    return `heroAi:${card.name}:${card.reversed ? 'r' : 'u'}:${DATA.todayKey()}`;
+  }
+
+  function hasCachedDailyCardInterpret(card = state.dailyCard) {
+    const cacheKey = getDailyCardCacheKey(card);
+    if (!cacheKey) return false;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+      return !!(cached && cached.meaning);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function renderDailyCardPriceLabels(card = state.dailyCard) {
+    const isCached = hasCachedDailyCardInterpret(card);
+    const teaserBtn = $('#dailyCardDeepBtn');
+    if (teaserBtn) teaserBtn.textContent = isCached ? 'Уже расшифровано' : `Глубинный разбор · ${DAILY_CARD_INTERPRET_COST} маны`;
+    const heroBtn = $('#btnHeroAi');
+    if (heroBtn && !heroBtn.classList.contains('is-loading')) {
+      let icon = heroBtn.querySelector('.hero-ai-btn-icon');
+      heroBtn.innerHTML = '';
+      if (!icon) {
+        icon = document.createElement('span');
+        icon.className = 'hero-ai-btn-icon';
+        icon.setAttribute('aria-hidden', 'true');
+      }
+      icon.textContent = '✨';
+      heroBtn.appendChild(icon);
+      heroBtn.append(` ${isCached ? 'Уже расшифровано' : `AI-интерпретация · ${DAILY_CARD_INTERPRET_COST} маны`}`);
+    }
+  }
 
   function getHomeAskSelection() {
     const active = document.querySelector('[data-home-spread].is-active');
@@ -695,6 +731,7 @@
     const meaning = $('#dailyCardTeaserMeaning');
     if (title) title.textContent = c.name || 'Сегодняшний знак';
     if (meaning) meaning.textContent = c.upright || c.advice || c.mood || 'Карта дня готова — открой разбор, чтобы понять её подсказку.';
+    renderDailyCardPriceLabels(c);
   }
 
   function openDailyCardDeepDive() {
@@ -763,6 +800,42 @@
     data[date] = { ...(data[date] || todayJournalEntry()), note: String(note || '').slice(0, 420), ts: Date.now() };
     saveDailyJournal(data);
     renderDailyJournal(false);
+  }
+
+  function dailyJournalExcerpt(note) {
+    const clean = String(note || '').replace(/\s+/g, ' ').trim();
+    if (clean.length <= 200) return clean;
+    return clean.slice(0, 197).trimEnd() + '…';
+  }
+
+  function updateDailyJournalShare(entry = todayJournalEntry()) {
+    const btn = $('#dailyJournalShare');
+    if (!btn) return;
+    const hasNote = !!dailyJournalExcerpt(entry.note);
+    btn.hidden = !hasNote;
+    btn.disabled = !hasNote;
+  }
+
+  function shareDailyJournalNote() {
+    const entry = todayJournalEntry();
+    const excerpt = dailyJournalExcerpt(entry.note);
+    if (!excerpt) {
+      flashToast('Сначала сохраните заметку');
+      updateDailyJournalShare(entry);
+      return;
+    }
+    const card = entry.card || state.dailyCard?.name || 'Карта дня';
+    const mood = entry.mood || state.dailyCard?.mood || 'настрой дня';
+    const shareUrl = window.location.origin ? `${window.location.origin}/` : 'https://astro.burlab-api.site/';
+    const text = `🔮 Моя карта дня — ${card}\nНастрой: ${mood}\nЗаметка: ${excerpt}\n\nОткрой свою карту дня в Гадалке:`;
+    const url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
+    if (tg && tg.openTelegramLink) {
+      try { tg.openTelegramLink(url); haptic('light'); return; } catch (e) {}
+    }
+    if (tg && tg.openLink) {
+      try { tg.openLink(url); haptic('light'); return; } catch (e) {}
+    }
+    window.open(url, '_blank', 'noopener');
   }
 
   function dateKeyFromOffset(offset) {
@@ -886,6 +959,7 @@
     });
     const note = $('#dailyJournalNote');
     if (note && updateNote) note.value = entry.note || '';
+    updateDailyJournalShare(entry);
     const week = $('#dailyJournalWeek');
     if (week) week.textContent = weeklyJournalSummary(data);
     const hist = $('#dailyJournalHistory');
@@ -1041,6 +1115,39 @@
     if (meta) meta.textContent = `${e.moon_day || '—'} лунный день · ${Math.round(e.moon_phase_angle || 0)}° · ${fmtMoonDate(e.date)}`;
     if (tile) tile.textContent = `${e.moon_sign_emoji || '🌙'} ${e.moon_day || '—'} день`;
     if (orb) orb.textContent = (e.moon_phase || '').includes('Полн') ? '○' : ((e.moon_phase || '').includes('Нов') ? '●' : '☾');
+  }
+
+  function buildMoonShareText(entry) {
+    const e = entry || (state.moon && state.moon.today) || {};
+    const sign = `${e.moon_sign_emoji || '🌙'} ${e.moon_sign_ru || ''}`.trim();
+    const day = e.moon_day ? `${e.moon_day} лунный день` : 'лунный день';
+    const phase = e.moon_phase || 'Лунный ритм';
+    const advice = moonAdvice(e);
+    return `Сегодня Луна в ${sign}: ${phase}, ${day}. ${advice} — Гадалка`;
+  }
+
+  function shareMoonCard() {
+    const text = buildMoonShareText();
+    const shareUrl = 'https://t.me/astro_byrbot';
+    const t = window.TelegramApp && window.TelegramApp.tg;
+    if (t && typeof t.shareText === 'function') {
+      try { t.shareText(text); haptic('light'); return; } catch (e) {}
+    }
+    const tgShareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(text);
+    if (t && t.openTelegramLink) {
+      try { t.openTelegramLink(tgShareUrl); haptic('light'); return; } catch (e) {}
+    }
+    if (t && t.openLink) {
+      try { t.openLink(tgShareUrl); haptic('light'); return; } catch (e) {}
+    }
+    if (navigator.share) {
+      try { navigator.share({ title: 'Луна сегодня — Гадалка', text, url: shareUrl }).catch(() => {}); haptic('light'); return; } catch (e) {}
+    }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text + '\n' + shareUrl).then(() => flashToast('Лунный совет скопирован'));
+    } else {
+      flashToast('Шаринг недоступен');
+    }
   }
 
   function renderMoonMonth(data) {
@@ -2665,13 +2772,21 @@
     }
 
     // localStorage cache (по name + orientation, валиден 1 день)
-    const today = DATA.todayKey();
-    const cacheKey = `heroAi:${c.name}:${c.reversed ? 'r' : 'u'}:${today}`;
+    const cacheKey = getDailyCardCacheKey(c);
     let cached = null;
     try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (e) {}
     if (cached && cached.meaning) {
       renderHeroAi(slot, cached);
       btn.classList.add('is-active');
+      renderDailyCardPriceLabels(c);
+      return;
+    }
+
+    const total = state.manaBalance && typeof state.manaBalance.total === 'number' ? state.manaBalance.total : null;
+    if (total !== null && total < DAILY_CARD_INTERPRET_COST) {
+      renderHeroAiLimit(slot, { error: 'insufficient_mana', message: `Нужно ${DAILY_CARD_INTERPRET_COST} маны. Не хватает ${DAILY_CARD_INTERPRET_COST - total}.` });
+      btn.classList.add('is-active');
+      openStarsTopup();
       return;
     }
 
@@ -2688,6 +2803,7 @@
     if (orig) orig.textContent = '⏳';
     try {
       const initData = getInitData();
+      const today = DATA.todayKey();
       const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2707,6 +2823,7 @@
       try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
       renderHeroAi(slot, data);
       btn.classList.add('is-active');
+      renderDailyCardPriceLabels(c);
     } catch (e) {
       if (orig) orig.textContent = '⚠️';
       setTimeout(() => { if (orig) orig.textContent = '✨'; }, 2500);
@@ -2840,6 +2957,8 @@
       dailyNote.onclick = (e) => e.stopPropagation();
       dailyNote.oninput = () => {
         if (saved) saved.textContent = 'пишу…';
+        const shareBtn = $('#dailyJournalShare');
+        if (shareBtn) { shareBtn.disabled = true; shareBtn.hidden = true; }
         clearTimeout(dailyNoteTimer);
         dailyNoteTimer = setTimeout(() => {
           setDailyNote(dailyNote.value);
@@ -2847,6 +2966,7 @@
         }, 600);
       };
       $bind('#dailyJournalSave', (e) => { if (e && e.stopPropagation) e.stopPropagation(); saveNow(); });
+      $bind('#dailyJournalShare', (e) => { if (e && e.stopPropagation) e.stopPropagation(); shareDailyJournalNote(); });
       $bind('#dailyManaCheckinBtn', (e) => { if (e && e.stopPropagation) e.stopPropagation(); claimDailyManaCheckin(); });
       $bind('#dailyJournalHistoryBtn', (e) => { if (e && e.stopPropagation) e.stopPropagation(); toggleDailyJournalHistory(); });
     }
@@ -2966,6 +3086,7 @@
     $bind('#tileGadanie',     openGadaniePortal);
     $bind('#tileMoon',        openMoonPanel);
     $bind('#btnOpenMoon',     openMoonPanel);
+    $bind('#btnShareMoon',    shareMoonCard);
     $bind('#tileForecast',    openForecastPanel);
     $bind('#tileProfile',     () => setActiveTab('profile'));
     $bind('#tileChart',       () => setActiveTab('chart'));

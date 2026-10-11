@@ -2255,11 +2255,27 @@ ${reading.detail}
     }
   }
 
+  function quickAsk(options) {
+    const opts = options || {};
+    const spread = SPREADS[opts.spread] ? opts.spread : 'three';
+    state.question = String(opts.question || '').trim();
+    try { localStorage.setItem('arhQuestion', state.question); } catch (e) {}
+    state.deck = opts.deck && (opts.deck === 'all' || DECKS[opts.deck]) ? opts.deck : 'tarot';
+    setSpread(spread);
+    const input = r$('#arcAskInput');
+    if (input) input.value = state.question;
+    syncAskBox(state.question, getSpreadName(spread));
+    setTimeout(() => {
+      const draw = r$('#ctaDraw');
+      if (draw && !draw.disabled) doDraw();
+    }, 80);
+  }
+
   function unmount() {
     const main = root();
     if (main) main.innerHTML = '';
     state.cards = [];
   }
 
-  window.ArcApp = { mount, unmount, setSpread, setDeck, drawN, buildShareText, getState: () => ({ ...state }) };
+  window.ArcApp = { mount, unmount, setSpread, setDeck, drawN, buildShareText, quickAsk, getState: () => ({ ...state }) };
 })();

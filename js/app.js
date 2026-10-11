@@ -394,9 +394,28 @@
     if (btn) btn.onclick = openStarsTopup;
   }
 
+  function homeGreetingForProfile() {
+    const profileName = (state.profile && (state.profile.firstName || (!state.profile.lastName ? state.profile.name : '')) || '')
+      .trim()
+      .split(/\s+/)[0];
+    const hour = new Date().getHours();
+    let greeting = 'Добро пожаловать';
+    if (hour >= 5 && hour < 12) greeting = 'Доброе утро';
+    else if (hour >= 12 && hour < 18) greeting = 'Добрый день';
+    else if (hour >= 18 && hour < 23) greeting = 'Добрый вечер';
+    else greeting = 'Доброй ночи';
+    return profileName ? `${greeting}, ${profileName}` : greeting;
+  }
+
+  function renderHomeHeader() {
+    const label = $('#dateLabel');
+    if (label) label.textContent = homeGreetingForProfile();
+  }
+
   function setProfile(p) {
     state.profile = enrichProfile(p);
     Evening.saveProfile(p);
+    renderHomeHeader();
   }
 
   function isUserNotStartedBot(data) {
@@ -496,7 +515,7 @@
   async function init() {
     // Mini App всегда открывается внутри Telegram — landing gate убран.
     // tg.initData и tg.initDataUnsafe всегда доступны в WebView.
-    $('#dateLabel').textContent  = DATA.dateLabel();
+    renderHomeHeader();
     $('#loadedAt').textContent   = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     renderUser();
     await loadProfileFromBackend(); // подтянуть профиль из бота

@@ -9,6 +9,6 @@
     "check": "node --check _worker.js && node --check js/api-auth.js && node --check js/arc-app.js && node --check js/app.js"
   },
   "devDependencies": {
-    "@playwright/test": "^1.48.2"
+    "@playwright/test": "1.57.0"
   }
 }

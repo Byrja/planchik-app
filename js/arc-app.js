@@ -312,7 +312,7 @@
     const initData = getInitData();
     if (!initData) return;
     try {
-      const res = await fetch('/api/ai-balance?initData=' + encodeURIComponent(initData));
+      const res = await GadalkaApi.fetch('/api/ai-balance?initData=' + encodeURIComponent(initData));
       const data = await res.json();
       if (data.ok && Array.isArray(data.balance)) {
         state.aiBalance = Object.fromEntries(data.balance.map(b => [b.feature, b]));
@@ -387,8 +387,15 @@
   async function loadHistory() {
     try {
       const initData = getInitData();
-      if (!initData) return [];
-      const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
+      if (!initData) {
+        try {
+          const local = JSON.parse(localStorage.getItem('arcHistoryFallback') || '[]');
+          return Array.isArray(local) ? local.filter((item) => item && item.localOnly).slice(0, 1) : [];
+        } catch (_) {
+          return [];
+        }
+      }
+      const res = await GadalkaApi.fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false, items: [] }));
       if (!data.ok) return [];
       return (data.items || []).map((it) => ({
@@ -412,7 +419,9 @@
   function renderHistory() {
     const list = r$('#arcHistoryList');
     const empty = r$('#arcHistoryEmpty');
+    const guestNotice = r$('#arcGuestNotice');
     if (!list || !empty) return;
+    if (guestNotice) guestNotice.hidden = !!getInitData();
     const items = state.history || [];
     if (!items.length) {
       list.innerHTML = '';
@@ -447,9 +456,14 @@
     list.querySelectorAll('.arc-history-item').forEach((li) => {
       li.addEventListener('click', async () => {
         const id = Number(li.dataset.historyId);
+        const localItem = items[Number(li.dataset.idx)];
+        if (localItem && localItem.localOnly) {
+          flashToast('Это локальная демо-запись. Откройте бота, чтобы сохранять расклады и расшифровки.');
+          return;
+        }
         const initData = getInitData();
         try {
-          const res = await fetch(`/api/history/${id}?initData=${encodeURIComponent(initData)}`);
+          const res = await GadalkaApi.fetch(`/api/history/${id}?initData=${encodeURIComponent(initData)}`);
           const data = await res.json().catch(() => ({ ok: false }));
           if (!data.ok || !data.interpretation) return flashToast('Расшифровка не найдена');
           openInterpretation(data.payload?.cards || [], data.payload?.question || '', data.payload?.spread || 'one', data.payload?.spreadName || SPREAD_LABELS[data.payload?.spread] || 'Расклад', data.interpretation);
@@ -966,7 +980,7 @@ ${reading.detail}
   async function uploadArcStoryCard(dataUrl) {
     const initData = getInitData();
     if (!initData) return null;
-    const res = await fetch('/api/share-card?initData=' + encodeURIComponent(initData), {
+    const res = await GadalkaApi.fetch('/api/share-card?initData=' + encodeURIComponent(initData), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageData: dataUrl, spread: state.spread, question: state.question || '' }),
@@ -1342,7 +1356,7 @@ ${reading.detail}
         btn.textContent = '⏳ гадаю...';
         try {
           const initData = window.Telegram && Telegram.WebApp ? Telegram.WebApp.initData : '';
-          const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+          const res = await GadalkaApi.fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
@@ -1597,8 +1611,38 @@ ${reading.detail}
   }
 
   // ── Действие «Тянуть» ───────────────────────────────────
+  function saveGuestDemoToLocalHistory(spreadCfg, cards) {
+    const savedEntry = {
+      id: `local-${Date.now()}`,
+      type: 'tarot',
+      spread: state.spread,
+      spreadName: spreadCfg.title,
+      title: spreadCfg.title,
+      subtitle: state.question || `${cards.length} карт`,
+      question: state.question,
+      cards,
+      created_at: new Date().toISOString(),
+      localOnly: true,
+    };
+    state.lastEntryId = savedEntry.id;
+    state.history = [savedEntry].slice(0, 1);
+    try { localStorage.setItem('arcHistoryFallback', JSON.stringify(state.history)); } catch (_) {}
+    renderHistoryList();
+    return savedEntry;
+  }
+
   async function doDraw() {
     if (state.cards.length > 0) return;
+    if (!getInitData()) {
+      const guestHistory = (() => {
+        try { return JSON.parse(localStorage.getItem('arcHistoryFallback') || '[]'); }
+        catch (_) { return []; }
+      })();
+      if (Array.isArray(guestHistory) && guestHistory.some((item) => item && item.localOnly)) {
+        flashToast('Демо уже использовано. Откройте Гадалку в Telegram, чтобы продолжить и сохранять историю.');
+        return;
+      }
+    }
     const t = templateSpread();
     const count = state.deck === 'all' ? 5 : t.count;
     state.cards = drawN(count);
@@ -1618,7 +1662,7 @@ ${reading.detail}
         arcana: c.arcana,
         suit: c.suit,
       }));
-      const res = await fetch('/api/history?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.fetch('/api/history?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -1645,26 +1689,19 @@ ${reading.detail}
         state.history = [savedEntry, ...(state.history || []).filter((h) => h.id !== data.id)].slice(0, 30);
         renderHistoryList();
         if (window.dispatchEvent) window.dispatchEvent(new CustomEvent('astro:history-updated'));
+      } else if (!initData) {
+        saveGuestDemoToLocalHistory(spreadCfg, cards);
       } else {
-        state.lastEntryId = `local-${Date.now()}`;
-        const savedEntry = {
-          id: state.lastEntryId,
-          type: 'tarot',
-          spread: state.spread,
-          spreadName: spreadCfg.title,
-          title: spreadCfg.title,
-          subtitle: state.question || `${cards.length} карт`,
-          question: state.question,
-          cards,
-          created_at: new Date().toISOString(),
-          localOnly: true,
-        };
-        state.history = [savedEntry, ...(state.history || [])].slice(0, 30);
-        try { localStorage.setItem('arcHistoryFallback', JSON.stringify(state.history)); } catch (_) {}
-        renderHistoryList();
+        flashToast('Расклад готов, но история не сохранилась. Повторите позже.');
       }
     } catch {
-      // не блокируем UX если история не сохранилась
+      const initData = getInitData();
+      const spreadCfg = SPREADS[state.spread] || { title: state.spread };
+      const cards = state.cards.map(c => ({
+        name: c.name, position: c.position, reversed: !!c.reversed, arcana: c.arcana, suit: c.suit,
+      }));
+      if (!initData) saveGuestDemoToLocalHistory(spreadCfg, cards);
+      else flashToast('Расклад готов, но история не сохранилась. Проверьте сеть и повторите позже.');
     }
 
     // Анимация: для одной карты flip; для мульти — поочерёдная раздача
@@ -1998,7 +2035,7 @@ ${reading.detail}
         arcana: c.arcana, suit: c.suit,
       }));
       const spreadCfg = SPREADS[state.spread] || { title: state.spread };
-      const res = await fetch('/api/arc/interpret?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.fetch('/api/arc/interpret?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -2040,7 +2077,7 @@ ${reading.detail}
       if (state.lastEntryId) {
         try {
           const initData = getInitData();
-          await fetch(`/api/history/${state.lastEntryId}?initData=${encodeURIComponent(initData)}`, {
+          await GadalkaApi.fetch(`/api/history/${state.lastEntryId}?initData=${encodeURIComponent(initData)}`, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ interpretation: data.interpretation }),
@@ -2175,11 +2212,11 @@ ${reading.detail}
       // удаляем все tarot-записи на backend
       try {
         const initData = getInitData();
-        const res = await fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
+        const res = await GadalkaApi.fetch('/api/history?type=tarot&initData=' + encodeURIComponent(initData));
         const data = await res.json().catch(() => ({ ok: false, items: [] }));
         const ids = (data.items || []).map(it => it.id);
         await Promise.all(ids.map(id =>
-          fetch(`/api/history/${id}?initData=${encodeURIComponent(initData)}`, { method: 'DELETE' })
+          GadalkaApi.fetch(`/api/history/${id}?initData=${encodeURIComponent(initData)}`, { method: 'DELETE' })
         ));
       } catch {}
       state.history = [];

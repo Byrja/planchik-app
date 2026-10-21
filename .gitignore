@@ -1,4 +1,6 @@
 smoke/
 node_modules/
+test-results/
+playwright-report/
 *.log
 .hermes/

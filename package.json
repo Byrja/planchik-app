@@ -1,0 +1,14 @@
+{
+  "name": "gadalka-mini-app",
+  "private": true,
+  "type": "module",
+  "version": "3.192.0",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "test:e2e": "playwright test",
+    "check": "node --check _worker.js && node --check js/api-auth.js && node --check js/arc-app.js && node --check js/app.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2"
+  }
+}

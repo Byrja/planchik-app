@@ -133,7 +133,7 @@
     const initData = getInitData();
     if (!initData) return;
     try {
-      const res = await fetch(`/api/ai-balance?initData=${encodeURIComponent(initData)}`);
+      const res = await GadalkaApi.fetch(`/api/ai-balance?initData=${encodeURIComponent(initData)}`);
       const data = await res.json();
       if (data.ok) {
         if (Array.isArray(data.balance)) {
@@ -375,7 +375,7 @@
     }
     if (btn) btn.disabled = true;
     try {
-      const res = await fetch('/api/mana/checkin?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.fetch('/api/mana/checkin?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ type: 'daily_checkin' }),
@@ -469,7 +469,7 @@
     const initData = getInitData();
     if (!initData) return;
     try {
-      const res = await fetch('/api/profile?initData=' + encodeURIComponent(initData));
+      const res = await GadalkaApi.fetch('/api/profile?initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false }));
       if (isUserNotStartedBot(data)) {
         setProfileSyncWarning(true);
@@ -1098,13 +1098,13 @@
 
   async function loadMoonToday() {
     try {
-      let res = await fetch('/api/moon/today?days=30');
+      let res = await GadalkaApi.fetch('/api/moon/today?days=30');
       if (state.moonSelectedDate) {
-        res = await fetch('/api/moon/today?date=' + state.moonSelectedDate + '&days=30');
+        res = await GadalkaApi.fetch('/api/moon/today?date=' + state.moonSelectedDate + '&days=30');
       }
       let data = await res.json().catch(() => ({ ok: false }));
       if ((!res.ok || !data.ok) && data.error === 'not found') {
-        res = await fetch('/api/arc/daily?days=30');
+        res = await GadalkaApi.fetch('/api/arc/daily?days=30');
         data = await res.json().catch(() => ({ ok: false }));
       }
       if (!data.ok || !data.today) throw new Error(data.error || 'moon');
@@ -1259,7 +1259,7 @@
     }
 
     try {
-      const res = await fetch('/api/forecast/weekly?initData=' + encodeURIComponent(initData));
+      const res = await GadalkaApi.fetch('/api/forecast/weekly?initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false }));
       if (!data.ok) {
         if (data.error === 'profile_incomplete') {
@@ -1613,7 +1613,7 @@
     try {
       const initData = encodeURIComponent(tg.initData || '');
       const url = `/api/compat?initData=${initData}&with=${partnerTgId}`;
-      const resp = await fetch(url, { method: 'GET' });
+      const resp = await GadalkaApi.fetch(url, { method: 'GET' });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || !data.ok) {
         renderCompatError(data.error || `HTTP ${resp.status}`, partnerTgId);
@@ -1808,7 +1808,7 @@
     if (!initData) return;
     state.backendChart.loading = true;
     try {
-      const res = await fetch('/api/chart/latest?initData=' + encodeURIComponent(initData));
+      const res = await GadalkaApi.fetch('/api/chart/latest?initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
       state.backendChart.loaded = true;
       state.backendChart.loading = false;
@@ -1939,7 +1939,7 @@
     state.backendChart.loading = true;
     renderChart();
     try {
-      const res = await fetch('/api/chart/latest?initData=' + encodeURIComponent(initData), { method: 'POST' });
+      const res = await GadalkaApi.fetch('/api/chart/latest?initData=' + encodeURIComponent(initData), { method: 'POST' });
       const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
       state.backendChart.loaded = true;
       state.backendChart.loading = false;
@@ -2188,7 +2188,7 @@
       </div>`;
 
     try {
-      const res = await fetch('/api/chart/interpret?initData=' + encodeURIComponent(initData), { method: 'POST' });
+      const res = await GadalkaApi.fetch('/api/chart/interpret?initData=' + encodeURIComponent(initData), { method: 'POST' });
       const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
       if (!res.ok || !data.ok) {
         updateManaBalance(data);
@@ -2271,7 +2271,7 @@
     // данные не пропадут после перехода в Telegram и возврата в Mini App.
     Evening.saveProfile(p);
     try {
-      const res = await fetch('/api/profile?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.fetch('/api/profile?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
@@ -2360,7 +2360,7 @@
     if (!initData) return flashToast('Откройте Mini App из Telegram');
     if (btn) btn.disabled = true;
     try {
-      const res = await fetch('/api/history?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.fetch('/api/history?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -2453,7 +2453,7 @@
     out.textContent = 'Гадалка листает сонник…';
     if (btn) btn.disabled = true;
     try {
-      const res = await fetch('/api/dreambook/interpret?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.fetch('/api/dreambook/interpret?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ dream: text, mood, mode }),
@@ -2681,7 +2681,7 @@
     if (tg && typeof tg.shareToStory === 'function' && initData) {
       try {
         dataUrl = await createDailyStoryCard(c);
-        const res = await fetch('/api/share-card?initData=' + encodeURIComponent(initData), {
+        const res = await GadalkaApi.fetch('/api/share-card?initData=' + encodeURIComponent(initData), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageData: dataUrl, card: c.name || '', date: DATA.todayKey() }),
@@ -2822,7 +2822,7 @@
     try {
       const initData = getInitData();
       const today = DATA.todayKey();
-      const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: c.name, reversed: !!c.reversed, date: today })
@@ -2928,7 +2928,7 @@
         }
         try {
           const initData = getInitData();
-          const res = await fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+          const res = await GadalkaApi.fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: d.card.name, reversed })
           });
@@ -3333,7 +3333,7 @@
     const initData = getInitData();
     if (!initData || id === undefined || id === null) return false;
     try {
-      const res = await fetch(`/api/history/${encodeURIComponent(id)}?initData=${encodeURIComponent(initData)}`, { method: 'DELETE' });
+      const res = await GadalkaApi.fetch(`/api/history/${encodeURIComponent(id)}?initData=${encodeURIComponent(initData)}`, { method: 'DELETE' });
       return !!(res && res.ok);
     } catch (_) {
       return false;
@@ -3343,7 +3343,7 @@
     const initData = getInitData();
     if (!initData) return [];
     try {
-      const res = await fetch('/api/history?initData=' + encodeURIComponent(initData));
+      const res = await GadalkaApi.fetch('/api/history?initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false, items: [] }));
       if (!data.ok || !Array.isArray(data.items)) return [];
       return data.items.map(it => it && it.id).filter(id => id !== undefined && id !== null);
@@ -3361,7 +3361,7 @@
     if (!initData || _historyLoading) return;
     _historyLoading = true;
     try {
-      const res = await fetch('/api/history?initData=' + encodeURIComponent(initData));
+      const res = await GadalkaApi.fetch('/api/history?initData=' + encodeURIComponent(initData));
       const data = await res.json().catch(() => ({ ok: false, items: [] }));
       if (!data.ok) return;
       _historyCache = (data.items || []).map(normalizeBackendHistoryItem);

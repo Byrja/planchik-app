@@ -574,6 +574,7 @@
   // ── Сбросить расклад ────────────────────────────────────
   function resetReading() {
     state.cards = [];
+    state.historyRequestId = null;
     const res = r$('#arcResult'); if (res) res.classList.remove('is-revealed');
     const stage = r$('#arcStage'); if (stage) stage.classList.add('is-lit');
     const btnD = r$('#ctaDraw'); if (btnD) { btnD.disabled = false; btnD.textContent = '🂠  Тянуть карту'; }
@@ -1662,6 +1663,8 @@ ${reading.detail}
         arcana: c.arcana,
         suit: c.suit,
       }));
+      // One draw is one logical history action; retries must not duplicate it.
+      if (!state.historyRequestId) state.historyRequestId = `tarot-${crypto.randomUUID()}`;
       const res = await GadalkaApi.fetch('/api/history?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -1670,6 +1673,7 @@ ${reading.detail}
           title: spreadCfg.title,
           subtitle: state.question || `${cards.length} карт`,
           payload: { spread: state.spread, spreadName: spreadCfg.title, cards, question: state.question },
+          requestId: state.historyRequestId,
         }),
       });
       const data = await res.json().catch(() => ({ ok: false }));

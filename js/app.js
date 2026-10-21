@@ -2358,6 +2358,8 @@
     }
     const initData = getInitData();
     if (!initData) return flashToast('Откройте Mini App из Telegram');
+    // Reuse the same key when the user retries after a network failure.
+    if (!result.historyRequestId) result.historyRequestId = `dream-${crypto.randomUUID()}`;
     if (btn) btn.disabled = true;
     try {
       const res = await GadalkaApi.fetch('/api/history?initData=' + encodeURIComponent(initData), {
@@ -2374,6 +2376,7 @@
             manaCost: result.manaCost || null,
           },
           interpretation: result.interpretation,
+          requestId: result.historyRequestId,
         }),
       });
       const data = await res.json().catch(() => ({}));

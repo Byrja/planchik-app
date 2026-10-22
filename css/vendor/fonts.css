@@ -2,55 +2,20 @@
   font-family: 'Cormorant Garamond';
   font-style: italic;
   font-weight: 400;
-  font-display: swap;
-  src: url(../../fonts/font-0-e56a55ee.woff) format('truetype');
+  font-display: optional;
+  src: url(../../fonts/font-0-e56a55ee.subset.woff2) format('woff2');
 }
 @font-face {
   font-family: 'Cormorant Garamond';
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
-  src: url(../../fonts/font-1-9ed77459.woff) format('truetype');
-}
-@font-face {
-  font-family: 'Cormorant Garamond';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url(../../fonts/font-2-2ec9e522.woff) format('truetype');
-}
-@font-face {
-  font-family: 'Cormorant Garamond';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url(../../fonts/font-3-9c28e98a.woff) format('truetype');
+  font-display: optional;
+  src: url(../../fonts/font-1-9ed77459.subset.woff2) format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
-  src: url(../../fonts/font-4-78eae8a8.woff) format('truetype');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url(../../fonts/font-5-78f01e4f.woff) format('truetype');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url(../../fonts/font-6-1048573e.woff) format('truetype');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url(../../fonts/font-7-b7ab5dc5.woff) format('truetype');
+  font-display: optional;
+  src: url(../../fonts/font-4-78eae8a8.subset.woff2) format('woff2');
 }

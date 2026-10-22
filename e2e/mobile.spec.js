@@ -27,6 +27,30 @@ test('guest question flow remains usable on mobile', async ({ page }) => {
   expect(clipped).toBe(false);
 });
 
+test('focused question remains reachable with a compact software-keyboard viewport', async ({ page }) => {
+  await page.locator('#homeAskBtn').click();
+  const input = page.locator('#homeAskInput');
+  await input.fill('Проверка экранной клавиатуры');
+  await input.focus();
+  await page.setViewportSize({ width: page.viewportSize().width, height: 430 });
+  await input.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+  await expect.poll(async () => {
+    const box = await input.boundingBox();
+    return Boolean(box && box.y >= 0 && box.y + box.height <= 430);
+  }).toBe(true);
+  await expect(page.locator('#homeAskSubmit')).toBeEnabled();
+});
+
+test('optional card bundle is split from initial load and appears on demand', async ({ page }) => {
+  const before = await page.evaluate(() => performance.getEntriesByType('resource').map((entry) => entry.name));
+  expect(before.some((url) => url.includes('/js/arc-app.js'))).toBe(false);
+  await page.locator('.bottom-tab[data-tab="arc"]').click();
+  await expect(page.locator('#arcPortal')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => Boolean(window.ArcApp))).toBe(true);
+  const after = await page.evaluate(() => performance.getEntriesByType('resource').map((entry) => entry.name));
+  expect(after.some((url) => url.includes('/js/arc-app.js'))).toBe(true);
+});
+
 test('primary mobile controls keep a usable touch target', async ({ page }) => {
   const controls = page.locator('button:visible, [role="button"]:visible, a.btn:visible');
   const tooSmall = await controls.evaluateAll((elements) => elements

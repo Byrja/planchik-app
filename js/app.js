@@ -22,6 +22,74 @@
   const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   window.TelegramApp = { tg };
 
+  // Telegram's iOS/Android WebViews shrink the visual viewport when the
+  // software keyboard opens, but do not always keep a focused control visible.
+  // Re-center only editable controls; navigation and normal resize stay inert.
+  if (window.visualViewport) {
+    let keyboardScrollTimer = null;
+    window.visualViewport.addEventListener('resize', () => {
+      const active = document.activeElement;
+      if (!active || !active.matches('input, textarea, select, [contenteditable="true"]')) return;
+      clearTimeout(keyboardScrollTimer);
+      keyboardScrollTimer = setTimeout(() => {
+        try { active.scrollIntoView({ behavior: 'auto', block: 'center' }); } catch (_) {}
+      }, 80);
+    });
+  }
+
+  // The divination portal is the largest optional feature. Keep its decks and
+  // controller out of the initial home payload and load them only on first use.
+  const APP_ASSET_VERSION = (() => {
+    try {
+      const src = document.currentScript && document.currentScript.src;
+      return src ? new URL(src).searchParams.get('v') || '' : '';
+    } catch (_) { return ''; }
+  })();
+  const ARC_BUNDLE = [
+    'js/arc-runes.js', 'js/arc-lenormand.js', 'js/arc-gypsy.js',
+    'js/arc-playing.js', 'js/arc-tarot.js', 'js/arc-tarot-minor.js',
+    'js/arc-app.js',
+  ];
+  let arcBundlePromise = null;
+  function loadArcStyles() {
+    if (document.querySelector('link[data-arc-styles]')) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.dataset.arcStyles = 'true';
+      link.href = `css/arc-styles.css${APP_ASSET_VERSION ? `?v=${encodeURIComponent(APP_ASSET_VERSION)}` : ''}`;
+      link.onload = resolve;
+      link.onerror = () => reject(new Error('asset_load_failed:css/arc-styles.css'));
+      document.head.appendChild(link);
+    });
+  }
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `${src}${APP_ASSET_VERSION ? `?v=${encodeURIComponent(APP_ASSET_VERSION)}` : ''}`;
+      script.async = false;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error(`asset_load_failed:${src}`));
+      document.head.appendChild(script);
+    });
+  }
+  function ensureArcBundle() {
+    if (window.ArcApp) return Promise.resolve(window.ArcApp);
+    if (!arcBundlePromise) {
+      arcBundlePromise = ARC_BUNDLE.reduce(
+        (chain, src) => chain.then(() => loadScript(src)),
+        loadArcStyles(),
+      ).then(() => {
+        if (!window.ArcApp) throw new Error('arc_app_missing');
+        return window.ArcApp;
+      }).catch((error) => {
+        arcBundlePromise = null;
+        throw error;
+      });
+    }
+    return arcBundlePromise;
+  }
+
   // Detect TG Desktop for CSS overrides
   (function detectDesktop() {
     const ua = navigator.userAgent || '';
@@ -258,6 +326,13 @@
     if (portal) portal.hidden = false;
     tileActive('gadanie', true);
     $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'arc'));
+    try {
+      await ensureArcBundle();
+    } catch (_) {
+      portal.hidden = true;
+      flashToast('Не удалось загрузить карты. Проверьте сеть и попробуйте ещё раз.');
+      return;
+    }
     if (window.ArcApp && window.ArcApp.mount) await window.ArcApp.mount();
     if (window.ArcApp && window.ArcApp.quickAsk) window.ArcApp.quickAsk({ question, spread });
     haptic('medium');
@@ -549,51 +624,62 @@
   const $$ = (s) => Array.from(document.querySelectorAll(s));
 
   // -- Init -------------------------------------------------
-  async function init() {
-    // Mini App всегда открывается внутри Telegram — landing gate убран.
-    // tg.initData и tg.initDataUnsafe всегда доступны в WebView.
+  async function hydrateBackendState() {
+    // Сетевые данные не блокируют первый экран. Все независимые запросы идут
+    // параллельно уже после загрузки критических ресурсов.
+    await Promise.allSettled([
+      loadProfileFromBackend(),
+      loadBackendChart(),
+      loadAiBalance(),
+      loadMoonToday(),
+      refreshHistoryFromBackend(),
+    ]);
+    renderProfile();
+    renderHomeProfileState();
+    renderStarsEntry();
+    updateHistoryBadge();
+  }
+
+  function scheduleBackendHydration() {
+    const start = () => setTimeout(() => { void hydrateBackendState(); }, 0);
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+  }
+
+  function init() {
+    // Первый экран строится только из локальных данных: backend round-trips не
+    // должны задерживать LCP или делать интерфейс неактивным на медленной сети.
     renderHomeHeader();
-    $('#loadedAt').textContent   = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    $('#loadedAt').textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     renderUser();
-    await loadProfileFromBackend(); // подтянуть профиль из бота
-    await loadBackendChart(); // подтянуть настоящую сохранённую карту из бэкенда
+
+    // Moon deep-link должен быть разобран до фоновой загрузки лунных данных.
+    if (state.user.startParam && state.user.startParam.startsWith('moon_')) {
+      const m = /^moon_(\d{4})-(\d{2})-(\d{2})$/.exec(state.user.startParam);
+      if (m) state.moonSelectedDate = `${m[1]}-${m[2]}-${m[3]}`;
+    }
+
     renderTarot();
     renderBiorhythmTile();
     renderProfile();
     renderHomeProfileState();
     renderStarsEntry();
-    await loadAiBalance();
-    await loadMoonToday();
     wireEvents();
     wireBottomTabs();
     wireHeroFlip();
     wireHistoryReadingModal();
     wireHistorySearch();
-    await refreshHistoryFromBackend();
     updateHistoryBadge();
-    if (state.user.startParam === 'mychart') {
-      setTimeout(openChartPanel, 50);
-    }
+    scheduleBackendHydration();
 
-    // Карта дня из бота: /start с кнопкой «✨ Карта дня» → startapp=daily →
-    // сразу раскрывается чтение карты дня (flip + расшифровка), без навигации.
-    if (state.user.startParam === 'daily') {
-      setTimeout(openDailyCardDeepDive, 50);
-    }
+    if (state.user.startParam === 'mychart') setTimeout(openChartPanel, 50);
 
-    // Moon card deep-link from /moon: startapp=moon_YYYY-MM-DD
-    if (state.user.startParam && state.user.startParam.startsWith('moon_')) {
-      const m = /^moon_(\d{4})-(\d{2})-(\d{2})$/.exec(state.user.startParam);
-      if (m) {
-        state.moonSelectedDate = `${m[1]}-${m[2]}-${m[3]}`;
-      }
-    }
+    // Карта дня из бота: сразу раскрывается чтение без промежуточной навигации.
+    if (state.user.startParam === 'daily') setTimeout(openDailyCardDeepDive, 50);
 
     // Compat deep-link: /start compat_<tgId>
     const compatTgId = parseCompatStartParam();
-    if (compatTgId) {
-      setTimeout(() => openCompatPanel(compatTgId), 50);
-    }
+    if (compatTgId) setTimeout(() => openCompatPanel(compatTgId), 50);
   }
 
   // -- Gadanie (arc portal) ---------------------------------
@@ -605,6 +691,16 @@
     tileActive('gadanie', true);
     // Синхронизировать bottom-tabs (если юзер пришёл через quick-tile)
     $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'arc'));
+    portal.setAttribute('aria-busy', 'true');
+    try {
+      await ensureArcBundle();
+    } catch (_) {
+      portal.hidden = true;
+      flashToast('Не удалось загрузить карты. Проверьте сеть и попробуйте ещё раз.');
+      return;
+    } finally {
+      portal.removeAttribute('aria-busy');
+    }
     if (window.ArcApp && window.ArcApp.mount) {
       await window.ArcApp.mount();
     }
@@ -3231,12 +3327,13 @@
     $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === which));
   }
 
-  function openHistoryPanel() {
+  async function openHistoryPanel() {
     closeAllPanels();
     const p = $('#panelHistory');
     if (p) {
       p.hidden = false;
       tileActive('history', true);
+      try { await ensureArcBundle(); } catch (_) { /* symbol fallback stays usable */ }
       renderHomeHistory();
       try { p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
     }

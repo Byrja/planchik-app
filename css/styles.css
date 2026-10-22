@@ -2441,7 +2441,7 @@ button, .btn, .quick-tile, .bottom-tab, .panel-close { touch-action: manipulatio
   overflow: hidden;
 }
 .daily-card-teaser-btn {
-  min-height: 40px;
+  min-height: 44px;
   padding: 9px 13px;
   border: 1px solid rgba(245,215,110,0.50);
   border-radius: 999px;
@@ -2553,7 +2553,7 @@ button, .btn, .quick-tile, .bottom-tab, .panel-close { touch-action: manipulatio
   gap: 10px;
   margin-top: 8px;
 }
-.daily-journal-note-actions .btn { min-height: 38px; padding: 8px 12px; }
+.daily-journal-note-actions .btn { min-height: 44px; padding: 8px 12px; }
 .daily-journal-saved { color: var(--ink-mute); font-size: 11px; }
 @media (max-width: 390px) {
   .home-primary-row { grid-template-columns: 1fr; }

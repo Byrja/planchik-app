@@ -14,6 +14,7 @@ export default defineConfig({
     reuseExistingServer: false,
   },
   projects: [
+    { name: 'telegram-compact', use: { viewport: { width: 320, height: 700 }, isMobile: true, hasTouch: true } },
     { name: 'telegram-ios', use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } },
     { name: 'telegram-android', use: { viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true } },
   ],

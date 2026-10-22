@@ -119,7 +119,8 @@ test('paid fetch retires a terminal idempotency conflict but retains request_in_
   });
   const options = { method: 'POST' };
 
-  await api.paidFetch('/api/chart/interpret', options);
+  const conflictResponse = await api.paidFetch('/api/chart/interpret', options);
+  assert.deepEqual(await conflictResponse.json(), { error: 'idempotency_conflict' }, '409 classification consumed the caller response body');
   const conflictingId = calls.at(-1);
   error = 'request_in_progress';
   await api.paidFetch('/api/chart/interpret', options);

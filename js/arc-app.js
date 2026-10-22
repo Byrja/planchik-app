@@ -1360,7 +1360,7 @@ ${reading.detail}
           const res = await GadalkaApi.paidFetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
+            body: JSON.stringify({ name: c.name, reversed: !!c.reversed, date: new Date().toISOString().slice(0, 10) })
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data.ok) {

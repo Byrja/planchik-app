@@ -2933,7 +2933,7 @@
           const initData = getInitData();
           const res = await GadalkaApi.paidFetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: d.card.name, reversed })
+            body: JSON.stringify({ name: d.card.name, reversed, date: d.date || DATA.todayKey() })
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data.ok) {

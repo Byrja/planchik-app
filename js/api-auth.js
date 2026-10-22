@@ -14,6 +14,37 @@
       : `web-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
   }
 
+  function analyticsSource() {
+    try {
+      const params = new URLSearchParams(global.location && global.location.search || '');
+      return (params.get('source') || params.get('src') || params.get('utm_source') || params.get('startapp') || 'direct').slice(0, 120);
+    } catch (_) { return 'direct'; }
+  }
+
+  function analyticsSession() {
+    const key = 'gadalka:analytics-session';
+    try {
+      const stored = global.sessionStorage && global.sessionStorage.getItem(key);
+      if (stored) return stored;
+    } catch (_) { /* restricted WebView storage */ }
+    const id = newRequestId();
+    try { if (global.sessionStorage) global.sessionStorage.setItem(key, id); } catch (_) { /* memory fallback */ }
+    return id;
+  }
+
+  function analyticsHeaders(headers) {
+    headers.set('x-analytics-session', analyticsSession());
+    headers.set('x-analytics-source', analyticsSource());
+    return headers;
+  }
+
+  function track(event, properties, dedupeId) {
+    const body = JSON.stringify({ event, properties: properties || {}, dedupeId: dedupeId || undefined });
+    const headers = analyticsHeaders(new Headers({ 'content-type': 'application/json' }));
+    const request = global.fetch('/api/analytics/events', { method: 'POST', headers, body, keepalive: true });
+    if (request && typeof request.catch === 'function') request.catch(() => {});
+  }
+
   function sanitizeRequest(input, initDataOverride) {
     const raw = input instanceof Request ? input.url : String(input);
     const base = (global.location && global.location.origin) || 'https://mini-app.invalid';
@@ -75,7 +106,7 @@
   async function apiFetch(input, options, initDataOverride) {
     const request = sanitizeRequest(input, initDataOverride);
     const next = { ...(options || {}) };
-    const headers = new Headers(next.headers || (input instanceof Request ? input.headers : undefined));
+    const headers = analyticsHeaders(new Headers(next.headers || (input instanceof Request ? input.headers : undefined)));
     if (request.initData) headers.set('Authorization', `tma ${request.initData}`);
     if ((next.method || (input instanceof Request ? input.method : 'GET')).toUpperCase() === 'POST' && !headers.has('x-request-id')) {
       headers.set('x-request-id', newRequestId());
@@ -118,5 +149,8 @@
     paidFetch,
     sanitizeRequest,
     requestId: newRequestId,
+    track,
+    sessionId: analyticsSession,
+    sourceId: analyticsSource,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

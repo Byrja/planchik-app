@@ -22,6 +22,27 @@
   const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   window.TelegramApp = { tg };
 
+  function trackUi(event, properties) {
+    try { if (window.GadalkaApi && typeof window.GadalkaApi.track === 'function') window.GadalkaApi.track(event, properties); } catch (_) { /* analytics must never affect UX */ }
+  }
+  trackUi('app.open', { path: window.location.pathname });
+  document.addEventListener('click', (event) => {
+    const target = event.target && event.target.closest ? event.target.closest('button, a, [role="button"]') : null;
+    if (!target) return;
+    const screen = target.getAttribute('data-screen');
+    const onbAction = target.getAttribute('data-onb-action');
+    const label = (screen || target.id || target.textContent || 'unknown').trim().replace(/\s+/g, ' ').slice(0, 100);
+    if (screen && !target.classList.contains('panel-close')) trackUi('feature.start', { feature: screen });
+    if (onbAction) trackUi('feature.start', { feature: onbAction, source: 'onboarding' });
+    trackUi('ui.click', { label, tag: target.tagName.toLowerCase() });
+  }, { passive: true });
+  window.addEventListener('error', (event) => {
+    trackUi('client.error', { message: String(event.message || 'error').slice(0, 240), source: String(event.filename || '').slice(-120) });
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    trackUi('client.error', { message: String(event.reason && event.reason.message || event.reason || 'unhandled_rejection').slice(0, 240) });
+  });
+
   // Telegram's iOS/Android WebViews shrink the visual viewport when the
   // software keyboard opens, but do not always keep a focused control visible.
   // Re-center only editable controls; navigation and normal resize stay inert.

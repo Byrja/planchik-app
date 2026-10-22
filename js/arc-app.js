@@ -1357,7 +1357,7 @@ ${reading.detail}
         btn.textContent = '⏳ гадаю...';
         try {
           const initData = window.Telegram && Telegram.WebApp ? Telegram.WebApp.initData : '';
-          const res = await GadalkaApi.fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+          const res = await GadalkaApi.paidFetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: c.name, reversed: !!c.reversed })
@@ -2039,7 +2039,7 @@ ${reading.detail}
         arcana: c.arcana, suit: c.suit,
       }));
       const spreadCfg = SPREADS[state.spread] || { title: state.spread };
-      const res = await GadalkaApi.fetch('/api/arc/interpret?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.paidFetch('/api/arc/interpret?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

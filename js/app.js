@@ -2188,7 +2188,7 @@
       </div>`;
 
     try {
-      const res = await GadalkaApi.fetch('/api/chart/interpret?initData=' + encodeURIComponent(initData), { method: 'POST' });
+      const res = await GadalkaApi.paidFetch('/api/chart/interpret?initData=' + encodeURIComponent(initData), { method: 'POST' });
       const data = await res.json().catch(() => ({ ok: false, error: 'bad_response' }));
       if (!res.ok || !data.ok) {
         updateManaBalance(data);
@@ -2456,7 +2456,7 @@
     out.textContent = 'Гадалка листает сонник…';
     if (btn) btn.disabled = true;
     try {
-      const res = await GadalkaApi.fetch('/api/dreambook/interpret?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.paidFetch('/api/dreambook/interpret?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ dream: text, mood, mode }),
@@ -2825,7 +2825,7 @@
     try {
       const initData = getInitData();
       const today = DATA.todayKey();
-      const res = await GadalkaApi.fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+      const res = await GadalkaApi.paidFetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: c.name, reversed: !!c.reversed, date: today })
@@ -2931,7 +2931,7 @@
         }
         try {
           const initData = getInitData();
-          const res = await GadalkaApi.fetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
+          const res = await GadalkaApi.paidFetch('/api/arc/card-interpret?initData=' + encodeURIComponent(initData), {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: d.card.name, reversed })
           });

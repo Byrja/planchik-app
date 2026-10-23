@@ -667,7 +667,46 @@
     else window.addEventListener('load', start, { once: true });
   }
 
+  // Primary navigation is a screen shell, not a set of scroll anchors. Keep
+  // legacy IDs/event wiring intact while isolating each tab from layout flow.
+  function setupScreenShell() {
+    const app = $('#app');
+    if (!app || app.dataset.screenShellReady === '1') return;
+    const roots = {
+      home: $('#screen-day'), arc: $('#screen-arc'), stars: $('#screen-stars'),
+      history: $('#screen-history'), profile: $('#screen-profile'),
+    };
+    if (Object.values(roots).some((root) => !root)) return;
+    Array.from(app.children).forEach((child) => {
+      if (!child.matches('[data-screen-root]')) roots.home.appendChild(child);
+    });
+    const move = (screen, ids) => ids.forEach((id) => {
+      const el = $('#' + id);
+      if (el) roots[screen].appendChild(el);
+    });
+    move('arc', ['arcPortal']);
+    move('stars', ['panelStars']);
+    move('history', ['panelHistory', 'historyReadingModal']);
+    move('profile', ['panelProfile', 'panelChart', 'panelCompat']);
+    app.dataset.screenShellReady = '1';
+    activateScreen('home', { scroll: false });
+  }
+
+  function activateScreen(which, { scroll = true } = {}) {
+    const screen = ['home', 'arc', 'stars', 'history', 'profile'].includes(which) ? which : 'home';
+    document.querySelectorAll('[data-screen-root]').forEach((root) => {
+      const active = root.dataset.screenRoot === screen;
+      root.hidden = !active;
+      root.setAttribute('aria-hidden', active ? 'false' : 'true');
+      root.classList.toggle('is-active', active);
+    });
+    if (scroll) {
+      try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) { window.scrollTo(0, 0); }
+    }
+  }
+
   function init() {
+    setupScreenShell();
     // Первый экран строится только из локальных данных: backend round-trips не
     // должны задерживать LCP или делать интерфейс неактивным на медленной сети.
     renderHomeHeader();
@@ -706,6 +745,7 @@
   // -- Gadanie (arc portal) ---------------------------------
   async function openGadaniePortal() {
     closeAllPanels();
+    activateScreen('arc');
     const portal = $('#arcPortal');
     if (!portal) return;
     portal.hidden = false;
@@ -726,11 +766,8 @@
       await window.ArcApp.mount();
     }
     haptic('medium');
-    // На мобиле ведём сразу к рабочей зоне, без длинного hero/каталога сверху.
-    setTimeout(() => {
-      const target = document.getElementById('arcMain') || portal;
-      try { target.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
-    }, 80);
+    // ArcApp is mounted above; screen-level navigation makes scrollIntoView
+    // unnecessary and avoids the old fixed-80ms mount race.
   }
 
   function closeGadaniePortal() {
@@ -1403,6 +1440,7 @@
   // -- Profile panel --------------------------------------
   function openProfilePanel() {
     closeAllPanels();
+    activateScreen('profile');
     $('#panelProfile').hidden = false;
     tileActive('profile', true);
     haptic('light');
@@ -1640,6 +1678,7 @@
   // -- Chart panel ----------------------------------------
   function openChartPanel() {
     closeAllPanels();
+    activateScreen('profile');
     $('#panelChart').hidden = false;
     tileActive('chart', true);
     haptic('light');
@@ -1661,6 +1700,7 @@
       return;
     }
     closeAllPanels();
+    activateScreen('profile');
     const panel = $('#panelCompat');
     panel.hidden = false;
     tileActive('compat', true);
@@ -2610,6 +2650,7 @@
 
   function openStarsPanel() {
     closeAllPanels();
+    activateScreen('stars');
     const panel = $('#panelStars');
     if (!panel) return;
     panel.hidden = false;
@@ -2623,8 +2664,10 @@
     openBotLink(BOT_STARS_URL);
   }
   function closePanel(name) {
-    $('#panel' + name[0].toUpperCase() + name.slice(1)).hidden = true;
+    const panel = $('#panel' + name[0].toUpperCase() + name.slice(1));
+    if (panel) panel.hidden = true;
     tileActive(name, false);
+    if (['stars', 'history', 'profile'].includes(name)) setActiveTab('home');
   }
 
   // -- Tarot refresh + share --------------------------------
@@ -3350,6 +3393,7 @@
 
   async function openHistoryPanel() {
     closeAllPanels();
+    activateScreen('history');
     const p = $('#panelHistory');
     if (p) {
       p.hidden = false;
@@ -3365,6 +3409,7 @@
     switch (which) {
       case 'home': {
         closeAllPanels();
+        activateScreen('home');
         updateHistoryBadge();
         try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
         break;
@@ -3386,10 +3431,12 @@
         break;
       }
       case 'chart': {
+        activateScreen('profile');
         openChartPanel();
         break;
       }
       case 'compat': {
+        activateScreen('profile');
         openCompatPanel(null);
         break;
       }

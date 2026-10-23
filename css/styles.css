@@ -900,6 +900,14 @@ body.tg-desktop .app { padding-bottom: calc(100px + env(safe-area-inset-bottom, 
 /* 110px = бар 64px + comfortable запас; 70px давало 6px clearance и CTA «заполнить профиль →» под баром при max scroll */
 .app.has-bottom-tabs { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
 
+/* One primary tab owns one layout root. Inactive roots are removed from the
+   scroll flow by [hidden], while the active root keeps nav clearance. */
+.screen-root { min-width: 0; width: 100%; }
+.screen-root[aria-hidden="true"] { pointer-events: none; }
+.screen-root > .arc-portal,
+.screen-root > .panel { scroll-margin-top: 16px; }
+.screen-root > :last-child { margin-bottom: 8px; }
+
 /* ═══ FLIP CARD (карта дня — настоящая карта таро) ════════ */
 .tarot-card-wrap {
   perspective: 1200px;

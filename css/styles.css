@@ -2788,3 +2788,9 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); ou
 #onboarding .onb-step{width:min(100% - 28px,430px);padding:28px 22px 22px;border:1px solid rgba(245,215,110,.24);border-radius:28px;background:linear-gradient(145deg,rgba(31,25,58,.9),rgba(13,11,29,.96));box-shadow:0 24px 70px rgba(0,0,0,.34)}
 #onboarding .onb-action{width:100%;min-height:52px;border-radius:16px}
 @media(max-width:359px){#onboarding .onb-step{padding-inline:18px}}
+
+
+/* v3.204 hotfix: keep onboarding centered on wide WebViews. */
+#onboarding{align-items:center}
+#onboarding .onb-next{width:auto}
+#onboarding .onb-nav{width:min(100%,430px)}

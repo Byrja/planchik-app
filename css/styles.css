@@ -2753,7 +2753,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); ou
 #screen-stars .referral-mana-card{margin-top:18px;border-radius:18px;border-color:rgba(155,125,255,.3);background:linear-gradient(145deg,rgba(155,125,255,.13),rgba(255,255,255,.03))}.referral-mana-card h3{font-size:18px}.referral-mana-card p{line-height:1.5;color:var(--ink-dim)}
 #screen-stars #btnStarsTopup{width:100%;min-height:50px;margin-top:16px;border-radius:15px}
 #screen-history .history-status{padding:30px 16px;border-color:rgba(255,255,255,.09);background:rgba(255,255,255,.025)}
-#screen-history .history-status p{max-width: thirtych;margin-inline:auto}
+#screen-history .history-status p{max-width:30ch;margin-inline:auto}
 #screen-history .arc-history-filters{margin:0 0 16px;padding:4px;border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.035)}
 #screen-history .arc-history-list{gap:9px}.arc-history-item{border-radius:16px;border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.035);transition:transform 160ms ease,border-color 160ms ease}.arc-history-item:hover{transform:translateY(-1px);border-color:rgba(245,215,110,.4)}
 @media(max-width:420px){#screen-stars .stars-balance-grid{grid-template-columns:1fr 1fr}.stars-balance-grid .stars-balance-card:last-child{grid-column:1/-1}#screen-history .arc-history-filters{width:100%;justify-content:space-between}.arc-history-chip{flex:1;text-align:center;padding-inline:8px}}

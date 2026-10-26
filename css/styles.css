@@ -2783,3 +2783,8 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); ou
 .bottom-tabs{border-top:1px solid rgba(255,255,255,.09);background:rgba(14,12,30,.92);box-shadow:0 -14px 34px rgba(0,0,0,.18);padding-bottom:env(safe-area-inset-bottom,0px)}
 .bottom-tab{min-height:62px;color:var(--ink-mute);transition:color 160ms ease,transform 160ms ease,background 160ms ease}.bottom-tab.is-active{color:var(--gold-2);background:linear-gradient(180deg,rgba(212,175,55,.1),transparent)}.bottom-tab.is-active::before{background:var(--gold-2);box-shadow:0 0 12px rgba(245,215,110,.6)}.bottom-tab:active{transform:scale(.96)}.bottom-tab:focus-visible{outline-offset:-3px}
 @media(max-width:359px){.bottom-tab{font-size:10px}.bottom-tab svg{width:20px;height:20px}#onboarding .onb-card{padding-inline:18px}}
+
+/* Onboarding markup uses step cards rather than a wrapper card. */
+#onboarding .onb-step{width:min(100% - 28px,430px);padding:28px 22px 22px;border:1px solid rgba(245,215,110,.24);border-radius:28px;background:linear-gradient(145deg,rgba(31,25,58,.9),rgba(13,11,29,.96));box-shadow:0 24px 70px rgba(0,0,0,.34)}
+#onboarding .onb-action{width:100%;min-height:52px;border-radius:16px}
+@media(max-width:359px){#onboarding .onb-step{padding-inline:18px}}

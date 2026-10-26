@@ -2771,3 +2771,15 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); ou
 
 /* Shared feedback states: visible, calm and actionable. */
 [aria-busy="true"]{cursor:progress}[aria-busy="true"] .btn{pointer-events:none;opacity:.72}.history-status[data-state="error"]{border-color:rgba(255,120,120,.35);background:rgba(155,65,42,.12)}.history-status[data-state="guest"]{border-color:rgba(155,125,255,.25);background:rgba(155,125,255,.07)}
+
+
+/* Product polish: onboarding and native-feeling navigation. */
+#onboarding{background:radial-gradient(circle at 50% 18%,rgba(155,125,255,.18),transparent 38%),linear-gradient(180deg,#0b0a1a,#15132a)}
+#onboarding .onb-card{width:min(100% - 28px,430px);padding:28px 22px 22px;border:1px solid rgba(245,215,110,.24);border-radius:28px;background:linear-gradient(145deg,rgba(31,25,58,.9),rgba(13,11,29,.96));box-shadow:0 24px 70px rgba(0,0,0,.34)}
+#onboarding .onb-illust{width:88px;height:88px;margin:0 auto 18px;display:grid;place-items:center;border:1px solid rgba(245,215,110,.36);border-radius:26px;background:rgba(212,175,55,.1);font-size:42px;box-shadow:0 0 36px rgba(212,175,55,.12)}
+#onboarding h1,#onboarding h2{font-size:clamp(28px,8vw,38px);line-height:.98;letter-spacing:-.02em}#onboarding p{max-width:32ch;margin:12px auto;color:var(--ink-dim);line-height:1.55}
+#onboarding .onb-next,#onboarding .onb-start{width:100%;min-height:52px;border-radius:16px;background:linear-gradient(135deg,var(--gold-2),var(--gold));color:#161225;font-weight:800;box-shadow:0 12px 30px rgba(212,175,55,.18)}
+#onboarding .onb-skip{min-height:44px;color:var(--ink-mute)}
+.bottom-tabs{border-top:1px solid rgba(255,255,255,.09);background:rgba(14,12,30,.92);box-shadow:0 -14px 34px rgba(0,0,0,.18);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bottom-tab{min-height:62px;color:var(--ink-mute);transition:color 160ms ease,transform 160ms ease,background 160ms ease}.bottom-tab.is-active{color:var(--gold-2);background:linear-gradient(180deg,rgba(212,175,55,.1),transparent)}.bottom-tab.is-active::before{background:var(--gold-2);box-shadow:0 0 12px rgba(245,215,110,.6)}.bottom-tab:active{transform:scale(.96)}.bottom-tab:focus-visible{outline-offset:-3px}
+@media(max-width:359px){.bottom-tab{font-size:10px}.bottom-tab svg{width:20px;height:20px}#onboarding .onb-card{padding-inline:18px}}

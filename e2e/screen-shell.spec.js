@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 async function start(page) {
   await page.goto('/');
   const skip = page.locator('.onb-skip');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  await skip.click();
   await expect(page.locator('#screen-day')).toBeVisible();
 }
 
@@ -34,7 +34,9 @@ test.describe('screen shell navigation', () => {
     await start(page);
     for (const tab of ['home', 'arc', 'stars', 'history', 'profile']) {
       await page.locator(`[data-tab="${tab}"]`).click();
-      await page.waitForTimeout(100);
+      await expect(page.locator(`[data-screen-root="${tab}"]`)).toBeVisible();
+      if (tab === 'arc') await expect(page.locator('#arcSpreadTabs')).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
       expect(overflow, `${tab} overflows horizontally`).toBeFalsy();
     }

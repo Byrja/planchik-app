@@ -157,6 +157,36 @@
     }
   };
 
+  // One catalog shared by the card and coin templates. Keep legacy IDs (one,
+  // not single) because history and existing entry points use them.
+  const PRIMARY_SPREADS = ['one', 'three', 'yesno'];
+  function spreadCatalogMarkup() {
+    const button = (id) => {
+      const s = SPREADS[id];
+      return `<button type="button" class="arc-spread-tab${id === state.spread ? ' is-active' : ''}" data-spread="${id}" aria-pressed="${id === state.spread}"><span class="arc-spread-tab-ico" aria-hidden="true">${s.icon}</span><span class="arc-spread-tab-label">${escapeHtml(s.title)}</span></button>`;
+    };
+    return `<div class="arc-catalog">
+      <nav class="arc-spread-tabs" id="arcSpreadTabs" aria-label="Основные расклады">${PRIMARY_SPREADS.map(button).join('')}</nav>
+      <details class="arc-other-spreads" id="arcOtherSpreads"${state.catalogOpen ? ' open' : ''}>
+        <summary>Другие расклады</summary>
+        <div class="arc-other-grid">${Object.keys(SPREADS).filter(id => !PRIMARY_SPREADS.includes(id)).map(button).join('')}</div>
+      </details>
+      <p class="arc-selected-spread" id="arcSelectedSpread" role="status">Выбран расклад: <strong>${escapeHtml(getSpreadName(state.spread))}</strong></p>
+    </div>`;
+  }
+
+  function bindSpreadCatalog() {
+    const details = r$('#arcOtherSpreads');
+    if (details) details.ontoggle = () => { state.catalogOpen = details.open; };
+    r$$('.arc-spread-tab').forEach(btn => {
+      btn.onclick = () => {
+        // Read synchronously: native toggle events may be queued during a remount.
+        state.catalogOpen = !!details?.open;
+        setSpread(btn.dataset.spread);
+      };
+    });
+  }
+
   function getSpreadConfig(id) {
     return SPREADS[id] || SPREADS.one;
   }
@@ -272,6 +302,7 @@
   // ── State ────────────────────────────────────────────────
   const state = {
     spread: 'one',     // active spread
+    catalogOpen: false,
     deck: 'tarot',     // active deck
     reversed: false,
     cards: [],         // массив вытянутых карт для текущего расклада
@@ -737,15 +768,7 @@ ${reading.detail}
       </div>`;
     }).join('');
     return `
-      <div class="arc-spread-tabs-wrap">
-        <nav class="arc-spread-tabs" id="arcSpreadTabs" aria-label="Сменить расклад">
-          ${Object.keys(SPREADS).map(id => {
-            const sp = SPREADS[id];
-            const active = id === state.spread ? ' is-active' : '';
-            return `<button type="button" class="arc-spread-tab${active}" data-spread="${id}"><span class="arc-spread-tab-ico">${sp.icon}</span><span class="arc-spread-tab-label">${escapeHtml(sp.title)}</span></button>`;
-          }).join('')}
-        </nav>
-      </div>
+      ${spreadCatalogMarkup()}
       <div class="arc-panel-title">Орёл или Решка</div>
       <p class="arc-panel-sub">Не скучный генератор, а маленький ритуал выбора. Задай вопрос — монеты покажут перевес.</p>
       <p class="arc-panel-hint">Орёл = действуй. Решка = подожди. Баланс = уточни вопрос.</p>
@@ -775,9 +798,7 @@ ${reading.detail}
     const main = root();
     if (!main) return;
     main.innerHTML = renderCoinMarkup();
-    $$('.arc-spread-tab', main).forEach(btn => {
-      btn.onclick = (e) => { e.preventDefault(); setSpread(btn.dataset.spread); };
-    });
+    bindSpreadCatalog();
     const select = r$('#coinCountSelect');
     if (select) select.onchange = () => {
       state.coinCount = parseInt(select.value, 10) || 10;
@@ -1298,7 +1319,7 @@ ${reading.detail}
         ${tags ? `<div class="arc-inter-tags">${tags}</div>` : ''}
         <p class="arc-inter-main">${escapeHtml(c.reversed || c.upright)}</p>
         ${c.shadow ? `<p class="arc-inter-shadow"><span class="arc-shadow-label">Тень:</span> ${escapeHtml(c.shadow)}</p>` : ''}
-        <button type="button" class="arc-expand-btn" data-card-idx="${i}" aria-expanded="false">✨ раскрыть смысл</button>
+        <button type="button" class="arc-expand-btn" data-card-idx="${i}" aria-expanded="false">✨ раскрыть смысл · 7 маны</button>
         <div class="arc-expand-slot" data-card-idx="${i}" hidden></div>
       </div>`;
     }).join('');
@@ -1328,7 +1349,7 @@ ${reading.detail}
           slot.hidden = true;
           slot.innerHTML = '';
           btn.setAttribute('aria-expanded', 'false');
-          btn.textContent = '✨ раскрыть смысл';
+          btn.textContent = '✨ раскрыть смысл · 7 маны';
           return;
         }
         // cache lookup (по name+reversed)
@@ -1389,7 +1410,7 @@ ${reading.detail}
           btn.textContent = 'свернуть';
         } catch (e) {
           btn.textContent = '⚠️ не получилось';
-          setTimeout(() => { btn.textContent = '✨ раскрыть смысл'; }, 2500);
+          setTimeout(() => { btn.textContent = '✨ раскрыть смысл · 7 маны'; }, 2500);
         } finally {
           btn.disabled = false;
         }
@@ -1473,16 +1494,9 @@ ${reading.detail}
           `).join('')}
         </div>
       </section>`).join('');
-    // Горизонтальный таб-бар раскладов (sticky на мобиле, inline на десктопе)
-    const tabsHtml = Object.keys(SPREADS).map(id => {
-      const s = SPREADS[id];
-      const active = id === state.spread ? ' is-active' : '';
-      return `<button type="button" class="arc-spread-tab${active}" data-spread="${id}">
-        <span class="arc-spread-tab-ico">${s.icon}</span>
-        <span class="arc-spread-tab-label">${escapeHtml(s.title)}</span>
-      </button>`;
-    }).join('');
+
     main.innerHTML = `
+      ${spreadCatalogMarkup()}
       <div class="arc-scenario-block" aria-label="Вопрос Гадалке">
         <div class="arc-scenario-kicker">Напишите вопрос здесь</div>
         <div class="arc-ask-box">
@@ -1498,11 +1512,7 @@ ${reading.detail}
         </details>
       </div>
 
-      <div class="arc-spread-tabs-wrap">
-        <nav class="arc-spread-tabs" id="arcSpreadTabs" aria-label="Сменить расклад">
-          ${tabsHtml}
-        </nav>
-      </div>
+
       <div class="arc-panel-title">${escapeHtml(state.deck === 'all' ? 'Все колоды' : t.title)}</div>
       <p class="arc-panel-sub">${escapeHtml(state.deck === 'all' ? 'По одной карте из каждой колоды: Таро, Ленорман, Руны, Цыганские, Игральные.' : t.ask)}</p>
       ${(state.deck === 'all' ? '5 карт — 5 систем. Самый полный расклад.' : t.hint) ? `<p class="arc-panel-hint">${escapeHtml(state.deck === 'all' ? '5 карт — 5 систем. Самый полный расклад.' : t.hint)}</p>` : ''}
@@ -1597,9 +1607,7 @@ ${reading.detail}
     if (ctaS) ctaS.onclick = shareResult;
 
     // wire spread tabs
-    $$('.arc-spread-tab', main).forEach(btn => {
-      btn.onclick = (e) => { e.preventDefault(); setSpread(btn.dataset.spread); };
-    });
+    bindSpreadCatalog();
     // прокрутить активный таб в зону видимости (мобила)
     requestAnimationFrame(() => {
       const active = main.querySelector('.arc-spread-tab.is-active');
@@ -1628,7 +1636,7 @@ ${reading.detail}
     state.lastEntryId = savedEntry.id;
     state.history = [savedEntry].slice(0, 1);
     try { localStorage.setItem('arcHistoryFallback', JSON.stringify(state.history)); } catch (_) {}
-    renderHistoryList();
+    renderHistory();
     return savedEntry;
   }
 
@@ -1648,6 +1656,10 @@ ${reading.detail}
     const count = state.deck === 'all' ? 5 : t.count;
     state.cards = drawN(count);
     state.lastEntryId = null;
+    // Render the local result immediately; history persistence must not block the
+    // paid-action affordances or leave the user staring at the deck preview.
+    renderCards();
+    renderInterpretation();
 
     const stage = r$('#arcStage');
     if (stage) stage.classList.add('is-lit');
@@ -1691,7 +1703,7 @@ ${reading.detail}
           created_at: new Date().toISOString(),
         };
         state.history = [savedEntry, ...(state.history || []).filter((h) => h.id !== data.id)].slice(0, 30);
-        renderHistoryList();
+        renderHistory();
         if (window.dispatchEvent) window.dispatchEvent(new CustomEvent('astro:history-updated'));
       } else if (!initData) {
         saveGuestDemoToLocalHistory(spreadCfg, cards);
@@ -1742,7 +1754,7 @@ ${reading.detail}
         r$('#ctaDraw').textContent = '✓  Готово';
         r$('#ctaReset').disabled = false;
         r$('#ctaShare').style.display = 'inline-flex';
-        renderInterpretation();
+        // History completion must not rebuild an already-running paid AI card.
         renderNotePanel();
         tryVibrate(20);
       }, 700);
@@ -1771,7 +1783,7 @@ ${reading.detail}
         r$('#ctaDraw').textContent = '✓  Готово';
         r$('#ctaReset').disabled = false;
         r$('#ctaShare').style.display = 'inline-flex';
-        renderInterpretation();
+        // History completion must not rebuild an already-running paid AI card.
         renderNotePanel();
         tryVibrate(20);
       }, totalDelay);
@@ -1980,9 +1992,9 @@ ${reading.detail}
             <div class="arc-ai-sub">Гадалка · осталось сегодня: ${remaining}/${TAROT_AI_LIMIT_FALLBACK}</div>
           </div>
         </div>
-        <p class="arc-ai-pitch">Гадалка свяжет ваш вопрос с выпавшими картами: прямой ответ, скрытый узел и одно действие здесь и сейчас. Любовные и быстрые форматы специально сделаны короткими и шерибельными. Бесплатные ответы ограничены, дальше — Stars.</p>
+        <p class="arc-ai-pitch">Гадалка свяжет ваш вопрос с выпавшими картами: прямой ответ, скрытый узел и одно действие здесь и сейчас. Любовные и быстрые форматы специально сделаны короткими и шерибельными. Новый AI-разбор — 7 маны. Сохранённый ответ открывается без нового запроса.</p>
         <div class="arc-ai-actions">
-          <button type="button" class="arc-ai-go" data-action="go">🔮  Получить ответ</button>
+          <button type="button" class="arc-ai-go" data-action="go">🔮  Получить ответ · 7 маны</button>
         </div>
       </div>`;
     wireAiCard(slot, key, /*alreadyCached*/ false);
@@ -2177,13 +2189,24 @@ ${reading.detail}
       resetReading();
       renderCards();
       renderInterpretation();
+      updateSpreadHeader();
     }
   }
 
+  let mountGeneration = 0;
   async function mount() {
+    const generation = ++mountGeneration;
+    const current = () => generation === mountGeneration;
     try {
-      state.history = await loadHistory();
+      // Remove obsolete parallel pickers rather than merely hiding their links.
+      // The public setSpread entry point remains intact for integrations.
+      $('#arcNav')?.remove();
+      $('#arcMobileNav')?.remove();
+      const history = await loadHistory();
+      if (!current()) return false;
+      state.history = history;
       await loadAiBalance();
+      if (!current()) return false;
       // wire nav
       const navLinks = $$('.arc-nav-link');
       navLinks.forEach(a => {
@@ -2192,13 +2215,20 @@ ${reading.detail}
       // home link
       const home = $('#arcHomeLink');
       if (home) home.onclick = (e) => { e.preventDefault(); setSpread('one'); };
-      // init
-      setSpread('one');
+      // Mounting/re-mounting must not erase a reading already drawn by the user.
+      // A fresh portal has no cards and still needs the normal spread initialization.
+      if (!state.cards.length) setSpread(state.spread);
+      else {
+        renderCards();
+        renderInterpretation();
+      }
       bindInfoCards();
       bindMobileNav();
       bindHistory();
+      return true;
     } catch (e) {
       _showErr({ message: 'mount() failed: ' + e.message, stack: e.stack });
+      throw e;
     }
   }
 

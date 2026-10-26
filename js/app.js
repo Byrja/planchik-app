@@ -80,7 +80,7 @@
       link.dataset.arcStyles = 'true';
       link.href = `css/arc-styles.css${APP_ASSET_VERSION ? `?v=${encodeURIComponent(APP_ASSET_VERSION)}` : ''}`;
       link.onload = resolve;
-      link.onerror = () => reject(new Error('asset_load_failed:css/arc-styles.css'));
+      link.onerror = () => { link.remove(); reject(new Error('asset_load_failed:css/arc-styles.css')); };
       document.head.appendChild(link);
     });
   }
@@ -316,6 +316,8 @@
   }
 
   function openHomeAskFlow(prefill) {
+    closeAllPanels();
+    activateScreen('ask');
     const flow = $('#homeAskFlow');
     if (!flow) { openGadaniePortal(); return; }
     flow.hidden = false;
@@ -342,25 +344,9 @@
       openStarsTopup();
       return;
     }
-    closeAllPanels();
-    const portal = $('#arcPortal');
-    if (portal) portal.hidden = false;
-    tileActive('gadanie', true);
-    $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'arc'));
-    try {
-      await ensureArcBundle();
-    } catch (_) {
-      portal.hidden = true;
-      flashToast('Не удалось загрузить карты. Проверьте сеть и попробуйте ещё раз.');
-      return;
+    if (await openGadaniePortal()) {
+      if (window.ArcApp.quickAsk) window.ArcApp.quickAsk({ question, spread });
     }
-    if (window.ArcApp && window.ArcApp.mount) await window.ArcApp.mount();
-    if (window.ArcApp && window.ArcApp.quickAsk) window.ArcApp.quickAsk({ question, spread });
-    haptic('medium');
-    setTimeout(() => {
-      const target = document.getElementById('arcMain') || portal;
-      try { target.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
-    }, 80);
   }
 
   function renderStarsEntry() {
@@ -374,7 +360,7 @@
     const meta = $('#starsTileMeta');
     if (meta) meta.textContent = tileText;
     const homeMeta = $('#homeManaMeta');
-    if (homeMeta) homeMeta.textContent = mana ? `${total} маны сейчас · ${paid} платной` : 'единая валюта для раскладов и сонника';
+    if (homeMeta) homeMeta.textContent = mana ? `${total} маны` : 'Баланс —';
     const homeSub = $('#homeManaSub');
     if (homeSub) homeSub.textContent = mana ? 'открыть магазин' : packRange;
     const badge = $('#starsCount');
@@ -687,13 +673,53 @@
     move('arc', ['arcPortal']);
     move('stars', ['panelStars']);
     move('history', ['panelHistory', 'historyReadingModal']);
-    move('profile', ['panelProfile', 'panelChart', 'panelCompat']);
+    move('profile', ['panelProfile', 'panelChart', 'panelCompat', 'panelMoon', 'panelForecast', 'panelBiorhythm', 'profileFeatures']);
+    move('arc', ['panelDream', 'homeAskFlow', 'arcFeatures']);
+    $('#profileFeatures').append($('#todayWow'), $('#homeProfileState'), $('#moonCard'), $('#homeTools'));
+    $('#arcFeatures').append($('#homeDreamBtn'));
+    $('.app-header-row').insertBefore($('#homeManaCard'), $('#userChip'));
+    $('#dailyJournalDisclosure').append($('#dailyJournal'));
+    $('#dailyJournal').prepend($('#homeDayBtn'));
+    $('#todayWow').querySelector('.today-wow-actions').append($('#dailyCardDeepBtn'));
+    $('#dailyCardTeaser .daily-card-teaser-copy').append($('#todayCardBtn'));
+    if (tg && tg.BackButton) tg.BackButton.onClick(goBack);
     app.dataset.screenShellReady = '1';
     activateScreen('home', { scroll: false });
   }
 
-  function activateScreen(which, { scroll = true } = {}) {
-    const screen = ['home', 'arc', 'stars', 'history', 'profile'].includes(which) ? which : 'home';
+  const ROUTES = {
+    home: ['home', 'home'], arc: ['arc', 'arc', 'arcPortal'],
+    profile: ['profile', 'profile', 'panelProfile'], chart: ['profile', 'profile', 'panelChart'],
+    compat: ['profile', 'profile', 'panelCompat'], biorhythm: ['profile', 'profile', 'panelBiorhythm'],
+    forecast: ['profile', 'profile', 'panelForecast'], moon: ['profile', 'profile', 'panelMoon'],
+    history: ['history', 'history', 'panelHistory'], stars: ['stars', 'stars', 'panelStars'],
+    ask: ['arc', 'arc', 'homeAskFlow'], dream: ['arc', 'arc', 'panelDream'], daily: ['home', 'home', 'heroCard'],
+  };
+  let currentRoute = 'home';
+  const routeTrail = [];
+  function goBack() {
+    const previous = routeTrail.pop() || { route: 'home', y: 0 };
+    closeAllPanels();
+    activateScreen(previous.route, { remember: false, scroll: false });
+    if (previous.route === 'arc') void loadArcPortal();
+    if (previous.route === 'profile') renderProfile();
+    window.scrollTo({ top: previous.y, behavior: 'auto' });
+  }
+  function activateScreen(which, { scroll = true, remember = true } = {}) {
+    if (!ROUTES[which]) which = 'home';
+    if (remember && which !== currentRoute) routeTrail.push({ route: currentRoute, y: window.scrollY });
+    if (which !== currentRoute) arcRequestId++;
+    currentRoute = which;
+    const [screen, tab, panel] = ROUTES[which];
+    Object.values(ROUTES).forEach(([, , id]) => { if (id && $('#' + id)) $('#' + id).hidden = id !== panel; });
+    $('#dailyCardTeaser').hidden = which === 'daily';
+    $('#profileFeatures').hidden = which !== 'profile';
+    $('#arcFeatures').hidden = which !== 'arc';
+    document.body.dataset.activeRoute = which;
+    setBottomTabActive(tab);
+    if (tg && tg.BackButton) {
+      if (which !== 'home') tg.BackButton.show(); else tg.BackButton.hide();
+    }
     document.querySelectorAll('[data-screen-root]').forEach((root) => {
       const active = root.dataset.screenRoot === screen;
       root.hidden = !active;
@@ -743,31 +769,43 @@
   }
 
   // -- Gadanie (arc portal) ---------------------------------
+  let arcRequestId = 0;
   async function openGadaniePortal() {
     closeAllPanels();
     activateScreen('arc');
+    return loadArcPortal();
+  }
+  async function loadArcPortal() {
+    const request = ++arcRequestId;
     const portal = $('#arcPortal');
-    if (!portal) return;
-    portal.hidden = false;
-    tileActive('gadanie', true);
-    // Синхронизировать bottom-tabs (если юзер пришёл через quick-tile)
-    $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'arc'));
+    let status = $('#arcLoadStatus');
+    if (!status) {
+      status = document.createElement('div');
+      status.id = 'arcLoadStatus';
+      status.className = 'history-status';
+      status.setAttribute('role', 'status');
+      portal.prepend(status);
+    }
+    status.hidden = false;
+    status.textContent = 'Загружаем карты…';
     portal.setAttribute('aria-busy', 'true');
+    tileActive('gadanie', true);
     try {
       await ensureArcBundle();
-    } catch (_) {
-      portal.hidden = true;
-      flashToast('Не удалось загрузить карты. Проверьте сеть и попробуйте ещё раз.');
-      return;
-    } finally {
-      portal.removeAttribute('aria-busy');
-    }
-    if (window.ArcApp && window.ArcApp.mount) {
+      if (request !== arcRequestId || currentRoute !== 'arc') return false;
       await window.ArcApp.mount();
+      if (request !== arcRequestId || currentRoute !== 'arc') return false;
+      status.hidden = true;
+      haptic('medium');
+      return true;
+    } catch (_) {
+      if (request !== arcRequestId || currentRoute !== 'arc') return false;
+      status.innerHTML = '<p>Не удалось загрузить карты. Проверьте сеть и попробуйте ещё раз.</p><button type="button" class="btn btn-primary" id="arcLoadRetry">Повторить</button>';
+      $('#arcLoadRetry').onclick = () => loadArcPortal();
+      return false;
+    } finally {
+      if (request === arcRequestId) portal.removeAttribute('aria-busy');
     }
-    haptic('medium');
-    // ArcApp is mounted above; screen-level navigation makes scrollIntoView
-    // unnecessary and avoids the old fixed-80ms mount race.
   }
 
   function closeGadaniePortal() {
@@ -777,7 +815,7 @@
     portal.hidden = true;
     tileActive('gadanie', false);
     // Вернуть подсветку на home в bottom-tabs
-    $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'home'));
+    goBack();
     haptic('light');
   }
 
@@ -904,6 +942,7 @@
   }
 
   function openDailyCardDeepDive() {
+    activateScreen('daily');
     const hero = $('#heroCard');
     const toggle = $('#btnReadingToggle');
     try { hero?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
@@ -1111,6 +1150,8 @@
   function openDailyJournal() {
     const box = $('#dailyJournal');
     if (!box) return;
+    setActiveTab('home');
+    $('#dailyJournalDisclosure').open = true;
     try { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
     toggleDailyJournalHistory(true);
   }
@@ -1182,6 +1223,7 @@
   // -- Biorhythm panel -------------------------------------
   function openBiorhythmPanel() {
     closeAllPanels();
+    activateScreen('biorhythm');
     const panel = $('#panelBiorhythm');
     panel.hidden = false;
     tileActive('biorhythm', true);
@@ -1350,6 +1392,7 @@
 
   function openMoonPanel() {
     closeAllPanels();
+    activateScreen('moon');
     const p = $('#panelMoon');
     if (p) p.hidden = false;
     tileActive('moon', true);
@@ -1361,6 +1404,7 @@
   // -- Forecast panel (7-day astro forecast from backend) --
   function openForecastPanel() {
     closeAllPanels();
+    activateScreen('forecast');
     $('#panelForecast').hidden = false;
     tileActive('forecast', true);
     haptic('light');
@@ -1444,7 +1488,7 @@
     $('#panelProfile').hidden = false;
     tileActive('profile', true);
     haptic('light');
-    renderProfile();
+    if (!profileEditing || !$('#profileFields input')) renderProfile();
     try { $('#panelProfile').scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (_) {}
   }
 
@@ -1550,6 +1594,8 @@
   }
 
   function renderProfile() {
+    // Background hydration must not erase an in-progress profile draft.
+    if (profileEditing && $('#profileFields input')) return;
     const p = state.profile;
     const zod = (p && p.birthYear) ? DATA.zodiacOf(p.birthMonth, p.birthDay) : null;
     // Возраст
@@ -1678,7 +1724,7 @@
   // -- Chart panel ----------------------------------------
   function openChartPanel() {
     closeAllPanels();
-    activateScreen('profile');
+    activateScreen('chart');
     $('#panelChart').hidden = false;
     tileActive('chart', true);
     haptic('light');
@@ -1690,17 +1736,16 @@
   // -- Compat panel (deep-link compat_<tgId> или ручной ввод) --
   let _compatPartnerTgId = null; // хранится для share
 
+  const compatFormMarkup = $('#compatContent').innerHTML;
+  let compatDraft = '';
   function openCompatPanel(partnerTgId) {
-    if (!tg || !tg.initData) {
-      flashToast('Открой через Telegram');
-      return;
-    }
-    if (!state.user.id) {
-      flashToast('Сначала нажми /start в боте');
-      return;
-    }
     closeAllPanels();
-    activateScreen('profile');
+    activateScreen('compat');
+    if (!getInitData() || !state.user.id) {
+      $('#compatContent').innerHTML = '<p>Совместимость доступна в Telegram. Откройте Mini App из бота.</p><button type="button" class="btn btn-primary" id="compatGuestOpen">Открыть в Telegram</button>';
+      $('#compatGuestOpen').onclick = openProfileStartBot;
+      return;
+    }
     const panel = $('#panelCompat');
     panel.hidden = false;
     tileActive('compat', true);
@@ -1720,6 +1765,10 @@
   function showCompatForm() {
     const root = $('#compatContent');
     if (!root) return;
+    if (!root.querySelector('#compatForm')) {
+      root.innerHTML = compatFormMarkup;
+      root.querySelector('#compatInput').value = compatDraft;
+    }
     const form = root.querySelector('#compatForm');
     const loader = root.querySelector('#compatLoader');
     if (form) form.hidden = false;
@@ -1737,6 +1786,7 @@
       inviteBtn.onclick = () => shareCompatInvite();
     }
 
+    input.oninput = () => { compatDraft = input.value; };
     const doCompat = () => {
       const val = input.value.trim();
       if (!val) { flashToast('Введите числовой Telegram ID партнёра'); return; }
@@ -2480,6 +2530,7 @@
 
   function openDreamPanel() {
     closeAllPanels();
+    activateScreen('dream');
     const panel = $('#panelDream');
     if (!panel) return;
     panel.hidden = false;
@@ -2667,7 +2718,7 @@
     const panel = $('#panel' + name[0].toUpperCase() + name.slice(1));
     if (panel) panel.hidden = true;
     tileActive(name, false);
-    if (['stars', 'history', 'profile'].includes(name)) setActiveTab('home');
+    goBack();
   }
 
   // -- Tarot refresh + share --------------------------------
@@ -3205,10 +3256,7 @@
         requestAnimationFrame(() => {
           if (action === 'ask') return openHomeAskFlow();
           if (action === 'dream') return openDreamPanel();
-          const hero = $('#heroCard') || $('#dailyCard') || $('#btnReadingToggle');
-          if (hero && hero.scrollIntoView) {
-            try { hero.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
-          }
+          openDailyCardDeepDive();
         });
       }
       $bind('.onb-skip', () => finish('daily'));
@@ -3245,6 +3293,8 @@
     });
 
     // Primary home actions
+    $bind('#dailyClose', goBack);
+    $bind('#askClose', goBack);
     $bind('#todayCardBtn',    openDailyCardDeepDive);
     $bind('#dailyCardTeaser', openDailyCardDeepDive);
     $bind('#dailyCardDeepBtn', (e) => { e.stopPropagation(); openDailyCardDeepDive(); });
@@ -3252,7 +3302,7 @@
     $bind('#todayCompatBtn',  () => setActiveTab('compat'));
     $bind('#homeAskBtn',      () => openHomeAskFlow());
     $bind('#homeLoveBtn',     () => openHomeAskFlow('Что сейчас происходит в любви и какой шаг мне сделать?'));
-    $bind('#homeDayBtn',      () => { try { $('#heroCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} });
+    $bind('#homeDayBtn', openDailyCardDeepDive);
     $bind('#homeDreamBtn',    openDreamPanel);
     $bind('#homeManaCard',    openStarsPanel);
     $bind('#homeAskSubmit',  submitHomeAskFlow);
@@ -3388,7 +3438,11 @@
 
 
   function setBottomTabActive(which) {
-    $$('.bottom-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === which));
+    $$('.bottom-tab').forEach(t => {
+      const active = t.dataset.tab === which;
+      t.classList.toggle('is-active', active);
+      if (active) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    });
   }
 
   async function openHistoryPanel() {
@@ -3398,14 +3452,14 @@
     if (p) {
       p.hidden = false;
       tileActive('history', true);
-      try { await ensureArcBundle(); } catch (_) { /* symbol fallback stays usable */ }
-      renderHomeHistory();
+      if (getInitData()) void refreshHistoryFromBackend();
+      else renderHomeHistory(false);
+      ensureArcBundle().catch(() => {});
       try { p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
     }
   }
 
   function setActiveTab(which) {
-    setBottomTabActive(which);
     switch (which) {
       case 'home': {
         closeAllPanels();
@@ -3431,12 +3485,10 @@
         break;
       }
       case 'chart': {
-        activateScreen('profile');
         openChartPanel();
         break;
       }
       case 'compat': {
-        activateScreen('profile');
         openCompatPanel(null);
         break;
       }
@@ -3461,6 +3513,7 @@
   // localStorage оставлен только как offline/fallback до первого успешного ответа.
   let _historyCache = null;
   let _historyLoading = false;
+  let _historyStatus = 'idle';
 
   function normalizeBackendHistoryItem(it) {
     const payload = it && it.payload ? it.payload : {};
@@ -3528,17 +3581,24 @@
     const initData = getInitData();
     if (!initData || _historyLoading) return;
     _historyLoading = true;
+    _historyStatus = 'loading';
+    renderHomeHistory(false);
     try {
       const res = await GadalkaApi.fetch('/api/history?initData=' + encodeURIComponent(initData));
-      const data = await res.json().catch(() => ({ ok: false, items: [] }));
-      if (!data.ok) return;
-      _historyCache = (data.items || []).map(normalizeBackendHistoryItem);
-      renderHomeHistory(false);
+      if (res.status === 401 || res.status === 403) {
+        _historyStatus = 'auth';
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok || !data.ok || !Array.isArray(data.items)) throw new Error('history_response');
+      _historyCache = data.items.map(normalizeBackendHistoryItem);
+      _historyStatus = 'ready';
       updateHistoryBadge();
     } catch (_) {
-      // keep local fallback; history UI stays usable offline
+      _historyStatus = 'error';
     } finally {
       _historyLoading = false;
+      renderHomeHistory(false);
     }
   }
   // Search query (для фильтрации истории по тексту)
@@ -3607,7 +3667,7 @@
   let _historyExpanded = new Set(); // idx раскрытых элементов
 
   function renderHomeHistory(fetchBackend = true) {
-    if (fetchBackend && !Array.isArray(_historyCache)) refreshHistoryFromBackend();
+    if (fetchBackend && getInitData() && _historyStatus === 'idle') { void refreshHistoryFromBackend(); return; }
     const list = $('#homeHistoryList');
     const empty = $('#homeHistoryEmpty');
     const filters = $('#homeHistoryFilters');
@@ -3616,8 +3676,32 @@
     const actions = $('#homeHistoryActions');
     if (!list) return;
 
-    const allItems = loadHistory();
+    const status = !getInitData() ? 'guest' : _historyStatus;
+    const notice = $('#homeHistoryStatus');
+    const ready = status === 'ready';
+    notice.hidden = ready;
+    notice.dataset.state = status;
+    const messages = {
+      guest: ['Откройте в Telegram', 'Личная история доступна в Mini App бота. В браузере её нельзя загрузить.'],
+      loading: ['Загружаем историю…', 'Сохранённые расклады и сны появятся здесь.'],
+      auth: ['Нужно снова открыть Mini App', 'Сессия Telegram истекла или не подтверждена. Откройте приложение из бота.'],
+      error: ['Не удалось загрузить историю', 'Проверьте соединение и повторите. Это ошибка загрузки, а не пустая история.'],
+      idle: ['Загружаем историю…', 'Проверяем сохранённые расклады.'],
+    };
+    if (!ready) {
+      const [title, text] = messages[status] || messages.error;
+      notice.querySelector('h3').textContent = title;
+      notice.querySelector('p').textContent = text;
+      $('#historyOpenTelegram').hidden = !['guest', 'auth'].includes(status);
+      $('#historyRetry').hidden = !['error', 'auth'].includes(status);
+      $('#historyRetry').onclick = () => refreshHistoryFromBackend();
+      $('#historyOpenTelegram').onclick = openProfileStartBot;
+    }
+    // Never present browser fallback data as authenticated server history.
+    const allItems = ready && Array.isArray(_historyCache) ? _historyCache : [];
     const total = allItems.length;
+    $('#panelHistory').setAttribute('aria-busy', status === 'loading' ? 'true' : 'false');
+    if ($('#homeHistorySearch')) $('#homeHistorySearch').hidden = !ready || total < 2;
 
     // Счётчик в заголовке — показываем только когда есть история
     if (counter) {
@@ -3633,7 +3717,7 @@
       if (filters) filters.hidden = true;
       if (groupsEl) { groupsEl.hidden = true; groupsEl.innerHTML = ''; }
       list.innerHTML = '';
-      if (empty) empty.hidden = false;
+      if (empty) empty.hidden = !ready;
       if (actions) actions.hidden = true;
       return;
     }

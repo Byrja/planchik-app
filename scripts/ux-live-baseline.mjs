@@ -1,0 +1,20 @@
+import { chromium } from '@playwright/test';
+import fs from 'node:fs/promises';
+const out = 'artifacts/ux-baseline';
+await fs.mkdir(out, { recursive: true });
+const browser = await chromium.launch({headless:true});
+const page = await browser.newPage({viewport:{width:360,height:800}});
+await page.route('**/*', async route => {
+  if (!['GET','HEAD'].includes(route.request().method())) return route.abort('blockedbyclient');
+  return route.continue();
+});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('https://astro.burlab-api.site/');
+await page.locator('.onb-skip').click();
+await page.locator('#screen-day').waitFor({state:'visible'});
+await page.screenshot({path:out+'/home-360.png',fullPage:true});
+console.log(await page.locator('#screen-day').innerText());
+const buttons=await page.locator('#screen-day button').evaluateAll(nodes=>nodes.map(n=>({id:n.id,text:n.innerText})));
+console.log(JSON.stringify(buttons));
+await fs.writeFile(out+'/initial.json',JSON.stringify({url:page.url(),buttons,errors},null,2));
+await browser.close();

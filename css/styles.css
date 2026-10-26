@@ -2691,3 +2691,33 @@ button, .btn, .quick-tile, .bottom-tab, .panel-close { touch-action: manipulatio
 .home-ask-meter { margin-top: 10px; padding: 9px 11px; border-radius: 12px; color: var(--ink-dim); background: rgba(255,255,255,0.05); font-size: 13px; }
 .home-ask-meter.is-low { color: #ffd3b8; border: 1px solid rgba(255,140,90,0.35); background: rgba(155,65,42,0.18); }
 .home-ask-actions .btn { flex: 1 1 150px; justify-content: center; }
+
+/* UX re-audit: compact Home; full features live in their semantic tabs. */
+.app-header-row { gap: 10px; }
+.app-header-row > div:first-child { margin-right: auto; }
+.app-header .app-title { font-size: 26px; }
+.app-header .app-user { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; color: var(--ink); cursor: pointer; }
+.app-header #homeManaCard { display: flex; flex: 0 1 auto; width: auto; min-height: 44px; margin: 0; padding: 8px 10px; border-radius: 22px; gap: 5px; }
+.app-header #homeManaCard .home-mana-orb { width: auto; height: auto; font-size: 15px; background: none; }
+.app-header #homeManaCard strong, .app-header #homeManaSub { display: none; }
+.app-header #homeManaMeta { font-size: 12px; white-space: nowrap; color: var(--gold); }
+#screen-day .home-primary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+#screen-day .home-primary-row { display: contents; }
+#screen-day .home-primary-btn { min-height: 80px; padding: 12px; background: rgba(255,255,255,.035); border: 1px solid var(--line); box-shadow: none; }
+#screen-day .home-primary-btn strong { font-size: 14px; }
+#screen-day .home-primary-btn small { font-size: 11px; }
+#dailyCardTeaser { margin: 12px 0; min-height: 210px; padding: 18px; }
+#dailyCardTeaser .today-wow-btn { width: 100%; margin-top: 12px; background: var(--gold); color: #17131f; min-height: 48px; }
+#dailyCardTeaser .today-wow-btn span { display: none; }
+.daily-journal-disclosure { margin: 16px 0; border: 1px solid var(--line); border-radius: 16px; padding: 0 14px; }
+.daily-journal-disclosure > summary { cursor: pointer; padding: 16px 0; font-size: 14px; }
+#dailyJournalDisclosure #dailyJournal { margin: 0; }
+#arcFeatures { margin: 12px 0; }
+#arcFeatures > button { width: 100%; min-height: 54px; }
+#profileFeatures { margin-top: 16px; }
+#profileFeatures #todayWow { margin-top: 0; }
+.history-status { text-align: center; padding: 26px 14px; border: 1px solid var(--line); border-radius: 18px; }
+.history-status h3 { font-size: 19px; margin: 0 0 12px; }
+.history-status p { color: var(--ink-mute); line-height: 1.6; }
+.history-status .btn { margin: 8px 4px; }
+button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }

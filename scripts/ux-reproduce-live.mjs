@@ -1,0 +1,12 @@
+import { chromium } from '@playwright/test';
+import fs from 'node:fs/promises';
+const browser=await chromium.launch();const page=await browser.newPage({viewport:{width:360,height:800}});
+await page.route('**/*',r=>['GET','HEAD'].includes(r.request().method())?r.continue():r.abort());
+await page.goto('https://astro.burlab-api.site/');await page.locator('.onb-skip').click();
+const snapshot=()=>page.evaluate(()=>({screens:[...document.querySelectorAll('.screen-root:not([hidden])')].map(n=>({id:n.id,text:n.innerText.trim()})),active:[...document.querySelectorAll('.bottom-tab.is-active')].map(n=>n.dataset.tab)}));
+await page.locator('#todayChartBtn').click();await page.locator('#panelChart').waitFor({state:'visible'});await page.locator('#panelChart .panel-close').click();
+const chartClose=await snapshot();await page.screenshot({path:'artifacts/ux-baseline/chart-close-360.png'});
+await page.locator('[data-tab="home"]').click();
+const avatar=page.locator('#userAvatar');console.log('Avatar count',await avatar.count());
+await avatar.click();const avatarProfile=await snapshot();await page.screenshot({path:'artifacts/ux-baseline/avatar-360.png'});
+await fs.writeFile('artifacts/ux-baseline/regressions.json',JSON.stringify({chartClose,avatarProfile},null,2));console.log(JSON.stringify({chartClose,avatarProfile}));await browser.close();

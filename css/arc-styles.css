@@ -2388,6 +2388,25 @@
 }
 
 
+/* UX-04: one catalog, shared by every Arc template. */
+.arc-catalog { margin-bottom: 20px; min-width: 0; }
+.arc-catalog .arc-spread-tabs {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px; overflow: visible; padding: 0; white-space: normal;
+}
+.arc-catalog .arc-spread-tab {
+  min-width: 0; width: 100%; min-height: 48px; padding: 10px 6px;
+  white-space: normal; justify-content: center; text-align: center;
+}
+.arc-catalog .arc-spread-tab-label { white-space: normal; overflow-wrap: anywhere; }
+.arc-other-spreads { margin-top: 10px; border: 1px solid var(--arc-line, #514456); border-radius: 12px; }
+.arc-other-spreads > summary { min-height: 44px; padding: 12px; cursor: pointer; color: var(--arc-ink, #f4f0e6); }
+.arc-other-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 8px; }
+.arc-selected-spread { margin: 10px 0 0; font-size: 13px; line-height: 1.5; }
+.arc-catalog :is(button, summary):focus-visible { outline: 2px solid var(--gold, #d4af37); outline-offset: 3px; }
+/* Also suppress legacy HTML during lazy loading, before runtime removal. */
+#arcNav, #arcMobileNav { display: none !important; }
+
 /* ---------- MOBILE ARC SIMPLIFICATION ---------- */
 @media (max-width: 600px) {
   .arc-hero { display: none; }

@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0b0a1a" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="dark">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json?v=3.202">
+  <link rel="manifest" href="manifest.json?v=3.203">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,11 +35,11 @@
   <title>Гадалка</title>
 
   <!-- Telegram WebApp SDK -->
-  <script defer src="js/vendor/telegram-web-app.js?v=3.202"></script>
+  <script defer src="js/vendor/telegram-web-app.js?v=3.203"></script>
 
-  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.202">
+  <link rel="stylesheet" href="css/vendor/fonts.css?v=3.203">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.202">
+  <link rel="stylesheet" href="css/styles.css?v=3.203">
 
   <link rel="icon" type="image/svg+xml" href="img/icon-192.svg">
   <link rel="shortcut icon" href="img/icon-192.svg">
@@ -90,6 +90,8 @@
     <section id="screen-history" class="screen-root" data-screen-root="history" aria-label="История" hidden aria-hidden="true"></section>
     <section id="screen-profile" class="screen-root" data-screen-root="profile" aria-label="Профиль" hidden aria-hidden="true"></section>
 
+    <section id="profileFeatures" aria-label="Возможности профиля"></section>
+    <section id="arcFeatures" aria-label="Другие гадания"></section>
     <!-- ─── HEADER ─────────────────────────────────────── -->
     <header class="app-header">
       <div class="app-header-row">
@@ -97,9 +99,9 @@
           <div class="app-eyebrow" id="dateLabel">Добро пожаловать</div>
           <h1 class="app-title">Гадалка</h1>
         </div>
-        <div class="app-user" id="userChip" aria-label="Профиль">
+        <button type="button" class="app-user" id="userChip" aria-label="Профиль">
           <span id="userAvatar">⚜</span>
-        </div>
+        </button>
       </div>
     </header>
 
@@ -107,11 +109,11 @@
       <div class="today-wow-orb" aria-hidden="true">✦</div>
       <div class="today-wow-copy">
         <p class="today-wow-kicker">Сегодня для тебя</p>
-        <h2 id="todayWowTitle">Открой знак дня за один тап</h2>
-        <p>Карта, натальная карта и совместимость — три быстрых входа в магию без поиска по меню.</p>
+        <h2 id="todayWowTitle">Моя астрология</h2>
+        <p>Натальная карта и совместимость по данным рождения.</p>
       </div>
       <div class="today-wow-actions" aria-label="Быстрые действия на сегодня">
-        <button type="button" class="today-wow-btn" id="todayCardBtn"><span>🃏</span><strong>Карта дня</strong></button>
+        <button type="button" class="today-wow-btn" id="todayCardBtn"><span>🃏</span><strong>Открыть карту дня</strong></button>
         <button type="button" class="today-wow-btn" id="todayChartBtn"><span>♃</span><strong>Натальная карта</strong></button>
         <button type="button" class="today-wow-btn" id="todayCompatBtn"><span>♥</span><strong>Совместимость</strong></button>
       </div>
@@ -158,6 +160,7 @@
     </section>
 
     <section class="home-ask-flow" id="homeAskFlow" hidden aria-labelledby="homeAskFlowTitle">
+      <button type="button" id="askClose" class="btn btn-ghost">← Назад</button>
       <div class="home-ask-flow-head">
         <div>
           <p class="home-ask-kicker">быстрый расклад</p>
@@ -344,8 +347,10 @@
       <div class="dream-result" id="dreamResult" hidden></div>
     </section>
 
+    <details id="dailyJournalDisclosure" class="daily-journal-disclosure"><summary>Мой дневник · заметки и мана</summary></details>
     <!-- ─── HERO CARD: сегодняшний расклад ─────────────── -->
     <section class="hero-card" id="heroCard" aria-labelledby="heroTitle">
+      <button type="button" id="dailyClose" class="btn btn-ghost">← Назад</button>
       <div class="hero-card-eyebrow">Карта дня</div>
 
       <!-- Tap-to-flip card -->
@@ -628,6 +633,11 @@
         <input type="search" id="homeHistorySearchInput" placeholder="🔍 Поиск по вопросу или картам..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
         <button type="button" class="arc-history-search-clear" id="homeHistorySearchClear" aria-label="Очистить" hidden>✕</button>
       </div>
+      <div id="homeHistoryStatus" class="history-status" role="status" aria-live="polite" hidden>
+        <h3></h3><p></p>
+        <button type="button" class="btn btn-primary" id="historyOpenTelegram" hidden>Открыть в Telegram</button>
+        <button type="button" class="btn btn-ghost" id="historyRetry" hidden>Повторить</button>
+      </div>
       <div class="arc-history-empty" id="homeHistoryEmpty" hidden>
         <div class="arc-history-empty-icon" aria-hidden="true">✦</div>
         <h3 class="arc-history-empty-title">Пока пусто</h3>
@@ -794,7 +804,7 @@
         <!-- FOOTER -->
         <footer class="arc-site-footer">
           <p>Гадалка · Гадания на картах · Telegram Mini App</p>
-          <p style="margin-top:6px;font-size:11px;">v3.202 · карты не принимают решения за вас</p>
+          <p style="margin-top:6px;font-size:11px;">v3.203 · карты не принимают решения за вас</p>
         </footer>
 
       </div>
@@ -803,7 +813,7 @@
     <!-- ─── FOOTER ─────────────────────────────────────── -->
     <footer class="app-footer">
       <p>Гадалка · Telegram Mini App</p>
-      <p class="app-footer-meta">v3.202 · запущено <span id="loadedAt">—</span></p>
+      <p class="app-footer-meta">v3.203 · запущено <span id="loadedAt">—</span></p>
     </footer>
 
   </div>
@@ -811,12 +821,12 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script defer src="js/data.js?v=3.202"></script>
-  <script defer src="js/tarot.js?v=3.202"></script>
-  <script defer src="js/biorhythm.js?v=3.202"></script>
-  <script defer src="js/chart.js?v=3.202"></script>
-  <script defer src="js/api-auth.js?v=3.202"></script>
-  <script defer src="js/app.js?v=3.202"></script>
+  <script defer src="js/data.js?v=3.203"></script>
+  <script defer src="js/tarot.js?v=3.203"></script>
+  <script defer src="js/biorhythm.js?v=3.203"></script>
+  <script defer src="js/chart.js?v=3.203"></script>
+  <script defer src="js/api-auth.js?v=3.203"></script>
+  <script defer src="js/app.js?v=3.203"></script>
 
   <!-- BOTTOM TAB BAR — sticky навигация как в нативном приложении -->
   <nav class="bottom-tabs" id="bottomTabs" aria-label="Основная навигация">

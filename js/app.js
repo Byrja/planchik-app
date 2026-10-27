@@ -66,10 +66,9 @@
       return src ? new URL(src).searchParams.get('v') || '' : '';
     } catch (_) { return ''; }
   })();
-  const ARC_BUNDLE = [
+  const ARC_DECK_BUNDLE = [
     'js/arc-runes.js', 'js/arc-lenormand.js', 'js/arc-gypsy.js',
-    'js/arc-playing.js', 'js/arc-tarot.js', 'js/arc-tarot-minor.js',
-    'js/arc-app.js',
+    'js/arc-playing.js', 'js/arc-tarot.js',
   ];
   let arcBundlePromise = null;
   function loadArcStyles() {
@@ -87,20 +86,32 @@
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
+      let timeoutId = setTimeout(() => {
+        script.remove();
+        reject(new Error(`asset_timeout:${src}`));
+      }, 12000);
       script.src = `${src}${APP_ASSET_VERSION ? `?v=${encodeURIComponent(APP_ASSET_VERSION)}` : ''}`;
       script.async = false;
-      script.onload = resolve;
-      script.onerror = () => reject(new Error(`asset_load_failed:${src}`));
+      script.onload = () => { clearTimeout(timeoutId); resolve(); };
+      script.onerror = () => {
+        clearTimeout(timeoutId);
+        reject(new Error(`asset_load_failed:${src}`));
+      };
       document.head.appendChild(script);
     });
   }
   function ensureArcBundle() {
     if (window.ArcApp) return Promise.resolve(window.ArcApp);
     if (!arcBundlePromise) {
-      arcBundlePromise = ARC_BUNDLE.reduce(
-        (chain, src) => chain.then(() => loadScript(src)),
+      // Deck data is independent and can load in parallel. The minor arcana
+      // extends the major arcana, and the controller needs every deck loaded,
+      // so keep only those two dependency edges sequential.
+      arcBundlePromise = Promise.all([
         loadArcStyles(),
-      ).then(() => {
+        ...ARC_DECK_BUNDLE.map(loadScript),
+      ]).then(() => loadScript('js/arc-tarot-minor.js'))
+        .then(() => loadScript('js/arc-app.js'))
+        .then(() => {
         if (!window.ArcApp) throw new Error('arc_app_missing');
         return window.ArcApp;
       }).catch((error) => {

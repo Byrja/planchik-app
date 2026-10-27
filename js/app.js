@@ -100,6 +100,14 @@
       document.head.appendChild(script);
     });
   }
+  function scheduleArcPrefetch() {
+    const start = () => ensureArcBundle().catch(() => {});
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(start, { timeout: 1800 });
+    } else {
+      setTimeout(start, 1200);
+    }
+  }
   function ensureArcBundle() {
     if (window.ArcApp) return Promise.resolve(window.ArcApp);
     if (!arcBundlePromise) {
@@ -768,6 +776,9 @@
     wireHistorySearch();
     updateHistoryBadge();
     scheduleBackendHydration();
+    // Прогреваем необязательный портал после первого paint, чтобы «Карты»
+    // открывались без длинного ожидания на первом клике.
+    scheduleArcPrefetch();
 
     if (state.user.startParam === 'mychart') setTimeout(openChartPanel, 50);
 
@@ -3465,7 +3476,6 @@
       tileActive('history', true);
       if (getInitData()) void refreshHistoryFromBackend();
       else renderHomeHistory(false);
-      ensureArcBundle().catch(() => {});
       try { p.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
     }
   }

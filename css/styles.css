@@ -2794,3 +2794,14 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); ou
 #onboarding{align-items:center}
 #onboarding .onb-next{width:auto}
 #onboarding .onb-nav{width:min(100%,430px)}
+
+/* Home UX pass: keep the daily-card CTA readable after the action is moved
+   into the teaser, and let a single secondary action use the full row. */
+#screen-day #dailyCardTeaser #todayCardBtn {
+  color: #17131f;
+  background: linear-gradient(135deg, var(--gold-2), var(--gold));
+  border-color: transparent;
+}
+#screen-day .home-primary-row {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
